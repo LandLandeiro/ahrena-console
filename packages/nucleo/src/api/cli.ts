@@ -32,6 +32,7 @@ import { githubSyncSteps } from './github-screens.ts';
 import { GithubGraphqlSource } from '../github/github-source.ts';
 import { SqliteCacheStore } from '../github/sqlite-cache.ts';
 import { GITHUB_CALL_LIMIT, GithubCallQueue } from '../github/call-queue.ts';
+import { InstallationRepositoryTrust } from '../github/trusted-owners.ts';
 import { chooseVault, GithubConnection, GithubNotConnectedError } from '../github/connection/index.ts';
 import { parseProjectEnv, PROJECT_ENV } from '../github/project-selection.ts';
 import { SqliteInstallationSettings } from '../settings/installation-settings.ts';
@@ -465,6 +466,11 @@ coreGithub = await createCoreGithub({
 });
 const { connection, screens } = coreGithub;
 /*
+ * #594 one trust source for the board's cards, the issue detail and the Planejar / Executar plano routes: the stored
+ * `work.trustedOwners`, else the owner of the Project the board reads (none chosen: nobody is trusted).
+ */
+const repositoryTrust = new InstallationRepositoryTrust(settings, () => screens.project?.selection() ?? null);
+/*
  * #465 #466 the work board (`GET /api/work`): the kanban's Project (the same resolver as /api/project),
  * the live sessions of the fleet, the parents outside the Project through the GitHub cache, the time in
  * column in this database, #507 the planning runs, #531 the execution runs, and no queue until #477. Under --demo, the simulator's Project and its folders
@@ -475,6 +481,7 @@ const executionRuns = new SqliteWorkExecutionRuns(sqlite.db);
 const workBoard =
   screens.project && workSource
     ? new WorkBoardService({
+        trust: repositoryTrust,
         project: selectedProjectBoard(screens.project),
         sessions: new FleetWorkSessions({ fleet: mcp.fleet, ...(demo ? { locate: simulatorWorkBoardLocate } : {}) }),
         queue: EMPTY_WORK_QUEUE,
@@ -493,7 +500,7 @@ const workBoard =
  * detail and under --no-github no GitHub: 503 off. */
 const workIssue =
   workSource instanceof GithubGraphqlSource
-    ? new WorkIssueService({ source: workSource, writer: workSource, cache: githubCache, ...(screens.project ? { project: selectedProjectBoard(screens.project) } : {}), log })
+    ? new WorkIssueService({ source: workSource, writer: workSource, cache: githubCache, trust: repositoryTrust, ...(screens.project ? { project: selectedProjectBoard(screens.project) } : {}), log })
     : null;
 /* #590 the issue options of a repository (`GET /api/work/issue/options`), through the same GitHub cache; off as the issue detail is. */
 const workIssueOptions = workSource instanceof GithubGraphqlSource ? new WorkIssueOptionsService({ source: workSource, cache: githubCache, log }) : null;
@@ -750,9 +757,9 @@ const api: LocalApi = await startLocalApi({
   work: { service: workBoard, fromStore: githubSync !== null },
   workIssue: { service: workIssue },
   workIssueOptions: { service: workIssueOptions },
-  workPlan: { issues: workIssue, runs: planRuns },
+  workPlan: { issues: workIssue, runs: planRuns, trust: repositoryTrust },
   // #531 without the board there is nothing to count the limit against: the route answers 503.
-  ...(workBoard ? { workRun: { issues: workIssue, runs: executionRuns, running: workBoard } } : {}),
+  ...(workBoard ? { workRun: { issues: workIssue, runs: executionRuns, running: workBoard, trust: repositoryTrust } } : {}),
   connection,
   // --no-github keeps its own off / no-github answers; otherwise 409 github-not-connected before any call.
   githubConnected: coreGithub.connected,
