@@ -40,6 +40,7 @@ import { executionLimitOf } from '../github/work-execution.ts';
 import { SqliteWorkQueue } from '../github/work-queue-store.ts';
 import { WorkQueuePuller } from './work-queue-puller.ts';
 import { WorkBoardService } from '../github/work-board-service.ts';
+import { createWorkBoardProjects, workProjectsSyncSteps } from '../github/work-board-projects.ts';
 import { FleetWorkSessions } from '../github/work-board-sessions.ts';
 import { SqliteWorkColumnHistory } from '../github/work-board-history.ts';
 import { CachedParentLookup } from '../github/work-board-parents.ts';
@@ -468,10 +469,15 @@ coreGithub = await createCoreGithub({
 });
 const { connection, screens } = coreGithub;
 /*
+ * #598 #609 the Projects of every granted organization and of the account, read for the work board and kept fresh by the
+ * `work-projects` sync step. Not under --demo (the simulator has one Project) nor --no-github (no connection).
+ */
+const workProjects = createWorkBoardProjects({ demo, projectOptions: screens.projectOptions, access: coreGithub.access, connection, cache: githubCache, selection: () => screens.project?.selection() ?? null, log });
+/*
  * #594 one trust source for the board's cards, the issue detail and the Planejar / Executar plano routes: the stored
  * `work.trustedOwners`, else the owner of the Project the board reads (none chosen: nobody is trusted).
  */
-const repositoryTrust = new InstallationRepositoryTrust(settings, () => screens.project?.selection() ?? null);
+const repositoryTrust = new InstallationRepositoryTrust(settings, () => screens.project?.selection() ?? null, () => workProjects?.readOwners() ?? [], () => workProjects?.warnedOwners() ?? []);
 /*
  * #465 #466 the work board (`GET /api/work`): the kanban's Project (the same resolver as /api/project),
  * the live sessions of the fleet, the parents outside the Project through the GitHub cache, the time in
@@ -492,6 +498,7 @@ const workBoard =
     ? new WorkBoardService({
         trust: repositoryTrust,
         project: selectedProjectBoard(screens.project),
+        ...(workProjects ? { projects: workProjects } : {}),
         sessions: new FleetWorkSessions({ fleet: mcp.fleet, ...(demo ? { locate: simulatorWorkBoardLocate } : {}) }),
         queue: workQueue,
         limit: executionLimit,
@@ -544,7 +551,7 @@ if (workBoard && workIssue) {
 // Decision 0015 (#356): the core reads GitHub on a timer and the GitHub screens answer from the database.
 // Under --no-github there is no connection and no sync.
 githubSync = coreGithub.connected
-  ? new GithubBackgroundSync({ steps: [...githubSyncSteps(screens, coreGithub.connected), ...workQueueSyncSteps(workQueuePuller, coreGithub.connected)], pauseLeftMs: () => githubCache.pauseLeftMs(), log })
+  ? new GithubBackgroundSync({ steps: [...githubSyncSteps(screens, coreGithub.connected), ...workProjectsSyncSteps(workProjects, coreGithub.connected), ...workQueueSyncSteps(workQueuePuller, coreGithub.connected)], pauseLeftMs: () => githubCache.pauseLeftMs(), log })
   : null;
 
 // Machine telemetry (#175, decision 0008): one sample every 30 s, 12 h in the database, and each
