@@ -16,6 +16,56 @@ const PROTECTED_PATH_PATTERNS: RegExp[] = [
   /(?:^|[^A-Za-z0-9_.-])\.ssh(?:\/|$|[^A-Za-z0-9_-])/i,
 ];
 
+// A path or a word of a command starts after the start of the text, a space, a quote, `=`, a redirection, a separator, `/` or `~` (#618/AC-11).
+const A = '(?:^|[\\s"\'=<>:;|&(,{/~])';
+// A name ends where a longer name would start (#618/AC-11).
+const END = '(?![A-Za-z0-9_-])';
+
+/** A `hooks` or `config` segment anywhere below a `.git/`: the repo, a submodule, a bare repo, a worktree. Per word, from the first `.git/` only, so it is linear where the one-regex form is quadratic on `.git/.git/…` (#618/AC-11). */
+function namesGitHooksOrConfig(text: string): boolean {
+  return text.split(/\s+/).some((word) => {
+    const at = word.toLowerCase().indexOf('.git/');
+    return at >= 0 && new RegExp(`(?:^|/)(?:hooks|config)${END}`).test(word.slice(at + 5).toLowerCase());
+  });
+}
+
+/** Files that run by themselves later, or that change what the next agent run does (a git hook or config, a build or install script, a CI workflow, a shell, system or login start-up file, a scheduler, a package manager config, an instruction file). A call that names one is terminal-only, whatever the tool and however the path is spelled in a command, case-insensitive, anywhere in the tree. It over-matches by design, reads included: when in doubt, Desktop only (decision 0025 amendment, item 7; #618/AC-11). */
+const AUTO_RUN_PATH_PATTERNS: ReadonlyArray<{ test(text: string): boolean }> = [
+  // A bare repo (`x.git/hooks`) and a submodule (`.git/modules/m/config`) are caught too; over-matches by design (#618).
+  { test: namesGitHooksOrConfig },
+  new RegExp(`${A}\\.gitconfig${END}`, 'i'),
+  new RegExp(`${A}package\\.json${END}`, 'i'),
+  new RegExp(`${A}(?:gnumakefile|makefile)${END}|\\.mk${END}`, 'i'),
+  new RegExp(`${A}\\.github/workflows${END}`, 'i'),
+  new RegExp(`${A}\\.(?:zshrc|bashrc|bash_profile|bash_login|bash_logout|bash_aliases|profile|zprofile|zshenv|zlogin|zlogout|cshrc|tcshrc|kshrc|mkshrc|login|logout)${END}`, 'i'),
+  new RegExp(`${A}\\.config/(?:fish|git|systemd|autostart)${END}`, 'i'),
+  new RegExp(`${A}\\.husky${END}`, 'i'),
+  // Cloud, cluster, container and GitHub CLI configs, and the terminal multiplexer start-up (#618/AC-11).
+  new RegExp(`${A}\\.(?:aws|kube)/config${END}|${A}\\.docker/config\\.json${END}|${A}\\.config/gh${END}|${A}\\.tmux\\.conf${END}`, 'i'),
+  /launch(?:agents|daemons)/i,
+  new RegExp(`${A}\\.npmrc${END}|${A}\\.yarnrc(?:\\.ya?ml)?${END}`, 'i'),
+  // Build and install scripts run by the next build or install, and the package manager configs that steer them (#618/AC-11).
+  new RegExp(`${A}(?:setup\\.py|pyproject\\.toml|build\\.rs|rakefile|\\.?justfile|taskfile\\.ya?ml|\\.pnpmfile\\.c?js|bunfig\\.toml|pip\\.conf)${END}`, 'i'),
+  new RegExp(`${A}\\.yarn/plugins${END}|${A}\\.cargo/config(?:\\.toml)?${END}`, 'i'),
+  new RegExp(`${A}\\.pre-commit-config\\.ya?ml${END}|${A}\\.?lefthook(?:-local)?\\.(?:ya?ml|json|toml)${END}`, 'i'),
+  new RegExp(`${A}\\.vscode/tasks\\.json${END}`, 'i'),
+  // Python start-up files run by every interpreter or pytest start (#618/AC-11).
+  new RegExp(`${A}(?:sitecustomize\\.py|usercustomize\\.py|conftest\\.py)${END}|\\.pth${END}`, 'i'),
+  // System start-up files and schedulers: the dotless ones too (#618/AC-11).
+  new RegExp(`${A}/?etc/(?:z(?:shrc|profile|shenv|login|logout|sh)|bash\\.bashrc|bashrc|profile|environment|rc\\.local|rc\\d?\\.d|init\\.d|sudoers|cron|systemd|paths|launchd)`, 'i'),
+  new RegExp(`${A}/?var/spool/cron`, 'i'),
+  new RegExp(`${A}crontab${END}`, 'i'),
+  // What the next agent run reads as its commands, agents, skills and instructions (#618/AC-11).
+  new RegExp(`${A}\\.claude/(?:commands|agents|skills|rules|output-styles)${END}`, 'i'),
+  new RegExp(`${A}\\.claude\\.json${END}`, 'i'),
+  new RegExp(`${A}(?:claude|agents)(?:\\.local)?\\.md${END}`, 'i'),
+];
+/** The tools that only read: a path in their input is no write (#618/AC-11). */
+const READ_ONLY_TOOLS: ReadonlySet<string> = new Set(['Read', 'Grep', 'Glob', 'WebFetch']);
+/** The tools that write a file named by one path field: their body is content, not a path (#618/AC-11). */
+const FILE_WRITING_TOOLS: ReadonlySet<string> = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
+const PATH_FIELDS = ['file_path', 'notebook_path', 'path'] as const;
+
 /** What the agent could read the owner token from, or swap the hook through: cited anywhere in a command or a path (#618/AC-6). */
 const CITED_PATTERNS: RegExp[] = [/\.ahrena-console/i, /dev\.ahrena\.console/i, /\.claude\/plugins\b/i];
 
@@ -42,7 +92,8 @@ function spellings(text: string): string[] {
   return [text, unescapeShell(text)].flatMap((t) => [t, stripQuotes(t), deleteQuotes(t)]).map(normalizePath);
 }
 
-const RISKY_GIT_SUBCOMMANDS = new Set(['push', 'reset', 'clean']);
+// `config` rewrites .git/config or ~/.gitconfig without naming the file; `git config --get` over-matches, accepted (#618).
+const RISKY_GIT_SUBCOMMANDS = new Set(['push', 'reset', 'clean', 'config']);
 
 /** A tokenised scan, one pass per command segment (linear in the command, 64 KiB bound in 0025): recursive `rm`, and any `push`, `reset` or `clean` after a `git` word, whatever the flags or global options (#618/AC-9). */
 function hasRiskyVerb(segment: string): boolean {
@@ -68,10 +119,189 @@ function reachesGitIndirectly(form: string): boolean {
   return form.split(/[|;&\n]+/).some((segment) => /^[\s({]*\$\{?[A-Za-z_][A-Za-z0-9_]*\}?\s/.test(segment) && tokensOf(segment).some((t) => RISKY_GIT_SUBCOMMANDS.has(t)));
 }
 
+const PACKAGE_MANAGERS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
+const PACKAGE_JSON_EDITS = new Set(['set', 'delete', 'fix']);
+// `npm config set|delete|edit` rewrites `.npmrc` (or `.yarnrc.yml`) without naming it (#618/AC-11).
+const CONFIG_EDITS = new Set(['set', 'delete', 'edit']);
+
+/** `npm pkg set|delete|fix`, `npm set-script` and `npm config set|delete|edit`, with any manager and any option between: they rewrite `package.json` without naming it (#618/AC-11). */
+function mutatesPackageJson(form: string): boolean {
+  const tokens = tokensOf(form);
+  if (!tokens.some((t) => PACKAGE_MANAGERS.has(baseName(t)))) return false;
+  return tokens.some((t, i) => t === 'set-script' || (t === 'pkg' && PACKAGE_JSON_EDITS.has(tokens[i + 1] ?? '')) || (t === 'config' && CONFIG_EDITS.has(tokens[i + 1] ?? '')));
+}
+
+/** Words that open a package manager's own config command: `npm c set`, `npm conf delete`, `npm config edit` (#618/AC-11). */
+const CONFIG_WORDS = new Set(['c', 'config', 'conf']);
+/** Tools whose config command rewrites a file that runs or authenticates later: the word to find after the tool, anywhere in the segment (#618/AC-11). */
+const TOOL_CONFIG_WORDS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
+  ['claude', new Set(['mcp', 'config'])],
+  ['gh', new Set(['alias', 'config'])],
+  ['aws', new Set(['configure'])],
+  ['kubectl', new Set(['config'])],
+  ['pip', new Set(['config'])],
+  ['pip3', new Set(['config'])],
+]);
+
+/** One pass over the tokens of a segment, each read once (linear): the manager or tool word, then a later word that edits its config, whatever options sit between (#618/AC-11). */
+function segmentChangesToolConfig(tokens: string[]): boolean {
+  let manager = false;
+  let managerConfig = false;
+  const seen = new Set<string>();
+  for (const t of tokens) {
+    if (manager && (t === 'set' || (managerConfig && CONFIG_EDITS.has(t)))) return true;
+    if (manager && CONFIG_WORDS.has(t)) managerConfig = true;
+    for (const tool of seen) if (TOOL_CONFIG_WORDS.get(tool)?.has(t)) return true;
+    const name = baseName(t);
+    if (PACKAGE_MANAGERS.has(name)) manager = true;
+    else if (TOOL_CONFIG_WORDS.has(name)) seen.add(name);
+  }
+  return false;
+}
+
+/** `npm set` and `npm c set|delete|edit` (also pnpm, yarn, bun) write the user's `.npmrc`; `claude mcp|config` change what the next agent run loads; `gh alias|config` plant commands; `aws configure`, `kubectl config` and `pip config` write credentials and endpoints. Within a segment, with any option between. Over-matches by design: reads included (#618/AC-11, decision 0025 amendment). */
+function changesToolConfig(form: string): boolean {
+  return form.split(/[|;&\n]+/).some((segment) => segmentChangesToolConfig(tokensOf(segment)));
+}
+
+/** Schedulers and login items registered by command, and git configuration injected by environment (#618/AC-11). */
+const SCHEDULER_PATTERNS: RegExp[] = [
+  new RegExp(`${A}(?:launchctl|systemctl|systemd-run)${END}`),
+  /login\s*items?|com\.apple\.loginitems|loginwindow/,
+  new RegExp(`${A}git_(?:config[a-z0-9_]*|dir|ssh_command|external_diff|exec_path)=`),
+];
+/** `at` and `batch` count only in command position (first word of a segment, after env assignments), never as a word of prose (#618/AC-11). */
+const LEADING_NOISE = /^[\s({]+/;
+const ENV_ASSIGNMENT = /^[a-z_][a-z0-9_]*=/;
+/** Linear: strip the leading noise once, skip `name=value` words, compare the base name of the first remaining word (no overlapping quantifiers; #618/INP-9). */
+function startsWithAt(segment: string): boolean {
+  const words = segment.replace(LEADING_NOISE, '').split(/\s+/);
+  const first = words.find((w) => !ENV_ASSIGNMENT.test(w)) ?? '';
+  const name = first.slice(first.lastIndexOf('/') + 1);
+  return name === 'at' || name === 'batch';
+}
+
+const GIT_OPTIONS_WITH_VALUE = new Set(['-C', '--git-dir', '--work-tree', '--namespace', '--exec-path', '--attr-source', '--super-prefix']);
+/** The git global options that take no value. A long option before the subcommand that is in neither set nor spelled `--x=v` may take a separate value, so the subcommand cannot be told: terminal-only (#618/AC-9, decision 0025 amendment). */
+const GIT_OPTIONS_WITHOUT_VALUE = new Set(['--version', '--help', '--html-path', '--man-path', '--info-path', '--paginate', '--no-pager', '--no-replace-objects', '--bare', '--no-optional-locks', '--no-lazy-fetch', '--literal-pathspecs', '--glob-pathspecs', '--noglob-pathspecs', '--icase-pathspecs', '--no-advice']);
+/** Subcommands where `-c` is no configuration: `commit -c <commit>` reuses a message, `log`, `diff` and `show` take it as combined diff (#618/AC-9). */
+const GIT_SUBCOMMANDS_WITH_PLAIN_C = new Set(['commit', 'log', 'diff', 'show']);
+
+/** A git option that injects configuration or a template, on any token after a `git` word of the segment, not only before the subcommand: `git clone -c k=v`, `git init --template=d`, `-ck=v`. Case matters (`-C` is not `-c`), so it reads the raw spelling. After the subcommand, `-c` is let through only for the subcommands that read it otherwise; any other subcommand, an alias included, over-matches (#618/AC-9, decision 0025 amendment). */
+function gitSegmentInjectsConfig(tokens: string[]): boolean {
+  // Every `git` word restarts the scan, so a second git nested in the segment (`$(git -c k=v status)`) is read with its own subcommand; one pass, each token read once (#618/AC-9).
+  let active = false;
+  let subcommand: string | undefined;
+  for (let i = 0; i < tokens.length; i++) {
+    const o = tokens[i] ?? '';
+    if (baseName(o).toLowerCase() === 'git') {
+      active = true;
+      subcommand = undefined;
+      continue;
+    }
+    if (!active) continue;
+    const plainC = o.startsWith('-c') && !o.startsWith('--');
+    if (o.startsWith('--config') || o.startsWith('--template')) return true;
+    if (plainC && (subcommand === undefined || !GIT_SUBCOMMANDS_WITH_PLAIN_C.has(subcommand))) return true;
+    if (subcommand === undefined && o.startsWith('--') && !o.includes('=') && !GIT_OPTIONS_WITH_VALUE.has(o) && !GIT_OPTIONS_WITHOUT_VALUE.has(o)) return true;
+    if (GIT_OPTIONS_WITH_VALUE.has(o) && subcommand === undefined) i++;
+    else if (subcommand === undefined && !o.startsWith('-')) subcommand = o;
+  }
+  return false;
+}
+
+function gitInjectsConfig(form: string): boolean {
+  // One pass per segment, each token read once: linear in the command (#618/AC-9).
+  return form.split(/[|;&\n]+/).some((segment) => gitSegmentInjectsConfig(tokensOf(segment)));
+}
+
+/** Words of a command as the shell would split them, with each character marked quoted or not: quotes and backslashes are dropped, a quoted or escaped character reads as `q` in `masked`. Redirections and separators split words (#618/AC-11). */
+function shellWords(command: string): Array<{ plain: string; masked: string }> {
+  const words: Array<{ plain: string; masked: string }> = [];
+  let plain = '';
+  let masked = '';
+  let quote = '';
+  const flush = () => {
+    if (plain) words.push({ plain, masked });
+    plain = '';
+    masked = '';
+  };
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i] ?? '';
+    if (quote) {
+      if (c === quote) quote = '';
+      else {
+        plain += c;
+        masked += 'q';
+      }
+    } else if (c === '"' || c === "'") quote = c;
+    else if (c === '\\') {
+      plain += command[++i] ?? '';
+      masked += 'q';
+    } else if (/[\s;|&()<>]/.test(c)) flush();
+    else {
+      plain += c;
+      masked += c;
+    }
+  }
+  flush();
+  return words;
+}
+
+/** Linear scan: `*`, `?`, `[`, or a `{` closed by `}` with a `,` or `..` between (#618/INP-9). */
+function hasUnquotedGlob(masked: string): boolean {
+  let open = false;
+  let sep = false;
+  for (let i = 0; i < masked.length; i++) {
+    const c = masked[i];
+    if (c === '*' || c === '?' || c === '[') return true;
+    if (c === '{') {
+      open = true;
+      sep = false;
+    } else if (open && (c === ',' || (c === '.' && masked[i + 1] === '.'))) sep = true;
+    else if (c === '}') {
+      if (open && sep) return true;
+      open = false;
+      sep = false;
+    }
+  }
+  return false;
+}
+const PATH_START = /^[~./]/;
+
+/** An unquoted `*`, `?`, `[` or `{a,b}` in a word that starts with `~`, `.` or `/` (or after an `=`): it could expand to a floor path, so it is terminal-only. Over-matches `./scripts/*.sh` and `/tmp/*.log`; `src/*.ts` stays allowable (#618/AC-11, decision 0025 amendment). */
+function expandsPathByGlob(command: string): boolean {
+  return shellWords(command).some(({ plain, masked }) => {
+    if (!hasUnquotedGlob(masked)) return false;
+    const eq = plain.indexOf('=');
+    return PATH_START.test(plain) || (eq >= 0 && PATH_START.test(plain.slice(eq + 1))) || /^[{$]/.test(plain) || plain.includes('..') || plain.includes('$');
+  });
+}
+
+/** A word of a command that is only the directory of an auto-run folder, with any prefix (`~/`, `$HOME/`, `./`, a path) and a trailing `/`: the file comes in a later word (`cd .claude && tee settings.local.json`). Over-matches `ls ~/.config` (#618/AC-11, decision 0025 amendment). */
+const AUTO_RUN_DIRECTORIES = ['.claude', '.git', '.github', '.aws', '.kube', '.docker', '.config', '.config/gh', '.config/fish', '.config/git', '.config/systemd', '.config/autostart'];
+function namesAutoRunDirectory(text: string): boolean {
+  return text.split(/[\s;|&()<>]+/).some((word) => {
+    const w = word.replace(/\/+$/, '').toLowerCase();
+    return AUTO_RUN_DIRECTORIES.some((dir) => w === dir || w.endsWith(`/${dir}`));
+  });
+}
+
+/** An expansion joined to a path: a word with `$` and `/`, or `$(…)` next to a `/`. The text it expands to is unknown, so it could rebuild a floor path (`d=.cla; tee ${d}ude/settings.local.json`). Over-matches `cat $HOME/x` (#618/AC-11, decision 0025 amendment). */
+function joinsExpansionWithSlash(command: string): boolean {
+  if (command.includes('$(') && (command.includes(')/') || command.includes('/$('))) return true;
+  return shellWords(command).some(({ plain }) => plain.includes('$') && plain.includes('/'));
+}
+
 function commandIsTerminalOnly(rawCommand: string): boolean {
-  const forms = spellings(rawCommand);
+  // `$'\x2e…'` spells any character by code, so no text scan can read it: any ANSI-C quote is terminal-only (#618/AC-11).
+  if (rawCommand.includes("$'")) return true;
+  if (spellings(rawCommand).some((form) => gitInjectsConfig(form) || namesAutoRunDirectory(form)) || expandsPathByGlob(rawCommand) || joinsExpansionWithSlash(rawCommand)) return true;
+  // Command names are compared whatever the case, as the macOS disk is: `Git push`, `RM -rf` (#618/AC-11).
+  const forms = spellings(rawCommand.toLowerCase());
   if (forms.some((form) => COMMAND_PATTERNS.some((re) => re.test(form)))) return true;
-  if (forms.some(downloadsAndRuns) || forms.some(reachesGitIndirectly)) return true;
+  if (forms.some((form) => SCHEDULER_PATTERNS.some((re) => re.test(form)) || form.split(/[|;&\n]+/).some(startsWithAt))) return true;
+  if (forms.some(downloadsAndRuns) || forms.some(reachesGitIndirectly) || forms.some(mutatesPackageJson) || forms.some(changesToolConfig)) return true;
   return forms.some((form) => form.split(/[|;&\n]+/).some(hasRiskyVerb));
 }
 
@@ -100,5 +330,13 @@ export function isTerminalOnly(toolName: string, toolInput: unknown): boolean {
   if (!collectStrings(toolInput, strings)) return true;
   const cites = (form: string) => CITED_PATTERNS.some((re) => re.test(form)) || PROTECTED_PATH_PATTERNS.some((re) => re.test(form));
   if (strings.some((text) => spellings(text).some(cites))) return true;
+  if (touchesAutoRunFile(toolName, toolInput as Record<string, unknown>, strings)) return true;
   return typeof command === 'string' && commandIsTerminalOnly(command);
+}
+
+/** What a call outside the read-only set names that runs by itself: the path field of a file-writing tool, the command of Bash, every string of any other tool, since its path fields are unknown (#618/AC-11). Only a path, never a body: a Write whose content names `package.json` is not a write to it. */
+function touchesAutoRunFile(toolName: string, input: Record<string, unknown>, strings: string[]): boolean {
+  if (READ_ONLY_TOOLS.has(toolName)) return false;
+  const named = FILE_WRITING_TOOLS.has(toolName) ? PATH_FIELDS.map((field) => input[field]).filter((v): v is string => typeof v === 'string') : toolName === 'Bash' ? [input['command']].filter((v): v is string => typeof v === 'string') : strings;
+  return named.some((text) => spellings(text).some((form) => AUTO_RUN_PATH_PATTERNS.some((re) => re.test(form))));
 }
