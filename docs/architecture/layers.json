@@ -111,6 +111,11 @@
         "layer": "domain",
         "evidence": "the data model of sessions, agents, events and tokens; imports only identity.ts"
       },
+      "observability": {
+        "layer": "edge",
+        "evidence": "otel-observer.ts imports @opentelemetry/* and node:async_hooks, builds the exporters and writes to the process log: the edge adapter behind the observability port; setup.ts is the composition root that loads it by import() (the other files, port.ts and masking.ts, are pure)",
+        "mixed": "port.ts and masking.ts are pure (domain); setup.ts is the composition root and otel-observer.ts the edge"
+      },
       "owner": {
         "layer": "edge",
         "evidence": "the core process: lock file, installation, start guard, probe and CLI (6 of 13 files import node:fs, 5 node:http or node:net)",
