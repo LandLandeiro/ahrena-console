@@ -42,6 +42,13 @@ describe('#719/AC-10 the module never reads the ai-memory token (#727/AC-4)', ()
     }
   });
 
+  test('#719/AC-10 the core wires the memory module with no data dir of its own (#735)', () => {
+    const cli = readFileSync(join(TEST_DIR, '..', 'src', 'api', 'cli.ts'), 'utf8');
+    const call = /createMemoryModule\(([^)]*)\)/.exec(cli);
+    assert.ok(call, 'cli.ts creates the memory module');
+    assert.equal(/dataDir/.test(call[1]!), false, 'cli.ts passes no dataDir to the memory module');
+  });
+
   test('#719/AC-10 no non-test file of the module imports node:fs or reads a file', () => {
     for (const path of memorySources()) {
       const text = readFileSync(path, 'utf8');
@@ -99,9 +106,10 @@ describe('#719/AC-11 nothing from the memory module leaves the machine (#727/AC-
    * exists is the OTLP observer; a payload can carry a field of the module only if the code that
    * builds it can reach the module. So: no module outside memory/ imports it, but the ones listed
    * here. The list is empty today; adding a name to it is a review decision, and it may never hold
-   * observability, telemetry, a hub or a remote sender.
+   * observability, telemetry, a hub or a remote sender. #735: the three files of the local read routes and the composition root that builds the module
+   * (the routes answer the interface of this machine only); a test file may import the module, it sends nothing.
    */
-  const ALLOWED_IMPORTERS: string[] = [];
+  const ALLOWED_IMPORTERS: string[] = ['packages/nucleo/src/api/cli.ts', 'packages/nucleo/src/api/memory-route.ts', 'packages/nucleo/src/api/memory-view.ts'];
   const NEVER_ALLOWED = [/\/observability\//, /\/telemetry\//, /hub/i, /remote/i, /otel/i];
   const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)['"]([^'"]+)['"]/g;
 
@@ -111,7 +119,7 @@ describe('#719/AC-11 nothing from the memory module leaves the machine (#727/AC-
     const roots = [join(REPO_ROOT, 'packages'), join(REPO_ROOT, 'apps')];
     for (const root of roots) {
       for (const path of files(root, (p) => isSource(p) && !p.includes('/node_modules/'))) {
-        if (path.startsWith(`${MEMORY_DIR}/`) || path === THIS_FILE) continue;
+        if (path.startsWith(`${MEMORY_DIR}/`) || path === THIS_FILE || /\.test\.[a-z]+$/.test(path) || path.includes('/test/')) continue;
         scanned += 1;
         const text = readFileSync(path, 'utf8');
         for (const match of text.matchAll(SPECIFIER)) {
@@ -146,7 +154,7 @@ describe('#719/AC-11 nothing from the memory module leaves the machine (#727/AC-
     assert.ok(mcpFiles.length > 3, `the scan found the console MCP sources, not ${mcpFiles.length} files (#734)`);
     const importing = mcpFiles.filter((path) => [...readFileSync(path, 'utf8').matchAll(SPECIFIER)].some((m) => m[1]!.split('/').includes('memory') || /embedded-ai-memory/.test(m[1]!)));
     assert.deepEqual(importing.map((p) => relative(REPO_ROOT, p)), []);
-    assert.deepEqual(ALLOWED_IMPORTERS, [], 'the allowlist stays empty in phase 1 (#734)');
+    assert.equal(ALLOWED_IMPORTERS.some((p) => p.includes('/src/mcp/')), false, 'the console MCP is never an importer in phase 1 (#734)');
   });
 
   test('#719/AC-11 the scan sees an import of the module (so an empty result means something)', () => {
@@ -155,5 +163,70 @@ describe('#719/AC-11 nothing from the memory module leaves the machine (#727/AC-
     assert.equal(seen, true);
     const other = `import { x } from './embedded-ai-memory.ts';`;
     assert.equal([...other.matchAll(SPECIFIER)].some((m) => m[1]!.split('/').includes('memory')), false);
+  });
+});
+
+describe('#735/AC-3 #719/AC-11 a local path or a personal field of the ai-memory never leaves the machine (#735/D3)', () => {
+  const SRC = join(TEST_DIR, '..', 'src');
+  // data_dir, db_path, config_path and the service path are local paths; owner_user and accepted_by_user are personal data (#735). The cwd of a handoff is a local path too,
+  // but the MCP and the telemetry name `cwd` legitimately for sessions, so two proofs split the surfaces (#735):
+  // - the import scan above is the proof for the MCP and the telemetry (no file of theirs reaches the module that reads the handoffs) (#735);
+  // - the pattern with `cwd` is the proof for the two static surfaces the import scan cannot see, the remote contract (a JSON document) and the observability exporter (#735).
+  const LOCAL_FIELDS = /data_dir|db_path|config_path|service_path|owner_user|accepted_by_user/;
+  const LOCAL_FIELDS_AND_CWD = new RegExp(`\\bcwd\\b|${LOCAL_FIELDS.source}`);
+  const ONLY_HERE = (path: string) => path.startsWith(`${MEMORY_DIR}/`) || relative(REPO_ROOT, path) === 'packages/nucleo/src/api/memory-view.ts';
+
+  const OUTBOUND: [string, () => string[], RegExp][] = [
+    ['the console MCP, every tool output', () => files(join(SRC, 'mcp'), isSource), LOCAL_FIELDS],
+    ['the telemetry, every payload', () => files(join(SRC, 'telemetry'), isSource), LOCAL_FIELDS],
+    ['the observability exporter', () => files(join(SRC, 'observability'), isSource), LOCAL_FIELDS_AND_CWD],
+    ['the remote contract (packages/nucleo/remote-contract.json)', () => [join(TEST_DIR, '..', 'remote-contract.json')], LOCAL_FIELDS_AND_CWD],
+    ['the hub, wherever its code appears', () => files(join(REPO_ROOT, 'packages'), (p) => isSource(p) && /hub/i.test(relative(REPO_ROOT, p)) && !p.includes('/node_modules/')), LOCAL_FIELDS],
+  ];
+  for (const [name, list, pattern] of OUTBOUND) {
+    test(`#735/AC-3 #719/AC-11 ${name} names none of the local fields`, () => {
+      const found = list().filter((path) => pattern.test(readFileSync(path, 'utf8'))).map((p) => relative(REPO_ROOT, p));
+      assert.deepEqual(found, []);
+    });
+  }
+
+  test('#735/AC-3 the scan reads the outbound contracts it names (so an empty result means something)', () => {
+    assert.ok(OUTBOUND[0]![1]().length > 3);
+    assert.ok(OUTBOUND[1]![1]().length > 10);
+    assert.equal(OUTBOUND[3]![1]().length, 1);
+  });
+
+  test('#735/AC-3 outside the memory module and the view that puts them under local, no source of the repository names a local field', () => {
+    const named: string[] = [];
+    for (const root of [join(REPO_ROOT, 'packages'), join(REPO_ROOT, 'apps')]) {
+      for (const path of files(root, (p) => isSource(p) && !p.includes('/node_modules/') && !isTest(p) && !/\/test\//.test(p))) {
+        if (!ONLY_HERE(path) && LOCAL_FIELDS.test(readFileSync(path, 'utf8'))) named.push(relative(REPO_ROOT, path));
+      }
+    }
+    assert.deepEqual(named, []);
+  });
+
+  test('#735/AC-3 the scan of the static surfaces also sees a cwd (a planted line is reported)', () => {
+    assert.equal(LOCAL_FIELDS_AND_CWD.test('{ "cwd": "/somewhere" }'), true);
+    assert.equal(LOCAL_FIELDS_AND_CWD.test('{ "cwdx": 1 }'), false);
+    assert.equal(LOCAL_FIELDS_AND_CWD.test('const x = { owner_user: 1 }'), true);
+  });
+
+  test('#735/AC-3 the scan sees a local field (a planted line is reported)', () => {
+    assert.equal(LOCAL_FIELDS.test('const x = { owner_user: 1 }'), true);
+    assert.equal(LOCAL_FIELDS.test('const x = { owner: 1 }'), false);
+  });
+});
+
+describe('#735/AC-5 #719/AC-10 the route files never touch the token either', () => {
+  const ROUTE_FILES = ['memory-route.ts', 'memory-view.ts'].map((name) => join(TEST_DIR, '..', 'src', 'api', name));
+
+  test('#719/AC-10 the route files name no auth-token path, read no file and open no network', () => {
+    for (const path of ROUTE_FILES) {
+      const text = readFileSync(path, 'utf8');
+      assert.equal(/auth-tokens?/i.test(text), false, `${relative(REPO_ROOT, path)} names an auth-token path`);
+      assert.equal(/node:fs|readFile|createReadStream|\bfetch\s*\(|^import (?!type).*node:(?:http|https|net|tls)/m.test(text), false, `${relative(REPO_ROOT, path)} reads a file or opens a channel (a type-only import of node:http is not one)`);
+      assert.equal(/\blog\s*\(|console\./.test(text), false, `${relative(REPO_ROOT, path)} writes a log line`);
+    }
   });
 });
