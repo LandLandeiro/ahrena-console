@@ -41,6 +41,10 @@ export interface ProbeContext {
   isExecutable?: IsExecutable;
   /** The active Node's prefix (`{npmPrefix}`), or `null` without Node. */
   npmPrefix?: string | null;
+  /** The embedded binary's absolute path (#725), or `null` outside a bundle that has it. */
+  embeddedPath?: () => string | null;
+  /** Internal log (#726); receives named fields only (an errno code), never a path, a message or a stack. */
+  log?: (message: string) => void;
 }
 
 export function parseVersion(probe: ToolProbe, output: string): string | null {
@@ -84,9 +88,27 @@ export function detectSource(entry: ToolEntry, realPath: string, ctx: Pick<Probe
   return match(realPath) ?? (binaryPath && binaryPath !== realPath ? match(binaryPath) : null) ?? 'manual';
 }
 
+/** The embedded binary runs by the bundle's absolute path; the login PATH is never read for it (#726). */
+async function probeEmbedded(entry: ToolEntry & { probe: ToolProbe }, ctx: ProbeContext): Promise<Detection> {
+  let binaryPath: string | null = null;
+  try {
+    binaryPath = ctx.embeddedPath?.() ?? null;
+  } catch (err) {
+    // #726: the bundle lookup rethrows unexpected errno (ELOOP, EPERM); one tool's failed probe must not fail the overview.
+    const code = typeof err === 'object' && err !== null && 'code' in err && typeof err.code === 'string' ? err.code : 'error';
+    ctx.log?.(`tools: embedded ai-memory path not read (${code})`);
+  }
+  const base = { toolId: entry.id, binaryPath, realPath: binaryPath, sourceId: 'embedded' as const };
+  if (!binaryPath) return { ...base, installed: null, probeError: 'probe-failed' };
+  const r = await ctx.run([binaryPath, ...entry.probe.argv.slice(1)], { timeoutMs: PROBE_TIMEOUT_MS, env: toolsEnv(ctx.path, ctx.env) }).catch(() => null);
+  const installed = r ? parseVersion(entry.probe, `${r.stdout}\n${r.stderr}`) : null;
+  return { ...base, installed, probeError: installed ? null : !r || (r.code === null && r.error) ? 'probe-failed' : 'no-version' };
+}
+
 export async function probeTool(entry: ToolEntry, ctx: ProbeContext): Promise<Detection> {
   const none: Detection = { toolId: entry.id, installed: null, binaryPath: null, realPath: null, sourceId: null, probeError: null };
   if (!entry.probe || !appliesTo(entry, ctx.platform)) return none;
+  if (entry.embedded) return probeEmbedded({ ...entry, probe: entry.probe }, ctx);
   const binaryPath = await which(entry.probe.argv[0]!, ctx.path, { platform: ctx.platform, ...(ctx.isExecutable ? { isExecutable: ctx.isExecutable } : {}) });
   if (!binaryPath) return none;
   const realPath = await (ctx.realpath ?? fsRealpath)(binaryPath).catch(() => binaryPath);
