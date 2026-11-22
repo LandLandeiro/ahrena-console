@@ -60,6 +60,7 @@ import type { ManagedRuntime } from '../runtime/service.ts';
 // | `POST /api/machines/<id>/owner-proof/retry` | "Tentar agora": request the remote owner's proof now and read the machine (api/owner-proof-retry.ts, #388) |
 // | `GET`/`POST /api/ports/release`, and the same under `/api/machines/<id>/` | Release a listening port: SIGTERM, then SIGKILL (api/ports.ts, #286, decision 0016) |
 // | `GET /api/docker`, `GET /api/docker/plan`, `POST /api/docker/actions/<actionId>`, `DELETE /api/docker/jobs/<jobId>` | The Docker actions of a machine (api/docker.ts, src/docker, #288, decision 0017) |
+// | `GET /api/memory/plan`, `POST /api/memory/actions/<actionId>` | The embedded ai-memory's actions, local only, behind their own strict gate (api/memory-actions-route.ts) (#740) |
 // | `GET /api/memory`, `GET /api/memory/handoffs`, `GET /api/memory/pages`, `GET /api/memory/sessions/<id>` | The embedded ai-memory, read only and local: never on a remote credential or `?machine=` (api/memory-route.ts) (#735) |
 // | `GET /api/connectors`, `POST`/`DELETE /api/connectors/aws/sessions/<name>/login`, and the same under `/api/machines/<id>/` | The cloud connectors and their logins (api/clouds.ts, #277) |
 // | `GET /api/github/sync` | The GitHub background sync's steps: last run, next run, last error (decision 0015, #356) |
@@ -87,7 +88,7 @@ import type { ManagedRuntime } from '../runtime/service.ts';
 // The route-specific Origin/Host restrictions below are additional browser defenses, not identity.
 // Only static /ui, /api/overview and /api/hooks/health GETs are anonymous. See ADR0003.
 
-import { authorizeRequest, ownerProofRequired, type OwnerToken } from './owner-auth.ts';
+import { authorizeRequest, openedByRemote, ownerProofRequired, type OwnerToken } from './owner-auth.ts';
 import { createRemoteVerifier, REMOTE_CREDENTIALS_ROUTE, respondIssue } from './remote-auth.ts';
 import { RemoteCredentialStore } from './remote-credentials.ts';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -153,6 +154,7 @@ import { isTerminalsRoute, respondTerminalsWrite, terminalsWriteAllowed } from '
 import type { TerminalControl } from '../telemetry/terminal-actions.ts';
 import { isToolsRoute, isToolsWrite, respondTools, respondToolsWrite, toolsWriteAllowed } from './tools.ts';
 import { dockerWriteAllowed, isDockerRoute, isDockerWrite, type DockerRoute } from './docker.ts';
+import { isMemoryActionsRoute, isMemoryWrite, memoryWriteAllowed, type MemoryActionsRoute } from './memory-actions-route.ts';
 import { isMemoryRoute, respondNoMemory, type MemoryRoute } from './memory-route.ts';
 import type { ToolsControl } from '../tools/executor.ts';
 import { fromAnotherSite, fromOwnUi } from './same-origin.ts';
@@ -292,6 +294,8 @@ export interface ApiOptions {
   docker?: { route: DockerRoute; acceptNoOrigin: () => boolean } | null;
   /** The embedded ai-memory's read routes (#735; api/memory-route.ts): local only, read only; without it, `/api/memory` gives 404. */
   memory?: MemoryRoute | null;
+  /** The embedded ai-memory's actions (#740; api/memory-actions-route.ts): the plan and the confirm of activate, stop, start, deactivate and delete-data, local only; without it, 404. */
+  memoryActions?: MemoryActionsRoute | null;
   /** The cloud connectors (#277, decision 0013; api/clouds.ts): `/api/connectors` and the logins; without it, 404. */
   clouds?: CloudsRoute | null;
   /** The port release (#286, decision 0016; api/ports.ts): `/api/ports/release` and the same under `/api/machines/<id>/`; without it, 404. */
@@ -624,7 +628,7 @@ export function startLocalApi(opts: ApiOptions): Promise<LocalApi> {
         req.resume();
         return send(res, 403, { error: 'origem não permitida' });
       }
-      return respondToolsWrite(req, res, url, opts.tools);
+      return respondToolsWrite(req, res, url, opts.tools, openedByRemote(req));
     }
     // The terminal actions have a gate of their own, as strict as the Tools': no Origin is 403 too.
     if (isTerminalsRoute(url.pathname) && req.method !== 'GET') {
@@ -653,6 +657,18 @@ export function startLocalApi(opts: ApiOptions): Promise<LocalApi> {
         return send(res, 404, { error: 'o núcleo subiu sem a tela Docker' });
       }
       return opts.docker.route(req, res, url);
+    }
+    // The memory writes have their own gate, as strict as the Tools': our Host and exactly our Origin, no Origin is 403 too, and there is no remote-actions switch (#740/AC-6).
+    if (isMemoryWrite(req, url.pathname)) {
+      if (!memoryWriteAllowed(req, port)) {
+        req.resume();
+        return send(res, 403, { error: 'origem não permitida' });
+      }
+      if (!opts.memoryActions) {
+        req.resume();
+        return respondNoMemory(res);
+      }
+      return opts.memoryActions(req, res, url);
     }
     // The permission routes (#618) check their own proofs (hook only, the window's answer, the list) before the chain below, and audit what they refuse.
     if (permissions?.matches(url.pathname)) {
@@ -722,6 +738,7 @@ export function startLocalApi(opts: ApiOptions): Promise<LocalApi> {
     if (opts.ports && isPortsRoute(url.pathname)) return opts.ports.handle(req, res, url);
     if (opts.docker && isDockerRoute(url.pathname)) return opts.docker.route(req, res, url);
     // The memory routes are the owner's and local: the remote credential's closed list names none, and the route refuses `machine` (#735).
+    if (isMemoryActionsRoute(url.pathname)) return opts.memoryActions ? opts.memoryActions(req, res, url) : respondNoMemory(res);
     if (isMemoryRoute(url.pathname)) return opts.memory ? opts.memory(req, res, url) : respondNoMemory(res);
     if (opts.appUpdate && isAppUpdateRoute(url.pathname)) return opts.appUpdate(req, res, url);
     if (opts.githubSync && url.pathname === GITHUB_SYNC_ROUTE) return req.method === 'GET' ? send(res, 200, opts.githubSync.status()) : send(res, 405, { error: 'use GET' });
@@ -754,7 +771,7 @@ export function startLocalApi(opts: ApiOptions): Promise<LocalApi> {
     if (url.pathname === DELEGATIONS_PREVIEW_ROUTE) return opts.delegations ? opts.delegations(req, res, url) : respondDelegationsUnsupported(req, res);
     if (url.pathname === DIAGNOSIS_ROUTE) return opts.diagnosis ? opts.diagnosis(req, res, url) : respondDiagnosisUnsupported(res);
     if (isTelemetryRoute(url.pathname)) return respondTelemetry(res, url, opts.telemetry);
-    if (isToolsRoute(url.pathname)) return respondTools(res, url, opts.tools);
+    if (isToolsRoute(url.pathname)) return respondTools(res, url, opts.tools, openedByRemote(req));
     if (url.pathname === LOAD_ROUTE) {
       return send(res, 200, {
         ...counters,
