@@ -4,14 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Paleta do Ahrena Console</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <!-- Os logos são cópias de logo-laranja.svg e logo-preto.svg. Os valores vêm de tokens.json. O teste test/tokens.test.mjs confere que estão todos aqui. -->
 <style>
   :root {
-    --sans: "Poppins", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     --orange: #f47720;
     --rose: #df285d;
     --error: #e34948;
@@ -112,6 +109,8 @@
   .table td.why { color: var(--muted); }
   .table tr:hover td { background: var(--raised); }
   .mono { font-family: var(--mono); }
+  .type .t0 { font-size: 64px; font-weight: 500; font-variant-numeric: tabular-nums; margin: 0; line-height: 1.1; }
+  .type .tt { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin: 4px 0; }
   .type .t1 { font-size: 28px; font-weight: 600; margin: 0; }
   .type .t2 { font-size: 16px; font-weight: 500; margin: 4px 0; }
   .type .t3 { font-size: 14px; margin: 4px 0; }
@@ -233,12 +232,14 @@
     </table>
   </div>
 
-  <h3>Tipografia no artefato</h3>
+  <h3>Tipografia no artefato (64 px número herói, 30 px título de tela, 28 px)</h3>
   <div class="card type">
+    <p class="t0">12</p>
+    <p class="tt">Quem precisa de você</p>
     <p class="t1">Quem precisa de você</p>
-    <p class="t2">Poppins 500 · rótulos e títulos</p>
-    <p class="t3">Poppins 400 · texto corrido do console, 14 px.</p>
-    <p class="t4">JetBrains Mono · 7f3a2c1e · ~/ahrena-console · 62.6k / 200k · US$ 18,98</p>
+    <p class="t2">Fonte do sistema 500 · rótulos e títulos</p>
+    <p class="t3">Fonte do sistema 400 · texto corrido do console, 14 px.</p>
+    <p class="t4">Mono do sistema · 7f3a2c1e · ~/ahrena-console · 62.6k / 200k · US$ 18,98</p>
   </div>
 
   <h3>Painel nativo (só monoespaçada)</h3>

@@ -95,6 +95,7 @@ export function gerarCss(tokens: Tokens): string {
   for (const [nome, v] of Object.entries(tipo.size)) fixas.push(variavel(`text-${nome}`, v as string))
   for (const [name, v] of Object.entries(limpo(tokens.spacing))) fixas.push(variavel(`space-${name}`, v as string))
   for (const [nome, v] of Object.entries(limpo(tokens.radius))) fixas.push(variavel(`radius-${kebab(nome)}`, v as string))
+  for (const [nome, v] of Object.entries(limpo(tipo.tracking))) fixas.push(variavel(`tracking-${nome}`, v as string))
   for (const [nome, v] of Object.entries(tipo.weight)) fixas.push(variavel(`weight-${nome}`, v as number))
 
   const escuro = variaveisDoTema(tokens, 'dark')
@@ -102,8 +103,6 @@ export function gerarCss(tokens: Tokens): string {
   const indentar = (linhas: string[]) => linhas.map(l => `  ${l}`)
   return [
     cabecalho('/*').replace(/\n$/, ' */\n'),
-    `/* Fontes: ${tipo.googleFonts} */`,
-    '',
     '/* Escuro é o padrão. */',
     ':root {',
     '  color-scheme: dark;',

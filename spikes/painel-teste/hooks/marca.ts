@@ -199,25 +199,31 @@ export const status = {
 } as const
 
 export const tipografia = {
-  "sans": "\"Poppins\", \"Roboto\", ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
-  "mono": "\"JetBrains Mono\", ui-monospace, SFMono-Regular, Menlo, monospace",
-  "googleFonts": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap",
+  "sans": "-apple-system, BlinkMacSystemFont, \"SF Pro Text\", \"Segoe UI\", Inter, system-ui, sans-serif",
+  "mono": "ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
   "size": {
     "xs": "12px",
     "sm": "13px",
     "md": "14px",
     "lg": "16px",
     "xl": "20px",
-    "xxl": "28px"
+    "xxl": "28px",
+    "title": "30px",
+    "hero": "64px"
   },
   "weight": {
     "regular": 400,
     "medium": 500,
     "semibold": 600
   },
+  "tracking": {
+    "title": "-0.02em"
+  },
   "usos": {
     "sans": "títulos, rótulos e texto corrido no artefato",
-    "mono": "ids, caminhos, números de tabela, custo e tokens; e tudo no painel nativo"
+    "mono": "ids, caminhos, números de tabela, custo e tokens; e tudo no painel nativo",
+    "title": "título de tela, peso 600 e --tracking-title",
+    "hero": "o número herói, peso 500, com dígitos tabulares (font-variant-numeric: tabular-nums) e sem ajuste de espaçamento"
   }
 } as const
 

@@ -141,14 +141,19 @@ No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700
 
 ### Tipografia
 
-As mesmas fontes do site do The Forward Deployed Engineer, ambas livres (SIL Open Font License):
+A fonte é a **do sistema**. Não se baixa nada: a política de conteúdo do núcleo não tem `font-src` e a `/ui` não serve arquivo de fonte, então Poppins e JetBrains Mono, que a marca pedia até a decisão [0028](decisoes/0028-console-visual-redesign.md), nunca carregavam.
 
-- **Poppins** para títulos, rótulos e texto corrido no artefato: `"Poppins", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
-- **JetBrains Mono** para ids, caminhos, números de tabela, custo e tokens: `"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace`.
+- **Sans**, para títulos, rótulos e texto corrido no artefato: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif` (`--font-sans`). SF Pro no Mac, Segoe UI no Windows;
+- **Mono**, para ids, caminhos, números de tabela, custo e tokens: `ui-monospace, "SF Mono", Menlo, Consolas, monospace` (`--font-mono`).
 
-No artefato HTML, as duas vêm do Google Fonts, com a pilha do sistema como reserva. No painel nativo do Claude Desktop não dá para escolher fonte: ele usa a monoespaçada do app. Ali a hierarquia vem de peso (negrito nos títulos), caixa alta nos cabeçalhos de seção, cor (texto principal e secundário) e dos glifos de status.
+No painel nativo do Claude Desktop não dá para escolher fonte: ele usa a monoespaçada do app. Ali a hierarquia vem de peso (negrito nos títulos), caixa alta nos cabeçalhos de seção, cor (texto principal e secundário) e dos glifos de status.
 
-Escala do artefato: 12, 13, 14, 16, 20 e 28 px; pesos 400, 500 e 600.
+Escala do artefato: 12, 13, 14, 16, 20 e 28 px (`--text-xs` a `--text-xxl`), mais dois tamanhos novos:
+
+- **título de tela**, 30 px (`--text-title`), peso 600, espaçamento `-0.02em` (`--tracking-title`);
+- **número herói**, 64 px (`--text-hero`), peso 500, com dígitos tabulares (`font-variant-numeric: tabular-nums`) e sem ajuste de espaçamento.
+
+Pesos 400, 500 e 600.
 
 ## Logo
 

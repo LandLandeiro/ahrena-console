@@ -144,11 +144,25 @@ test('o erro não se confunde com o rosa da marca', () => {
   }
 })
 
-test('tipografia: Poppins e JetBrains Mono, com fallback do sistema', () => {
-  assert.match(tokens.typography.sans, /^"Poppins"/)
-  assert.match(tokens.typography.sans, /sans-serif$/)
-  assert.match(tokens.typography.mono, /^"JetBrains Mono"/)
-  assert.match(tokens.typography.mono, /monospace$/)
+test('typography: the system stacks, no external font and no font URL', () => {
+  const typography = tokens.typography
+  assert.equal(typography.sans, '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif')
+  assert.equal(typography.mono, 'ui-monospace, "SF Mono", Menlo, Consolas, monospace')
+  assert.ok(!('googleFonts' in typography), 'googleFonts is gone')
+  assert.doesNotMatch(JSON.stringify(typography), /https?:|googleapis|gstatic|@font-face|Poppins|JetBrains/i, 'no font URL and no web font')
+})
+
+test('typography: the 12 to 28 scale stays, with the 30px title, the 64px hero and the title tracking', () => {
+  assert.deepEqual(tokens.typography.size, { xs: '12px', sm: '13px', md: '14px', lg: '16px', xl: '20px', xxl: '28px', title: '30px', hero: '64px' })
+  assert.deepEqual(tokens.typography.weight, { regular: 400, medium: 500, semibold: 600 })
+  assert.deepEqual(tokens.typography.tracking, { title: '-0.02em' })
+})
+
+test('the files that show the brand load no external font', () => {
+  for (const file of ['docs/brand/amostra.html', 'docs/wireframes/index.html', 'packages/marca/gerado/marca.css', 'packages/nucleo/ui/brand.css']) {
+    const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+    assert.doesNotMatch(text, /fonts\.googleapis|fonts\.gstatic|@font-face|Poppins|JetBrains/i, `${file} names an external font`)
+  }
 })
 
 test('a amostra usa os mesmos valores dos tokens', () => {

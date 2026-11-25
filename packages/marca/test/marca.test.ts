@@ -50,6 +50,8 @@ test('o módulo do painel traz as cores do tokens.json, em hex', () => {
     assert.deepEqual([s.label, s.glyph, s.color, s.dark, s.light], [fonte.label, fonte.glyph, fonte.color, fonte.dark, fonte.light], id)
   }
   assert.equal(marca.tipografia.mono, tokens.typography.mono)
+  assert.equal(marca.tipografia.sans, tokens.typography.sans)
+  assert.ok(!('googleFonts' in marca.tipografia))
 })
 
 // Lê as variáveis de um bloco do CSS gerado.
@@ -82,6 +84,11 @@ test('o CSS do artefato: escuro no :root, claro por prefers-color-scheme e por d
   }
   assert.equal(raizCss['orange-500'], '#f47720')
   assert.equal(raizCss['font-sans'], tokens.typography.sans)
+  assert.equal(raizCss['font-mono'], tokens.typography.mono)
+  assert.equal(raizCss['text-title'], '30px')
+  assert.equal(raizCss['text-hero'], '64px')
+  assert.equal(raizCss['tracking-title'], '-0.02em')
+  assert.doesNotMatch(css, /googleapis|@font-face|https?:/, 'o CSS não carrega fonte de fora')
 })
 
 test('o painel de teste não fixa à mão nenhuma cor que já está na marca', () => {

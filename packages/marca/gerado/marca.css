@@ -1,7 +1,5 @@
 /* Gerado por packages/marca/src/gerar.ts a partir de docs/brand/tokens.json. Não edite: mude o tokens.json e rode `node packages/marca/src/gerar.ts`. */
 
-/* Fontes: https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap */
-
 /* Escuro é o padrão. */
 :root {
   color-scheme: dark;
@@ -38,14 +36,16 @@
   --status-error: #e34948;
   --status-abandoned: #a6a6aa;
   --badge-alpha: 0.12;
-  --font-sans: "Poppins", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --text-xs: 12px;
   --text-sm: 13px;
   --text-md: 14px;
   --text-lg: 16px;
   --text-xl: 20px;
   --text-xxl: 28px;
+  --text-title: 30px;
+  --text-hero: 64px;
   --space-xxs: 2px;
   --space-xs: 4px;
   --space-sm: 6px;
@@ -59,6 +59,7 @@
   --radius-segment: 8px;
   --radius-segment-item: 6px;
   --radius-full: 999px;
+  --tracking-title: -0.02em;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
