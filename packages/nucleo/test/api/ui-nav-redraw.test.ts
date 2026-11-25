@@ -18,7 +18,7 @@ afterEach(() => {
   delete (ElementoFalso.prototype as { getBoundingClientRect?: unknown }).getBoundingClientRect;
 });
 
-// Boxes for the layout the fake DOM does not have: the nav is 0..100; an item sits at `tops[id]` and is 30 tall.
+// #750: boxes for the layout the fake DOM does not have: the nav is 0..100; an item sits at `tops[id]` and is 30 tall.
 function layout(tops: Record<string, number>) {
   (ElementoFalso.prototype as { getBoundingClientRect?: unknown }).getBoundingClientRect = function (this: ElementoFalso) {
     const top = this.tagName?.toLowerCase() === 'nav' ? 0 : (tops[this.getAttribute('data-screen') ?? ''] ?? 0);

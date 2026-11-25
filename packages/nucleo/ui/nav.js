@@ -80,7 +80,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     if (focusedId) items.get(focusedId)?.a.focus({ preventScroll: true });
   }
 
-  // Measured before a redraw; without boxes (the first draw, a DOM that does not lay out) nothing was seen.
+  // ADR-0028: measured before a redraw; without boxes (the first draw, a DOM that does not lay out) nothing was seen.
   function litInView() {
     const box = items.get(lit)?.a.getBoundingClientRect?.();
     const frame = nav.getBoundingClientRect?.();
