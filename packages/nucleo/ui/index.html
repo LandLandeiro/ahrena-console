@@ -17,6 +17,7 @@
 <body>
   <div class="cc">
     <aside class="cc-side" id="sidebar">
+      <div class="cc-side-head">
       <a class="cc-brand" href="/ui">
         <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
           <rect class="logo-bg" width="32" height="32" rx="8"/>
@@ -25,6 +26,10 @@
         </svg>
         <div><b>Ahrena Console</b><small>Claude Code</small></div>
       </a>
+        <button type="button" class="cc-ibtn" id="drawer-close" aria-label="Fechar menu">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
       <nav id="nav" aria-label="Telas"></nav>
       <div class="cc-foot">
         <div class="cc-live" id="live" data-state="connecting"></div>
@@ -47,8 +52,9 @@
     </aside>
     <div class="cc-col">
       <header class="cc-top">
-        <button type="button" class="cc-ibtn" id="menu-button" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">
+        <button type="button" class="cc-ibtn" id="menu-button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg>
+          <span class="cc-nav-tag" data-tone="waiting" aria-hidden="true" hidden></span>
         </button>
         <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
           <rect class="logo-bg" width="32" height="32" rx="8"/>

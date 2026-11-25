@@ -2,7 +2,7 @@
 
 export const DRAWER_QUERY = '(max-width: 859px)';
 
-export function createDrawer({ button, side, scrim, background, media = globalThis.matchMedia(DRAWER_QUERY), firstItem = () => side.querySelector('#nav a[href]') }) {
+export function createDrawer({ button, side, scrim, background, closeButton = null, count = button.querySelector?.('.cc-nav-tag') ?? null, media = globalThis.matchMedia(DRAWER_QUERY), firstItem = () => side.querySelector('#nav a[href]') }) {
   let opened = false;
 
   function paint() {
@@ -18,7 +18,8 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
     if (!media.matches || opened) return;
     opened = true;
     paint();
-    firstItem()?.focus();
+    // ADR-0028: a pointer open keeps the list where it was; whoever came by keyboard gets the first item in view.
+    firstItem()?.focus({ preventScroll: !button.matches?.(':focus-visible') });
   }
 
   function close() {
@@ -28,7 +29,18 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
     button.focus();
   }
 
+  // ADR-0028: the same waiting tag of the Mural, on the button while the bar is out of sight; the name says it once.
+  function waiting(next) {
+    const text = next?.text ?? '';
+    if (count) {
+      count.textContent = text;
+      count.hidden = !text;
+    }
+    button.setAttribute('aria-label', text ? `Menu, ${text}` : 'Menu');
+  }
+
   button.addEventListener('click', () => (opened ? close() : open()));
+  closeButton?.addEventListener('click', () => close());
   scrim.addEventListener('click', () => close());
   side.addEventListener('click', (ev) => {
     if (ev.target instanceof Element && ev.target.closest('a[href]')) close();
@@ -38,5 +50,5 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
     paint();
   });
   paint();
-  return { isOpen: () => opened, open, close };
+  return { isOpen: () => opened, open, close, waiting };
 }
