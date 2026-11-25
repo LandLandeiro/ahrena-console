@@ -300,7 +300,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
   return el(
     'section',
     { class: 'card wall-parked', 'aria-labelledby': titleId },
-    el('h2', { class: 'wall-parked-h' }, head),
+    el('h2', { class: 'wall-parked-h', 'aria-label': p.title }, head),
     ...(opened ? [el('div', { class: 'wall-parked-list', role: 'list', 'aria-labelledby': titleId }, ...rows), moreButton] : []),
   );
 }

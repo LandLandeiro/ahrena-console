@@ -1338,6 +1338,7 @@ describe('#752: round 3, the sheet and the names measured in the browser', () =>
         assert.equal(named[0]!.tag, 'b');
         assert.match(named[0]!.textContent, /^Paradas \(\d+\)$/);
         assert.equal(comClasse(area, 'wall-parked-h')[0]!.getAttribute('id'), null);
+        assert.equal(comClasse(area, 'wall-parked-h')[0]!.getAttribute('aria-label'), named[0]!.textContent, 'the heading says the title, not the toggle text with it');
       }
     } finally {
       await sair();
