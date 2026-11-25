@@ -20,7 +20,7 @@ type Card = { id: string; machine?: { id: string } };
 const cards = (...machines: string[]): Card[] => machines.map((m, i) => ({ id: `s${i}`, machine: { id: m } }));
 
 let listeners = 0;
-// The fake document has no capture phase: what it can prove is how the listener was registered, and that it runs on its own.
+// #752: the fake document has no capture phase: what it can prove is how the listener was registered, and that it runs on its own.
 const registered: { type: string; capture: unknown }[] = [];
 const realAdd = documentoFalso.addEventListener as (t: string, f: unknown, o?: unknown) => void;
 const realRemove = documentoFalso.removeEventListener as (t: string, f: unknown, o?: unknown) => void;

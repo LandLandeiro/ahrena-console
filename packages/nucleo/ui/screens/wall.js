@@ -362,7 +362,7 @@ export async function mount(area, ctx) {
     rest.textContent = parts.rest ? ` ${parts.rest}` : '';
   }
   const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, newSessionButton({ read: ctx.read, write: ctx.write })));
-  // Issue 243 (C46): the machine menu sits at the end of the row of the state filter.
+  // Issue 243 (C46), ADR-0028: the machine menu sits at the end of the row of the state filter.
   const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), draw(), read()), reread: () => read(), onLayout: () => draw(), menu: { itemsOf: (b) => b.cards ?? [] }, fallbackFocus: () => buttons.get(filter) });
   const segs = el('div', { class: 'wall-segs' }, selector, machines.row);
 
@@ -411,13 +411,13 @@ export async function mount(area, ctx) {
       const lost = spot.kind === 'retry' ? buttons.get(filter) : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
       return findSpot(fresh, spot.kind, spot.id) ?? lost;
     }
-    // A control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
+    // Issue 751: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
     if (held.popover && held.key) {
       const open = findSpot(fresh, 'open', held.key);
       const same = open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;
       if (same) return same;
     }
-    // After "Mostrar mais" the focus goes to the first row that was not there before.
+    // Issue 751: after "Mostrar mais" the focus goes to the first row that was not there before.
     if (held.toggled?.[1] === 'more' && moreFrom) {
       const added = fresh.find((x) => x.kind === 'parked' && !moreFrom.has(x.id));
       if (added) {

@@ -1,5 +1,5 @@
 // ADR-0028: the sections of the wall and the sentence of its header. No DOM: one function says where a session
-// goes, and the sections, the filter and the sentence all read it.
+// goes, and the sections, the filter and the sentence all read it (ADR-0028).
 
 import { isBlocked, isIdle } from './attention.js';
 import { stateOfSession } from './state-icon.js';

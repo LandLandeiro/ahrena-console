@@ -306,7 +306,7 @@ export function machineControl(machines, choice, onChoose) {
 const ALL_LABEL = 'Todas as máquinas';
 let menuSerial = 0;
 
-/** The icon of an option of the menu: the grid for all, the monitor for this machine, the server, or wifi-off when it is down. */
+/** ADR-0028: the icon of an option of the menu: the grid for all, the monitor for this machine, the server, or wifi-off when it is down. */
 const menuIcon = (id, down) => (down ? 'wifi-off' : id === ALL ? 'wall' : id === LOCAL ? 'monitor' : 'server');
 
 /**
@@ -393,7 +393,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
     if (chosen?.down && !off.parentNode) button.insertBefore(off, button.lastChild);
     else if (!chosen?.down && off.parentNode) off.remove();
     if (focused === null || !isOpen()) return;
-    // The option under the focus is gone: the next one, else the one before it, else the button.
+    // ADR-0028: the option under the focus is gone: the next one, else the one before it, else the button.
     const at = order.indexOf(focused);
     const sensible = [focused, ...order.slice(at + 1), ...order.slice(0, at).reverse()].find((k) => next.has(k));
     const target = sensible ? next.get(sensible).node : button;
@@ -428,7 +428,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
     button,
     draw,
     close,
-    /** Whether the focus is inside the control, to put it somewhere when the control goes away. */
+    /** ADR-0028: whether the focus is inside the control, to put it somewhere when the control goes away. */
     holdsFocus: () => root.contains(document.activeElement),
     fallbackFocus,
   };
@@ -466,7 +466,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
   notices.hidden = true;
   const menuUi = menu ? createMenu({ pick: (id) => choose(id), signal: ctx.signal, fallbackFocus }) : null;
   if (menuUi) row.append(menuUi.root);
-  // The items of the last answer, for the numbers of the menu; forgotten when the choice changes (they were of the old one).
+  // ADR-0028: the items of the last answer, for the numbers of the menu; forgotten when the choice changes (they were of the old one).
   let lastItems = null;
 
   function writeUrl() {
