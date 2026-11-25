@@ -1,5 +1,4 @@
-// #751: the state icon, the state tag and the session's state, plus the contrast of everything the
-// card and the row of the wall write (icon 3:1, text 4.5:1 on --surface, both themes, from tokens.json).
+// #751: the state icon, the state tag, the session's state and the contrast of the pairs the wall writes.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
@@ -26,7 +25,6 @@ const ratio = (a: string, b: string) => {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi! + 0.05) / (lo! + 0.05);
 };
-/** A brand.css variable, resolved for a theme from tokens.json (no colour is written in this test). */
 function token(name: string, theme: 'dark' | 'light'): string {
   const status = name.match(/^--status-(\w+)-(dot|text|badge|border)$/);
   if (status) return tokens.status[status[1]!][theme][status[2]!];
@@ -37,7 +35,6 @@ function token(name: string, theme: 'dark' | 'light'): string {
   assert.ok(value, `${name} is not in tokens.json`);
   return value;
 }
-/** The declaration `prop: var(--x)` of the rule whose selector is exactly `selector`. */
 function declared(css: string, selector: string, prop: string): string {
   const rule = css.match(new RegExp(`^${selector.replace(/[.[\]]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
   const v = rule.match(new RegExp(`(?:^|[;\\s])${prop}:\\s*var\\((--[\\w-]+)\\)`))?.[1];
