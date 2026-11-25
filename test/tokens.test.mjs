@@ -11,6 +11,9 @@ const STATUS = ['active', 'waiting', 'completed', 'error', 'abandoned']
 const THEMES = ['dark', 'light']
 const AA_TEXT = 4.5 // WCAG 1.4.3
 const AA_NON_TEXT = 3 // WCAG 1.4.11
+const STATUS_WITH_BORDER = ['active', 'waiting']
+const SURFACES = ['bg', 'surface', 'raised', 'sidebar', 'segment']
+const AGENT_COLORS = ['violet', 'blue', 'teal', 'indigo']
 
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 
@@ -151,12 +154,24 @@ test('tipografia: Poppins e JetBrains Mono, com fallback do sistema', () => {
 test('a amostra usa os mesmos valores dos tokens', () => {
   const html = readFileSync(new URL('../docs/brand/amostra.html', import.meta.url), 'utf8')
   const used = []
+  for (const color of AGENT_COLORS) for (const theme of THEMES) used.push(...Object.values(tokens.agent[color][theme]))
+  for (const name of Object.keys(tokens.radius).filter((k) => !k.startsWith('_'))) used.push(tokens.radius[name])
   for (const theme of THEMES) {
+    used.push(tokens.shadow[theme].float)
     used.push(...Object.entries(tokens.themes[theme]).filter(([k]) => !k.startsWith('_')).map(([, v]) => v))
     for (const id of STATUS) used.push(...Object.values(tokens.status[id][theme]))
   }
   for (const id of STATUS) used.push(tokens.status[id].color, tokens.status[id].label, tokens.status[id].glyph)
   for (const value of new Set(used)) assert.ok(html.includes(value), `a amostra não tem ${value}`)
+})
+
+test('only the two theme sections carry the theme class in the sample', () => {
+  const html = readFileSync(new URL('../docs/brand/amostra.html', import.meta.url), 'utf8')
+  const carriers = [...html.matchAll(/<(\w+)[^>]*\sclass="([^"]*)"/g)].filter(([, , cls]) => cls.split(/\s+/).some((c) => THEMES.includes(c)))
+  assert.deepEqual(carriers.map(([, tag, cls]) => `${tag}.${cls}`).sort(), THEMES.map((t) => `section.theme ${t}`).sort(), 'an element other than the theme section carries a theme class')
+  const rules = [...html.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)].map((m) => m[1].trim())
+  const clashing = rules.filter((r) => THEMES.some((t) => new RegExp(`\\.${t}\\b`).test(r)) && !THEMES.some((t) => r === `.${t}` || r === `.theme.${t}`))
+  assert.deepEqual(clashing, [], 'a selector other than the theme one uses a theme class name')
 })
 
 // #665: each colour has a value in both themes and the spacing scale is compact
@@ -173,9 +188,88 @@ test('dark and light have identical colour keys, each a hex, and nothing is left
 test('each status has the same keys, all hex, in the dark and the light theme', () => {
   for (const id of STATUS) {
     const dark = roleKeys(tokens.status[id].dark)
-    assert.deepEqual(dark, ['badge', 'dot', 'text'], `${id}.dark`)
+    // Only active and waiting carry a decorative tag border.
+    assert.deepEqual(dark, STATUS_WITH_BORDER.includes(id) ? ['badge', 'border', 'dot', 'text'] : ['badge', 'dot', 'text'], `${id}.dark`)
     assert.deepEqual(roleKeys(tokens.status[id].light), dark, `${id}.light`)
     for (const theme of THEMES) for (const key of dark) assert.ok(isHex(tokens.status[id][theme][key]), `status.${id}.${theme}.${key} is not a hex`)
+  }
+})
+
+// #749: brand tokens v2. Each new role is checked on the surfaces where it is used, in both themes.
+
+test('#749: text, muted and subtle pass 4.5:1 on bg, surface, raised, sidebar and segment, and on the avatar', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    for (const fg of ['text', 'muted', 'subtle']) {
+      for (const bg of [...SURFACES, 'avatar']) assertContrast(t[fg], t[bg], AA_TEXT, `${theme}.${fg} on ${bg}`)
+    }
+  }
+})
+
+test('#749: onPrimary passes 4.5:1 on primary, and accentLine passes 3:1 on bg, surface, raised, sidebar and segment', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    assertContrast(t.onPrimary, t.primary, AA_TEXT, `${theme}.onPrimary on primary`)
+    for (const bg of SURFACES) assertContrast(t.accentLine, t[bg], AA_NON_TEXT, `${theme}.accentLine on ${bg}`)
+  }
+})
+
+test('#749: borderControl passes 3:1 on bg, surface, sidebar and segment, and is not the divider border', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    for (const bg of ['bg', 'surface', 'sidebar', 'segment']) assertContrast(t.borderControl, t[bg], AA_NON_TEXT, `${theme}.borderControl on ${bg}`)
+    assert.notEqual(t.borderControl, t.border, `${theme}: a control edge is not the divider`)
+    assert.ok(contrast(t.borderControl, t.bg) > contrast(t.border, t.bg), `${theme}: borderControl is stronger than border`)
+  }
+})
+
+test('#749: the orange stroke is not text on sidebar and segment in the light theme; as a stroke it passes', () => {
+  const light = tokens.themes.light
+  assert.equal(light.accentLine, tokens.orange['700'])
+  for (const bg of ['sidebar', 'segment']) {
+    assert.ok(contrast(light.accentLine, light[bg]) < AA_TEXT, `light.accentLine reads as text on ${bg}`)
+    assertContrast(light.accentLine, light[bg], AA_NON_TEXT, `light.accentLine as a stroke on ${bg}`)
+  }
+})
+
+test('#749: every agent colour has a text and a background in each theme, the text passes 4.5:1 on its background, and none is a status colour', () => {
+  assert.deepEqual(Object.keys(tokens.agent).filter((k) => !k.startsWith('_')), AGENT_COLORS)
+  const statusColours = new Set(STATUS.flatMap((id) => [tokens.status[id].color, ...THEMES.flatMap((theme) => [tokens.status[id][theme].dot, tokens.status[id][theme].text])]))
+  for (const color of AGENT_COLORS) {
+    for (const theme of THEMES) {
+      const a = tokens.agent[color][theme]
+      assert.deepEqual(roleKeys(a), ['bg', 'text'], `agent.${color}.${theme}`)
+      assert.ok(isHex(a.text) && isHex(a.bg), `agent.${color}.${theme} is not hex`)
+      assertContrast(a.text, a.bg, AA_TEXT, `agent.${color}.${theme}.text on its background`)
+      assert.ok(!statusColours.has(a.text), `agent.${color}.${theme}.text is a status colour`)
+    }
+  }
+})
+
+test('#749: the radius scale has the six names, in px, and full is the only pill', () => {
+  const names = Object.keys(tokens.radius).filter((k) => !k.startsWith('_'))
+  assert.deepEqual(names, ['card', 'control', 'tag', 'segment', 'segmentItem', 'full'])
+  for (const n of names) assert.match(tokens.radius[n], /^\d+px$/, `radius.${n} is not px`)
+  assert.deepEqual(names.map((n) => parseInt(tokens.radius[n], 10)), [8, 6, 4, 8, 6, 999])
+})
+
+test('#749: the float shadow exists per theme, outside themes.*, which stays all hex', () => {
+  for (const theme of THEMES) {
+    assert.match(tokens.shadow[theme].float, /^0 \d+px \d+px rgba\(0,0,0,0?\.\d+\)$/, `shadow.${theme}.float`)
+    assert.ok(!('float' in tokens.themes[theme]) && !('shadow' in tokens.themes[theme]), `themes.${theme} holds no shadow`)
+  }
+  assert.ok(parseFloat(tokens.shadow.dark.float.match(/0?\.\d+/)[0]) > parseFloat(tokens.shadow.light.float.match(/0?\.\d+/)[0]), 'the dark shadow is the stronger one')
+})
+
+test('#749: only active and waiting carry a tag border, a hex apart from the badge and the dot', () => {
+  for (const id of STATUS) {
+    for (const theme of THEMES) {
+      const s = tokens.status[id][theme]
+      if (!STATUS_WITH_BORDER.includes(id)) { assert.ok(!('border' in s), `${id}.${theme} has no border`); continue }
+      assert.ok(isHex(s.border), `${id}.${theme}.border`)
+      assert.notEqual(s.border, s.badge, `${id}.${theme}.border differs from the badge`)
+      assert.notEqual(s.border, s.dot, `${id}.${theme}.border differs from the dot`)
+    }
   }
 })
 

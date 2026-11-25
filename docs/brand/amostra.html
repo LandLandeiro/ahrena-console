@@ -15,6 +15,7 @@
     --orange: #f47720;
     --rose: #df285d;
     --error: #e34948;
+    --radius-card: 8px; --radius-control: 6px; --radius-tag: 4px; --radius-segment: 8px; --radius-segment-item: 6px; --radius-full: 999px;
   }
   .dark {
     --bg: #17171b; --surface: #1e1e24; --raised: #28282f; --border: #3a3a44;
@@ -24,6 +25,12 @@
     --completed-dot: #d7d7d9; --completed-text: #d7d7d9; --completed-badge: #34343a;
     --error-dot: #e34948; --error-text: #f06463; --error-badge: #362328;
     --abandoned-dot: #a6a6aa; --abandoned-text: #a6a6aa; --abandoned-badge: #2e2e34;
+    --subtle: #9a9aa0; --sidebar: #1b1b20; --segment: #26262c; --track: #33333b; --avatar: #2e2e36;
+    --primary: #e4e4e7; --on-primary: #17171b; --accent-line: #f47720; --border-control: #72727c;
+    --active-border: #55392a; --waiting-border: #4f4426;
+    --shadow-float: 0 12px 32px rgba(0,0,0,0.5);
+    --violet-text: #c4b2f5; --violet-bg: #2d2640; --blue-text: #9cc1f5; --blue-bg: #1f2a3d;
+    --teal-text: #84d3c8; --teal-bg: #1c3331; --indigo-text: #aeb6f0; --indigo-bg: #262a42;
   }
   .light {
     --bg: #f4f4f5; --surface: #fdfdfd; --raised: #efeff1; --border: #d7d7d9;
@@ -33,6 +40,12 @@
     --completed-dot: #3a3a44; --completed-text: #3a3a44; --completed-badge: #f8f8f9;
     --error-dot: #b42a2a; --error-text: #b42a2a; --error-badge: #fae7e7;
     --abandoned-dot: #5a5a63; --abandoned-text: #5a5a63; --abandoned-badge: #f3f3f3;
+    --subtle: #64646c; --sidebar: #ececef; --segment: #e6e6e9; --track: #e6e6e9; --avatar: #ececef;
+    --primary: #17171b; --on-primary: #fdfdfd; --accent-line: #ab5316; --border-control: #83838b;
+    --active-border: #f4d3bb; --waiting-border: #f1e2b0;
+    --shadow-float: 0 12px 32px rgba(0,0,0,0.14);
+    --violet-text: #5b3fa8; --violet-bg: #efe9fb; --blue-text: #2456a6; --blue-bg: #e6eefb;
+    --teal-text: #11695f; --teal-bg: #e2f3f1; --indigo-text: #3b4594; --indigo-bg: #e8eaf8;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: var(--sans); background: #0e1016; color: #d7d7d9; }
@@ -48,7 +61,7 @@
   h3 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 8px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
   .sw { border-radius: 8px; border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
   .sw i { display: block; height: 40px; }
   .sw b, .sw code { display: block; padding: 0 8px; font-size: 12px; }
@@ -56,7 +69,24 @@
   .sw code { font-family: var(--mono); color: var(--muted); padding-bottom: 6px; }
   .btn { font: 500 14px var(--sans); border-radius: 8px; padding: 7px 14px; border: 1px solid transparent; }
   .btn.primary { background: var(--accent); color: var(--on-accent); }
-  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border-control); }
+  .btn.contrast { background: var(--primary); color: var(--on-primary); }
+  .field { background: var(--surface); color: var(--muted); border: 1px solid var(--border-control); border-radius: var(--radius-control); padding: 7px 10px; font-size: 13px; min-width: 150px; }
+  .rail { display: flex; gap: 2px; padding: 3px; background: var(--segment); border-radius: var(--radius-segment); font-size: 13px; }
+  .rail span { padding: 4px 10px; border-radius: var(--radius-segment-item); color: var(--muted); }
+  .rail span.on { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--accent-line); }
+  .track { width: 140px; height: 6px; background: var(--track); border-radius: var(--radius-full); overflow: hidden; }
+  .track i { display: block; width: 62%; height: 100%; background: var(--accent-line); }
+  .side { background: var(--sidebar); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 8px 10px; font-size: 13px; color: var(--muted); }
+  .side b { color: var(--text); font-weight: 500; }
+  .side small { color: var(--subtle); font-size: 12px; }
+  .mono-badge { width: 28px; height: 28px; border-radius: var(--radius-full); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: var(--avatar); color: var(--text); }
+  .mono-badge.violet { background: var(--violet-bg); color: var(--violet-text); } .mono-badge.blue { background: var(--blue-bg); color: var(--blue-text); }
+  .mono-badge.teal { background: var(--teal-bg); color: var(--teal-text); } .mono-badge.indigo { background: var(--indigo-bg); color: var(--indigo-text); }
+  .tag { font-size: 12px; border-radius: var(--radius-tag); padding: 1px 6px; border: 1px solid; }
+  .tag.t-active { color: var(--active-text); background: var(--active-badge); border-color: var(--active-border); }
+  .tag.t-waiting { color: var(--waiting-text); background: var(--waiting-badge); border-color: var(--waiting-border); }
+  .float { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 10px 12px; font-size: 13px; box-shadow: var(--shadow-float); }
   .link { color: var(--accent-text); font-weight: 500; font-size: 14px; }
   .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; border-radius: 999px; padding: 3px 10px 3px 8px; border: 1px solid transparent; white-space: nowrap; }
   .pill .g { font-family: var(--mono); font-size: 12px; }
@@ -129,6 +159,33 @@
     <button class="btn ghost" type="button">Filtrar</button>
     <a class="link" href="#">Ver tudo →</a>
   </div>
+
+  <h3>Controles, filtro e barra lateral</h3>
+  <div class="card">
+    <div class="row">
+      <button class="btn contrast" type="button">Nova sessão</button>
+      <span class="field">Buscar sessões</span>
+      <div class="rail"><span class="on">Todas</span><span>Esperando</span><span>Trabalhando</span></div>
+      <div class="track" aria-hidden="true"><i></i></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="side"><b>Mural</b> <small>há 4 min · MacBook</small></div>
+      <span class="tag t-active">4 em curso</span>
+      <span class="tag t-waiting">2 esperam</span>
+    </div>
+  </div>
+
+  <h3>Cores de agente (só identidade, nunca estado)</h3>
+  <div class="card row">
+    <span class="mono-badge">AB</span>
+    <span class="mono-badge violet">IR</span>
+    <span class="mono-badge blue">AP</span>
+    <span class="mono-badge teal">CL</span>
+    <span class="mono-badge indigo">AT</span>
+  </div>
+
+  <h3>O que flutua</h3>
+  <div class="float">Popover, aviso e busca: a única coisa com sombra.</div>
 
   <h3>Status de sessão</h3>
   <div class="card">
@@ -204,8 +261,10 @@
 
 <script>
   const swatches = {
-    dark: [['Fundo', '#17171b'], ['Cartão', '#1e1e24'], ['Realce', '#28282f'], ['Borda', '#3a3a44'], ['Texto', '#d7d7d9'], ['Secundário', '#a6a6aa'], ['Destaque', '#f47720'], ['Rosa', '#df285d']],
-    light: [['Fundo', '#f4f4f5'], ['Cartão', '#fdfdfd'], ['Realce', '#efeff1'], ['Borda', '#d7d7d9'], ['Texto', '#17171b'], ['Secundário', '#5a5a63'], ['Destaque', '#f47720'], ['Texto laranja', '#ab5316']],
+    dark: [['Fundo', '#17171b'], ['Cartão', '#1e1e24'], ['Realce', '#28282f'], ['Borda', '#3a3a44'], ['Texto', '#d7d7d9'], ['Secundário', '#a6a6aa'], ['Destaque', '#f47720'], ['Rosa', '#df285d'],
+      ['Metadado', '#9a9aa0'], ['Barra lateral', '#1b1b20'], ['Filtro', '#26262c'], ['Trilho', '#33333b'], ['Monograma', '#2e2e36'], ['Primário', '#e4e4e7'], ['Laranja traço', '#f47720'], ['Borda controle', '#72727c']],
+    light: [['Fundo', '#f4f4f5'], ['Cartão', '#fdfdfd'], ['Realce', '#efeff1'], ['Borda', '#d7d7d9'], ['Texto', '#17171b'], ['Secundário', '#5a5a63'], ['Destaque', '#f47720'], ['Texto laranja', '#ab5316'],
+      ['Metadado', '#64646c'], ['Barra lateral', '#ececef'], ['Filtro', '#e6e6e9'], ['Trilho', '#e6e6e9'], ['Monograma', '#ececef'], ['Primário', '#17171b'], ['Laranja traço', '#ab5316'], ['Borda controle', '#83838b']],
   }
   const tpl = document.getElementById('conteudo')
   for (const theme of ['dark', 'light']) {
