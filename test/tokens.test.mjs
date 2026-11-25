@@ -246,6 +246,38 @@ test('#749: the orange stroke is not text on sidebar and segment in the light th
   }
 })
 
+// The full matrix: every text role over every background role, in both themes. The pairs under 4.5:1 are
+// the ones docs/design.md lists as "not text there"; a pair leaving or joining that list fails here.
+const TEXT_BELOW_AA = {
+  dark: {
+    subtle: ['track'],
+    accentText: ['track'],
+    accentLine: ['track'],
+    'status.active.text': ['track'],
+    'status.error.text': ['track', 'avatar'],
+  },
+  light: {
+    accentText: ['sidebar', 'segment', 'track', 'avatar'],
+    accentLine: ['sidebar', 'segment', 'track', 'avatar'],
+    'status.active.text': ['sidebar', 'segment', 'track', 'avatar'],
+  },
+}
+
+test('#749: every text role passes 4.5:1 on every background role, except the pairs design.md lists', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    const texts = { text: t.text, muted: t.muted, subtle: t.subtle, accentText: t.accentText, accentLine: t.accentLine }
+    for (const id of STATUS) texts[`status.${id}.text`] = tokens.status[id][theme].text
+    for (const [role, fg] of Object.entries(texts)) {
+      for (const bg of [...SURFACES, 'track', 'avatar']) {
+        const listed = (TEXT_BELOW_AA[theme][role] ?? []).includes(bg)
+        if (listed) assert.ok(contrast(fg, t[bg]) < AA_TEXT, `${theme}.${role} on ${bg} is listed as under 4.5:1 but passes: take it off the list and off docs/design.md`)
+        else assertContrast(fg, t[bg], AA_TEXT, `${theme}.${role} on ${bg}`)
+      }
+    }
+  }
+})
+
 test('#749: the waiting dot of the light theme is not an icon on segment and track; the count there uses the waiting text, which passes', () => {
   const light = tokens.themes.light
   const waiting = tokens.status.waiting.light

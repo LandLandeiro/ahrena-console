@@ -78,9 +78,13 @@ Três fatos pesaram:
   - ícone, traço e `borderControl` passam 3:1;
   - `border` é divisor e não é medido contra 3:1; nenhum controle usa só ela como borda, e o teste `test/ui-control-borders.test.mjs` confere isso nas telas;
   - a borda das etiquetas de estado é decorativa e fica fora da medida.
-- **Duas exceções registradas** em `docs/design.md`, cada uma com o teste da troca:
-  - `#ab5316` (o laranja como traço no claro) não é texto sobre `sidebar` nem `segment` (4,47:1 e 4,24:1); como traço passa;
-  - `#a87e00` (o ponto de espera no claro) não é ícone sobre `segment` nem `track` (2,98:1); ali a contagem usa `#664e04`.
+- **Exceções registradas** em `docs/design.md`, cada uma com o teste da troca:
+  - `#ab5316` (o laranja como traço no claro; também `accentText` e `status.active.text` do claro) não é texto sobre `sidebar`, `segment`, `track` nem `avatar` (4,47:1, 4,24:1, 4,24:1 e 4,47:1); como traço passa;
+  - `#f47720` no escuro (`accentText`, `accentLine`, `status.active.text`) não é texto sobre `track` (4,47:1); como traço passa;
+  - `#f06463` (o texto de erro do escuro) não é texto sobre `track` nem `avatar` (4,00:1 e 4,30:1);
+  - `subtle` do escuro não é texto sobre `track` (4,47:1);
+  - `#a87e00` (o ponto de espera no claro) não é ícone sobre `segment` nem `track` (2,98:1); ali a contagem usa `#664e04`;
+  - fora dessas, todo texto passa 4,5:1 sobre todo fundo, nos dois temas, e `test/tokens.test.mjs` confere a matriz inteira.
 - **Testes de vocabulário e de classe do Mural** mudam junto com cada PR.
 - **Wireframes antigos:** os do #245 que mostram "Ociosa" ficam como histórico, e a nota apontando para esta decisão não está nesta mudança: vem com o [#753](https://github.com/ahrenatechnology/ahrena-console/issues/753).
 

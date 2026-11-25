@@ -92,8 +92,11 @@ Contraste, nos dois temas (todos os valores conferidos por [test/tokens.test.mjs
 - **Texto, 4,5:1:** `text`, `muted` e `subtle` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`, e sobre `avatar`; `onPrimary` sobre `primary`; o texto de cada cor de agente sobre o fundo dela.
 - **Ícone, traço e borda de controle, 3:1:** `accentLine` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`; `borderControl` sobre `bg`, `surface`, `sidebar` e `segment` (no mínimo 3,02:1, no claro sobre `segment`).
 - **Fora da regra:** o `borderControl` não é garantido sobre `track` no escuro (2,63:1). `subtle` não é texto sobre `track` no escuro (4,47:1).
-- **O `#ab5316` não é texto sobre `sidebar` nem sobre `segment`:** dá 4,47:1 e 4,24:1, abaixo de 4,5:1. Ali ele vale como traço (foco, progresso), que só pede 3:1. Não use o `#ab5316` como texto ali. O rótulo de status Ativa no claro (`status.active.light.text`) tem o mesmo valor, então vale o mesmo para ele.
+- **O `#f47720` não é texto sobre `track` no escuro:** dá 4,47:1, abaixo de 4,5:1. Vale para `accentText`, `accentLine` e `status.active.text`, que têm esse valor no escuro. Sobre `track` ele serve como traço (progresso), que só pede 3:1.
+- **O texto de erro do escuro (`status.error.text`, `#f06463`) não é texto sobre `track` nem sobre `avatar`:** dá 4,00:1 e 4,30:1. Sobre `bg`, `surface`, `raised`, `sidebar` e `segment` ele passa.
+- **O `#ab5316` não é texto sobre `sidebar`, `segment`, `track` nem `avatar` no tema claro:** dá 4,47:1, 4,24:1, 4,24:1 e 4,47:1, abaixo de 4,5:1. Ali ele vale como traço (foco, progresso), que só pede 3:1. Não use o `#ab5316` como texto ali. O rótulo de status Ativa no claro (`status.active.light.text`) e o `accentText` do claro têm o mesmo valor, então vale o mesmo para eles.
 - **O `#a87e00` não é ícone sobre `segment` nem sobre `track` no tema claro:** dá 2,98:1, abaixo de 3:1. Ali a contagem usa o `#664e04` (`status.waiting.light.text`), que dá 6,35:1. Sobre `bg`, `surface` e `raised` o `#a87e00` passa (3,38:1, 3,65:1 e 3,24:1).
+- **Fora essas exceções, todo texto passa 4,5:1 sobre todo fundo, nos dois temas:** `text`, `muted`, `subtle`, `accentText` e o texto de cada status sobre `bg`, `surface`, `raised`, `sidebar`, `segment`, `track` e `avatar`. O [test/tokens.test.mjs](../test/tokens.test.mjs) confere a matriz inteira e falha se um par entrar ou sair desta lista.
 
 #### Raios
 
