@@ -1116,3 +1116,61 @@ describe('Wall: nested children and Paradas (#333)', () => {
     }
   });
 });
+
+describe('Wall: a session without a title shows "Sem título" (#751)', () => {
+  const blockedAsk = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  const untitled = (title: unknown) => ({
+    ...MURAL,
+    cards: [
+      cardDeExemplo('lider', { ...blockedAsk, title, tree: { total: 1, blocked: 0, active: 1, parked: 0 }, children: [child('kid', { title })] }),
+      cardDeExemplo('filha', { ...blockedAsk, title: 'Com título', parentId: 'lider' }),
+      cardDeExemplo('orfa', { ...blockedAsk, title: 'Outra', parentId: 'fora-do-mural' }),
+      cardDeExemplo('linha', { title }),
+      cardDeExemplo('filha-linha', { title: 'Linha com título', parentId: 'linha' }),
+    ],
+    parked: { total: 1, items: [cardDeExemplo('estac', { title, status: 'completed', state: 'completed' })] },
+  });
+  const links = (area: No, id: string) => area.todos((e) => e.tag === 'a' && e.getAttribute('data-session') === id);
+
+  for (const title of [null, '', '   ']) {
+    test(`title ${JSON.stringify(title)}: card, row, nested child and Paradas row say "Sem título", in the text and in the title`, async () => {
+      const data = untitled(title);
+      const before = JSON.stringify(data);
+      const { area, sair } = await montarTela(async () => data);
+      try {
+        await ate(() => sessionsOf(area).length === 5);
+        for (const id of ['lider', 'linha']) {
+          const link = links(area, id)[0]!;
+          assert.equal(link.textContent, 'Sem título', `${id}: text`);
+          assert.equal(link.getAttribute('title'), 'Sem título', `${id}: title`);
+        }
+        const from = (id: string) => comClasse(area.todos((e) => e.getAttribute('data-session') === id)[0]!, 'wall-from')[0];
+        assert.equal(from('filha')?.textContent, 'filha de Sem título', 'the card of a child of an untitled leader');
+        assert.equal(from('filha')?.getAttribute('title'), 'Aberta por Sem título');
+        assert.equal(from('filha-linha')?.textContent, 'filha de Sem título', 'the row of a child of an untitled row');
+        assert.equal(from('orfa'), undefined, 'a parent that is not on the wall gives no label');
+        area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!.click();
+        const kid = comClasse(area.todos((e) => e.getAttribute('data-child') === 'kid')[0]!, 'wall-kid-title')[0]!;
+        assert.equal(kid.textContent, 'Sem título', 'nested child: text');
+        assert.equal(kid.getAttribute('title'), 'Sem título', 'nested child: title');
+        area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!.click();
+        const parked = comClasse(area.todos((e) => e.getAttribute('data-parked-row') === 'estac')[0]!, 'wall-kid-title')[0]!;
+        assert.equal(parked.textContent, 'Sem título', 'Paradas row: text');
+        assert.equal(parked.getAttribute('title'), 'Sem título', 'Paradas row: title');
+        assert.equal(JSON.stringify(data), before, 'the data does not change');
+      } finally {
+        await sair();
+      }
+    });
+  }
+
+  test('a title with text stays as it is, spaces and all', async () => {
+    const { area, sair } = await montarTela(async () => untitled('  Revisar o PR  '));
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      assert.equal(links(area, 'lider')[0]!.textContent, '  Revisar o PR  ');
+    } finally {
+      await sair();
+    }
+  });
+});
