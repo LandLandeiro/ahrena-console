@@ -33,7 +33,7 @@ button { font: inherit; cursor: pointer; }
 .cc-nav.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: var(--weight-medium); }
 /* The state dot of a remote machine (C24, issue 178): green connected, gray down, yellow another version. */
 .cc-nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cc-nav-dot { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--status-abandoned-dot); }
+.cc-nav-dot { position: relative; margin-left: auto; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--status-abandoned-dot); }
 .cc-nav-dot[data-state="connected"] { background: var(--status-completed-dot); }
 .cc-nav-dot[data-state="incompatible-version"] { background: var(--status-waiting-dot); }
 /* The tunnel is up and the core over there asks for the owner proof (issue 388): one yellow dot for the three reasons. */

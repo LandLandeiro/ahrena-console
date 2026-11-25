@@ -63,7 +63,8 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
       );
       for (const screen of section.items) {
         const mark = screen.state ? { state: screen.state, label: screen.stateLabel ?? MACHINE_STATE_LABELS[screen.state] ?? screen.state } : (dots.get(screen.id) ?? null);
-        const dot = mark ? el('span', { class: 'cc-nav-dot', 'data-state': mark.state, role: 'img', 'aria-label': mark.label, title: mark.label }) : null;
+        // ADR-0028: a machine's dot says its state in text the link reads once; Conexões keeps the image with its label.
+        const dot = !mark ? null : screen.state ? el('span', { class: 'cc-nav-dot', 'data-state': mark.state, title: mark.label }, el('span', { class: 'cc-sr-only' }, mark.label)) : el('span', { class: 'cc-nav-dot', 'data-state': mark.state, role: 'img', 'aria-label': mark.label, title: mark.label });
         const flag = screen.coreOutdated ? el('span', { class: 'cc-nav-flag', role: 'img', 'aria-label': CORE_OUTDATED_LABEL, title: CORE_OUTDATED_LABEL }, icon('arrow-up-circle')) : null;
         const a = el('a', { class: 'cc-nav', href: screen.route, 'data-screen': screen.id }, icon(screen.item.icon), el('span', { class: 'cc-nav-label', title: screen.item.label.length > LONG_LABEL ? screen.item.label : null }, screen.item.label), flag, dot, side(screen.id));
         items.set(screen.id, { a });
