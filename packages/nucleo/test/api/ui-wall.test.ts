@@ -209,8 +209,12 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
   });
   test('the row: the slice is done/total with no minimum plan, "X de Y" with a plan, the idle one carries how long ago', () => {
     const r = rowContent(cardDeExemplo('r'));
-    assert.equal(r.fraction, 0.6);
-    assert.equal(r.ratio, '3 de 5');
+    assert.equal(r.fraction, 0.8, 'the same step as the card: done + 1 with a current step');
+    assert.equal(r.ratio, '4 de 5');
+    const noCurrent = rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: null } }));
+    assert.deepEqual([noCurrent.fraction, noCurrent.ratio], [0.6, '3 de 5']);
+    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 5, total: 5, current: 'x' } })).ratio, '5 de 5', 'never above the total');
+    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.replace('Passo ', ''));
     const bare = rowContent(cardDeExemplo('r', { plan: null }));
     assert.equal(bare.fraction, 0);
     assert.equal(bare.ratio, null);
@@ -306,7 +310,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(ativa, 'wall-phrase')[0]!.textContent, 'Rodar a bateria');
       assert.equal(comClasse(ativa, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
       assert.equal(comClasse(ativa, 'state-tag')[0]!.textContent, 'Ativa');
-      assert.equal(comClasse(ativa, 'wall-ratio')[0]!.textContent, '3 de 5');
+      assert.equal(comClasse(ativa, 'wall-ratio')[0]!.textContent, '4 de 5');
       assert.ok(comClasse(ativa, 'wall-rt-work').length === 1, 'working title is the medium weight one');
       assert.equal(comClasse(linhasDe(area)[1]!, 'wall-rt-work').length, 0);
       const ociosa = linhasDe(area)[1]!;
@@ -335,7 +339,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(card, 'wall-num')[0]!.textContent, 'Passo 4 de 5', 'the current step makes it 4');
       const barra = comClasse(card, 'wall-bar')[0]!;
       assert.equal(barra.tag, 'progress');
-      assert.deepEqual([barra.getAttribute('value'), barra.getAttribute('max')], ['3', '5']);
+      assert.deepEqual([barra.getAttribute('value'), barra.getAttribute('max'), barra.getAttribute('aria-label')], ['4', '5', 'Passo 4 de 5'], 'the bar says the same step as the number');
       assert.ok(!barra.classes.includes('wall-high'), 'the plan bar is neutral');
       assert.equal(comClasse(card, 'wall-over').length, 0);
       const botoes = comClasse(card, 'open-button');

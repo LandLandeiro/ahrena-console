@@ -94,8 +94,8 @@ export function rowContent(c) {
   return {
     ...v,
     phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
-    fraction: plan ? plan.done / plan.total : 0,
-    ratio: plan ? `${plan.done} de ${plan.total}` : null,
+    fraction: plan ? plan.step / plan.total : 0,
+    ratio: plan ? `${plan.step} de ${plan.total}` : null,
     idle: isIdle(c.attention),
     since: c.since,
   };
@@ -281,7 +281,7 @@ function foot(v, machine) {
   const step = v.plan && !failed ? v.plan : null;
   const parts = [
     step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
-    step ? bar({ tipo: 'plan', valor: step.done, max: step.total, rotulo: `Plano: ${step.done} de ${step.total}` }) : null,
+    step ? bar({ tipo: 'plan', valor: step.step, max: step.total, rotulo: step.label }) : null,
     v.usage ? el('span', { class: 'wall-num wall-over', 'data-foot': 'usage' }, v.usage.label) : null,
     v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: `Contexto: ${v.usage.pct}%` }) : null,
     machine,
