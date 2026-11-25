@@ -411,13 +411,13 @@ export async function mount(area, ctx) {
       const lost = spot.kind === 'retry' ? buttons.get(filter) : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
       return findSpot(fresh, spot.kind, spot.id) ?? lost;
     }
-    // Issue 751: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
+    // ADR-0028: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
     if (held.popover && held.key) {
       const open = findSpot(fresh, 'open', held.key);
       const same = open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;
       if (same) return same;
     }
-    // Issue 751: after "Mostrar mais" the focus goes to the first row that was not there before.
+    // ADR-0028: after "Mostrar mais" the focus goes to the first row that was not there before.
     if (held.toggled?.[1] === 'more' && moreFrom) {
       const added = fresh.find((x) => x.kind === 'parked' && !moreFrom.has(x.id));
       if (added) {
