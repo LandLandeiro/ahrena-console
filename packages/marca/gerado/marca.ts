@@ -50,9 +50,9 @@ export const temas = {
     "bg": "#17171b",
     "surface": "#1e1e24",
     "raised": "#28282f",
-    "border": "#3a3a44",
-    "text": "#d7d7d9",
-    "muted": "#a6a6aa",
+    "border": "#2e2e36",
+    "text": "#f2f2f3",
+    "muted": "#c4c4c8",
     "accent": "#f47720",
     "onAccent": "#17171b",
     "accentText": "#f47720",
@@ -71,9 +71,9 @@ export const temas = {
     "bg": "#f4f4f5",
     "surface": "#fdfdfd",
     "raised": "#efeff1",
-    "border": "#d7d7d9",
+    "border": "#e3e3e6",
     "text": "#17171b",
-    "muted": "#5a5a63",
+    "muted": "#4a4a52",
     "accent": "#f47720",
     "onAccent": "#17171b",
     "accentText": "#ab5316",
@@ -145,7 +145,7 @@ export const status = {
       "border": "#4f4426"
     },
     "light": {
-      "dot": "#664e04",
+      "dot": "#a87e00",
       "text": "#664e04",
       "badge": "#fdf6e0",
       "border": "#f1e2b0"

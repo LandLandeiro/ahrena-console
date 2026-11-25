@@ -28,7 +28,7 @@ A paleta parte da do The Forward Deployed Engineer ([brand/tokens.json](brand/to
 | Erro, falha (CI e sessão com erro) | vermelho | `#e34948` | Cor do CI, reaproveitada (ver abaixo) |
 | Fundo (tema escuro) | cinza 900 | `#17171b` | The Forward Deployed Engineer |
 | Superfícies | cinza 800 / 700 | `#1e1e24` / `#28282f` | The Forward Deployed Engineer |
-| Texto principal | cinza 100 | `#d7d7d9` | The Forward Deployed Engineer |
+| Texto principal | quase branco | `#f2f2f3` | Ajustado na decisão 0028, um degrau acima do cinza 100 |
 
 Os valores ficam em [brand/tokens.json](brand/tokens.json), e a amostra com os dois temas e os status está em [brand/amostra.html](brand/amostra.html) (captura em [brand/amostra.png](brand/amostra.png)). O teste [test/tokens.test.mjs](../test/tokens.test.mjs) confere as cores obrigatórias e o contraste AA:
 
@@ -58,9 +58,9 @@ O escuro é o padrão. O claro é o equivalente, com os mesmos papéis em três 
 | Fundo (`bg`) | `#17171b` | `#f4f4f5` |
 | Cartão (`surface`) | `#1e1e24` | `#fdfdfd` |
 | Realce, hover (`raised`) | `#28282f` | `#efeff1` |
-| Borda | `#3a3a44` | `#d7d7d9` |
-| Texto | `#d7d7d9` | `#17171b` |
-| Texto secundário | `#a6a6aa` | `#5a5a63` |
+| Borda (divisor) | `#2e2e36` | `#e3e3e6` |
+| Texto | `#f2f2f3` | `#17171b` |
+| Texto secundário | `#c4c4c8` | `#4a4a52` |
 | Destaque (preenchimento) | `#f47720` com texto `#17171b` | `#f47720` com texto `#17171b` |
 | Destaque como texto | `#f47720` | `#ab5316` (laranja 700) |
 
@@ -85,12 +85,15 @@ Desde a decisão [0028](decisoes/0028-console-visual-redesign.md), cada tema tem
 
 `border` continua sendo o **divisor**: separa e não precisa de 3:1. A regra é que nenhum controle use só a `border` como borda; é para isso que existe a `borderControl`. As telas de hoje (`.btn.outline`, campos e seletores) ainda usam `var(--border)` e passam à `borderControl` no #750 e no #751.
 
+O ponto do "Esperando você" no claro era `#664e04` e passou a `#a87e00` (3,65:1 sobre o cartão e 3,15:1 sobre `sidebar`), para se parecer com o amarelo da marca.
+
 Contraste, nos dois temas (todos os valores conferidos por [test/tokens.test.mjs](../test/tokens.test.mjs)):
 
 - **Texto, 4,5:1:** `text`, `muted` e `subtle` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`, e sobre `avatar`; `onPrimary` sobre `primary`; o texto de cada cor de agente sobre o fundo dela.
 - **Ícone, traço e borda de controle, 3:1:** `accentLine` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`; `borderControl` sobre `bg`, `surface`, `sidebar` e `segment` (no mínimo 3,02:1, no claro sobre `segment`).
 - **Fora da regra:** o `borderControl` não é garantido sobre `track` no escuro (2,63:1). `subtle` não é texto sobre `track` no escuro (4,47:1).
 - **O `#ab5316` não é texto sobre `sidebar` nem sobre `segment`:** dá 4,47:1 e 4,24:1, abaixo de 4,5:1. Ali ele vale como traço (foco, progresso), que só pede 3:1. Não use o `#ab5316` como texto ali. O rótulo de status Ativa no claro (`status.active.light.text`) tem o mesmo valor, então vale o mesmo para ele.
+- **O `#a87e00` não é ícone sobre `segment` nem sobre `track` no tema claro:** dá 2,98:1, abaixo de 3:1. Ali a contagem usa o `#664e04` (`status.waiting.light.text`), que dá 6,35:1. Sobre `bg`, `surface` e `raised` o `#a87e00` passa (3,38:1, 3,65:1 e 3,24:1).
 
 #### Raios
 
@@ -137,7 +140,7 @@ As etiquetas de **Ativa** e de **Esperando você** têm também uma `border` dec
 
 O motivo do "Esperando você" aparece num chip ao lado do status: **Pede permissão** (`notification`) e **Interrompida** (`interrupted`) são urgentes; **Sua vez** (`stop`) e **No prompt** (`session_start`) não são.
 
-No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700, amarelo 900, vermelho 700, cinza 300 e, na Concluída, cinza 500), para passar o contraste. A pílula é a cor canônica a 12% sobre o cartão.
+No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700, amarelo, vermelho 700, cinza 300 e, na Concluída, cinza 500), para passar o contraste. O ponto do "Esperando você" é `#a87e00` e o rótulo é o amarelo 900, `#664e04`. A pílula é a cor canônica a 12% sobre o cartão.
 
 ### Tipografia
 

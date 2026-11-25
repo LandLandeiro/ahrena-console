@@ -246,6 +246,26 @@ test('#749: the orange stroke is not text on sidebar and segment in the light th
   }
 })
 
+test('#749: the waiting dot of the light theme is not an icon on segment and track; the count there uses the waiting text, which passes', () => {
+  const light = tokens.themes.light
+  const waiting = tokens.status.waiting.light
+  assert.equal(waiting.dot, '#a87e00')
+  for (const bg of ['segment', 'track']) {
+    assert.ok(contrast(waiting.dot, light[bg]) < AA_NON_TEXT, `waiting.light.dot reads as an icon on ${bg}`)
+    assert.equal(waiting.text, tokens.yellow['900'], 'the replacement is the waiting text')
+    assertContrast(waiting.text, light[bg], AA_TEXT, `waiting.light.text on ${bg}`)
+  }
+  for (const bg of ['bg', 'surface', 'raised', 'sidebar']) assertContrast(waiting.dot, light[bg], AA_NON_TEXT, `waiting.light.dot on ${bg}`)
+})
+
+test('#749: the divider border is lighter than the old one in both themes, and a real divider on the page background', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    assert.ok(contrast(t.border, t.bg) > 1.05, `${theme}.border is visible on bg`)
+    assert.ok(contrast(t.border, t.bg) < AA_NON_TEXT, `${theme}.border is a divider, not a control edge`)
+  }
+})
+
 test('#749: every agent colour has a text and a background in each theme, the text passes 4.5:1 on its background, and none is a status colour', () => {
   assert.deepEqual(Object.keys(tokens.agent).filter((k) => !k.startsWith('_')), AGENT_COLORS)
   const statusColours = new Set(STATUS.flatMap((id) => [tokens.status[id].color, ...THEMES.flatMap((theme) => [tokens.status[id][theme].dot, tokens.status[id][theme].text])]))
