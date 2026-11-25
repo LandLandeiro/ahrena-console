@@ -89,12 +89,14 @@ function idlePhrase(c) {
 export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
+  const idle = isIdle(c.attention);
   return {
     ...v,
     phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
     fraction: plan ? plan.step / plan.total : 0,
-    ratio: plan ? `${plan.step} de ${plan.total}` : null,
-    idle: isIdle(c.attention),
+    // ADR-0028: an idle row is the icon, the written label and the time; the "X de Y" is for the others.
+    ratio: plan && !idle ? `${plan.step} de ${plan.total}` : null,
+    idle,
     since: c.since,
   };
 }

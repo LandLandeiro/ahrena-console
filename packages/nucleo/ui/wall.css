@@ -25,10 +25,10 @@
 .wall-card:has(.wall-link:focus-visible), .wall-row:has(.wall-link:focus-visible) { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .wall-row:has(.wall-link:focus-visible) { z-index: 2; }
 
-.wall-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.wall-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
 .wall-name { font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text); }
 .wall-age { font-size: var(--text-md); color: var(--subtle); white-space: nowrap; }
-.wall-state { margin-left: auto; min-width: 0; }
+.wall-state { margin-left: auto; min-width: 0; max-width: 100%; }
 
 .wall-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .wall-titleline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
@@ -44,7 +44,7 @@
 .wall-foot { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--subtle); min-width: 0; }
 .wall-num { color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .wall-over { color: var(--status-error-text); }
-.wall-mach { margin-left: auto; position: relative; color: var(--subtle); }
+.wall-mach { margin-left: auto; position: relative; color: var(--subtle); min-width: 0; max-width: 100%; }
 
 /* ---------- the bars: <progress>, neutral, with no inline style ---------- */
 .wall-bar { -webkit-appearance: none; appearance: none; flex: 1; display: block; height: 4px; min-width: 40px; border: 0; border-radius: 2px; overflow: hidden; background: var(--track); color: var(--muted); }
@@ -62,16 +62,16 @@
 .wall-list > .wall-row:last-child { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
 .wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
 .wall-row:hover { background: var(--raised); }
-.wall-main { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-width: 0; }
+.wall-main { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, auto); gap: 12px; align-items: center; min-width: 0; }
 .wall-text { display: flex; flex-direction: column; min-width: 0; }
 .wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
 .wall-phrase { display: block; font-size: 13.5px; line-height: 1.5; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wall-phrase-work { color: var(--muted); }
-.wall-side { display: flex; align-items: center; gap: 16px; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
+.wall-side { display: flex; align-items: center; gap: 16px; min-width: 0; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
 .wall-since { color: var(--subtle); font-variant-numeric: tabular-nums; }
 .wall-ratio { color: var(--subtle); font-variant-numeric: tabular-nums; }
-.wall-row .wall-mach { margin-left: 0; }
+.wall-row .wall-mach { margin-left: 0; max-width: 160px; }
 
 /* ---------- the children nested in a leader and the "Paradas" band (C85 to C87, issue 333) ---------- */
 .wall-tree { position: relative; z-index: 1; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--border); }
@@ -109,9 +109,10 @@
   .wall-seg { flex-wrap: wrap; max-width: 100%; }
 }
 
-/* Below 600px the cards go one a row, and the list loses the machine and the bar. */
+/* Below 600px the cards go one a row; a row loses the machine and its side goes under the text, so the title and the written state both fit. */
 @media (max-width: 600px) {
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
-  .wall-row .wall-mach, .wall-row .wall-bar { display: none; }
-  .wall-side { gap: 10px; }
+  .wall-main { grid-template-columns: 28px minmax(0, 1fr); row-gap: 4px; }
+  .wall-row .wall-mach { display: none; }
+  .wall-side { grid-column: 2; flex-wrap: wrap; gap: 4px 10px; }
 }
