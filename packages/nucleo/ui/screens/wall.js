@@ -166,6 +166,13 @@ function spotsOf(nest, key, link, action) {
   if (action) nest.spot('open', key, action.children[0]);
 }
 
+// ADR-0028: the tag sits above the stretched link so its `title` shows; a click on it goes to the link, modifiers and all.
+function tagOver(tag, link) {
+  tag.setAttribute('class', `${tag.getAttribute('class')} wall-tag`);
+  tag.addEventListener('click', (ev) => link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: ev.button, ctrlKey: ev.ctrlKey, metaKey: ev.metaKey, shiftKey: ev.shiftKey, altKey: ev.altKey })));
+  return tag;
+}
+
 function titleLine(link, parentTitle) {
   return el('div', { class: 'wall-titleline' }, link, parentTitle ? el('span', { class: 'wall-from', title: `Aberta por ${parentTitle}` }, `filha de ${parentTitle}`) : null);
 }
@@ -185,7 +192,7 @@ function card(c, write, nest, known) {
   const node = el(
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
-    who(stateTag({ kind: v.state.kind, label: v.state.label }), c.since),
+    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
     action ? el('div', { class: 'wall-act' }, action) : null,
     ...tree(c, summary, opened, nest),
@@ -214,7 +221,7 @@ function row(c, write, nest, known) {
       el(
         'div',
         { class: 'wall-side' },
-        stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }),
+        tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }), link),
         v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
         v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
         machineOf(c, known),
