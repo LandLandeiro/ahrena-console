@@ -115,4 +115,5 @@
   .wall-main { grid-template-columns: 28px minmax(0, 1fr); row-gap: 4px; }
   .wall-row .wall-mach { display: none; }
   .wall-side { grid-column: 2; flex-wrap: wrap; gap: 4px 10px; }
+  .wall-side .wall-act { margin-left: auto; }
 }

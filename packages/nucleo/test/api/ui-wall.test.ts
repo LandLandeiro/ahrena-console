@@ -881,6 +881,7 @@ describe('#751: the sheet of the wall', () => {
     assert.match(side, /grid-column:\s*2/);
     assert.match(side, /flex-wrap:\s*wrap/);
     assert.match(small, /\.wall-row \.wall-mach \{[^}]*display:\s*none/);
+    assert.match(small, /\.wall-side \.wall-act \{[^}]*margin-left:\s*auto/, 'the action sits at the right edge, so the failure notice opens inside the screen and not past its left edge');
     assert.doesNotMatch(sheet, /wall-row \.wall-bar/, 'the row has no bar, so no rule for it');
   });
 
