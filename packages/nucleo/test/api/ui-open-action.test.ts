@@ -130,6 +130,14 @@ describe('open action: label and primary variant (#751)', () => {
     assert.equal(button.getAttribute('title'), 'Abre a conversa no Claude Desktop');
   });
 
+  test('the label sits in its own .open-label, so a long one is cut with an ellipsis and the icon stays', () => {
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    const label = root.querySelector('button .open-label')!;
+    assert.equal(texto(label), 'Responder no Claude');
+    assert.equal(texto(root.querySelector('button')), 'Responder no Claude');
+    assert.equal(label.querySelector('svg, .icon, i'), null, 'the icon is outside the label');
+  });
+
   test('a remote session stays as it is: aria-disabled, "Roda em …", never primary', () => {
     const remote = { id: UUID, open: { target: 'desktop', command: null }, machine: { id: 'ws', label: 'ws-exemplo' } };
     const root = openAction(remote, { size: 'small', machine: 'ws-exemplo', label: 'Responder no Claude', primary: true }) as ElementoFalso;

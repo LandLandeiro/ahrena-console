@@ -151,7 +151,7 @@ export function openAction(session, { size = 'full', write = defaultWrite, machi
         'button',
         { type: 'button', class: `btn ${filled ? 'primary' : 'outline'} ${size === 'full' || primary === true ? 'md' : 'sm'} open-button`, title: d.title, 'data-open-target': d.target },
         icon(iconName),
-        label,
+        el('span', { class: 'open-label' }, label),
         size === 'full' && d.external ? icon('external') : null,
       );
   // aria-disabled keeps the title readable on hover; the click does nothing.

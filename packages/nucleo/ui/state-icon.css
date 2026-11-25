@@ -14,5 +14,5 @@
 .state-icon .si-dot, .state-icon .si-fill, .state-icon .si-disc { fill: currentColor; }
 .state-icon .si-cut { stroke: var(--surface); }
 
-.state-tag { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+.state-tag { display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
 .state-tag-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

@@ -24,8 +24,9 @@
 
 /* small (wall foot): the foot has no room for a sentence, so the state opens above the button, like the
    icon's below it; the foot keeps its height and the card's neighbours keep theirs (rule 9). */
-.open-size-small { flex: 1 1 auto; }
-.open-size-small .open-button { flex: none; min-width: 0; }
+.open-size-small { flex: 1 1 auto; max-width: 100%; }
+.open-size-small .open-button { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.open-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .open-size-small .open-status { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(260px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
 
 /* icon (Sessions row, Dashboard inbox): the icon alone; the state opens below it, to the left. */
