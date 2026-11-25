@@ -725,6 +725,19 @@ describe('#751: the sheet of the wall', () => {
     assert.doesNotMatch(sheet, /box-shadow|drop-shadow|backdrop-filter|gradient/);
   });
 
+  test('the list clips nothing: the ring and the failure popover of the last row show, the corners come from the first and the last row (#751)', () => {
+    assert.doesNotMatch(ruleOf('.wall-list'), /overflow/);
+    assert.match(ruleOf('.wall-list > .wall-row:first-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\) 0 0/);
+    assert.match(ruleOf('.wall-list > .wall-row:last-child'), /border-radius:\s*0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)/);
+    assert.match(ruleOf('.wall-list > .wall-row:only-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\)/);
+  });
+
+  test('the focused row sits above its neighbours, and an open failure goes over the next rows, the tree and the Paradas band (#751)', () => {
+    const z = (selector: string) => Number(declared(selector, 'z-index'));
+    assert.ok(z('.wall-row:has(.wall-link:focus-visible)') >= 2, 'the focused row above the neighbours');
+    assert.ok(z('.wall-act:has([role="status"]:not(:empty))') > Math.max(z('.wall-act'), z('.wall-tree'), z('.wall-kids, .wall-parked-list'), z('.wall-row:has(.wall-link:focus-visible)')), 'the open failure above every other layer of the wall');
+  });
+
   test('the grid: auto-fill from 330px, one column below 600px; the feet line up at the bottom', () => {
     assert.match(declared('.wall-grid', 'grid-template-columns')!, /repeat\(auto-fill, minmax\(330px, 1fr\)\)/);
     assert.match(declared('.wall-foot', 'margin-top')!, /^auto$/);
