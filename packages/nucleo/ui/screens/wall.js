@@ -1,15 +1,16 @@
-// ADR-0028: the blocked sessions are cards under "Precisam de você", the rest is one list; `GET /api/wall` comes in the core's order.
+// ADR-0028: four sections (Precisam de você as cards; Ativas, Ociosas and Concluídas as rows), a sentence and a state filter; `GET /api/wall` comes in the core's order.
 //
 // As barras são `<progress>`: a largura sai do `value`, sem estilo inline (a CSP bloqueia).
 // As funções sem DOM (formatação e o que cada card mostra) saem exportadas para o teste.
 
-import { header, el, icon } from '../dom.js';
+import { el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isBlocked, isIdle } from '../attention.js';
+import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
 import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
 import { newSessionButton } from '../new-session.js';
+import { clockOf, countsOf, duoCells, sectionOf, sectionsOf, summaryOf, summaryText } from '../wall-sections.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceText, whereText } from '../machine-filter.js';
 
 const STYLE = '/ui/wall.css';
@@ -24,19 +25,13 @@ const AGENT = 'Claude';
 export const PARKED_PAGE = 7;
 export const PARKED_MAX = 100;
 
-// The same groups as the core's `count` (issue 245): blocked (errors included), idle, active.
+// ADR-0028: the filter is the section of the card; "Concluídas" has no filter of its own and shows under "Todas".
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas', passa: () => true, vazio: 'Nenhuma sessão aberta' },
-  { id: 'blocked', rotulo: 'Precisam de você', count: 'blocked', passa: (c) => isBlocked(c.attention), vazio: 'Ninguém precisa de você agora' },
-  { id: 'idle', rotulo: 'Ociosas', count: 'idle', passa: (c) => isIdle(c.attention), vazio: 'Nenhuma sessão ociosa' },
-  { id: 'active', rotulo: 'Ativas', passa: (c) => !attentionOf(c.attention) && ['active', 'delegating', 'background'].includes(c.state), vazio: 'Nenhuma sessão ativa' },
+  { id: 'blocked', rotulo: 'Precisam de você', passa: (c) => sectionOf(c) === 'blocked', vazio: 'Ninguém precisa de você agora' },
+  { id: 'active', rotulo: 'Ativas', passa: (c) => sectionOf(c) === 'active', vazio: 'Nenhuma sessão ativa' },
+  { id: 'idle', rotulo: 'Ociosas', passa: (c) => sectionOf(c) === 'idle', vazio: 'Nenhuma sessão ociosa' },
 ];
-
-/** The selector label: "Precisam de você · 5" with the core's count; without it, the label alone. */
-export function filterLabel(filter, count) {
-  const n = filter.count ? count?.[filter.count] : undefined;
-  return Number.isInteger(n) ? `${filter.rotulo} · ${n}` : filter.rotulo;
-}
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
 const clean = (text) => String(text ?? '').trim();
@@ -85,7 +80,7 @@ function idlePhrase(c) {
   return text.toLowerCase().startsWith(reason.toLowerCase()) ? text : `${reason} · ${text}`;
 }
 
-/** What a row shows, without DOM: the phrase, the slice of the state and "X de Y" when there is a plan. */
+/** What a row shows, without DOM: the phrase, the slice of the state, "X de Y" when there is a plan and the time of a completed one. */
 export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
@@ -95,7 +90,9 @@ export function rowContent(c) {
     phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
     fraction: plan ? plan.step / plan.total : 0,
     // ADR-0028: an idle row is the icon, the written label and the time; the "X de Y" is for the others.
-    ratio: plan && !idle ? `${plan.step} de ${plan.total}` : null,
+    ratio: plan && !idle && c.status !== 'completed' ? `${plan.step} de ${plan.total}` : null,
+    // ADR-0028: a completed row shows the time of its last activity (`since`), not the plan.
+    time: c.status === 'completed' ? clockOf(c.since) || null : null,
     idle,
     since: c.since,
   };
@@ -169,7 +166,7 @@ function titleLine(link, parentTitle) {
 }
 
 function tree(c, summary, opened, nest) {
-  return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids' }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
+  return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids', role: 'list', 'aria-label': `Filhas de ${c.title}` }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
 }
 
 function card(c, write, nest, known) {
@@ -182,7 +179,7 @@ function card(c, write, nest, known) {
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
-    { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
+    { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     who(stateTag({ kind: v.state.kind, label: v.state.label }), c.since),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
     action ? el('div', { class: 'wall-act' }, action) : null,
@@ -192,7 +189,7 @@ function card(c, write, nest, known) {
   return { node, link };
 }
 
-function row(c, write, nest, known) {
+function row(c, write, nest, known, place = '') {
   const v = rowContent(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
@@ -203,7 +200,7 @@ function row(c, write, nest, known) {
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
-    { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
+    { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${place}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     el(
       'div',
       { class: 'wall-main' },
@@ -214,6 +211,7 @@ function row(c, write, nest, known) {
         { class: 'wall-side' },
         stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }),
         v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
+        v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
         machineOf(c, known),
         action ? el('span', { class: 'wall-act' }, action) : null,
@@ -245,7 +243,7 @@ function kidRows(nodes, depth, leader, nest) {
     nest.spot('child', itemKey({ id: k.id, machine: leader.machine }), kidLink);
     const row = el(
       'div',
-      { class: `wall-kid wall-depth-${Math.min(depth, 6)}${k.parked ? ' wall-kid-parked' : ''}`, 'data-child': k.id },
+      { class: `wall-kid wall-depth-${Math.min(depth, 6)}${k.parked ? ' wall-kid-parked' : ''}`, role: 'listitem', 'data-child': k.id },
       hasKids ? el('button', { type: 'button', class: 'wall-kid-toggle', 'data-toggle': k.id, 'aria-expanded': opened ? 'true' : 'false', 'aria-label': opened ? 'Recolher' : 'Abrir as filhas', onClick: () => nest.toggle(k.id) }, icon(opened ? 'chevron-down' : 'chevron-right')) : el('span', { class: 'wall-kid-toggle' }),
       kidLink,
       pill,
@@ -254,6 +252,16 @@ function kidRows(nodes, depth, leader, nest) {
     );
     return [row, ...(opened ? kidRows(k.children, depth + 1, leader, nest) : [])];
   });
+}
+
+/** ADR-0028: nothing needs the person; what the empty "Precisam de você" says instead of an empty list. Not a live region: the sentence of the header says it. */
+function calmBlock() {
+  return el(
+    'div',
+    { class: 'wall-calm' },
+    el('span', { class: 'wall-calm-tile', 'aria-hidden': 'true' }, icon('done')),
+    el('span', { class: 'wall-calm-text' }, el('b', {}, 'Nada precisa de você agora'), el('span', {}, 'Quando um agente pedir uma decisão ou uma permissão, ela aparece aqui primeiro.')),
+  );
 }
 
 /** The "Paradas" band (C85, C86): recolhida with the counter; opened, the most recent rows and "Mostrar mais". */
@@ -268,6 +276,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
     el('span', { class: 'wall-muted wall-trunc' }, 'sem atividade há mais de 180 min e sem pedir nada a você'),
     el('span', { class: 'wall-muted wall-parked-r' }, opened ? `Mostrando ${p.shown} de ${p.total} · as mais recentes` : 'Recolhida'),
   );
+  const titleId = 'wall-h-parked';
   const rows = !opened
     ? []
     : parked.items.map((c) => {
@@ -279,7 +288,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
         spot('parked-open', key, openLink);
         return el(
           'div',
-          { class: 'wall-kid', 'data-parked-row': c.id },
+          { class: 'wall-kid', role: 'listitem', 'data-parked-row': c.id },
           link,
           el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
           el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? 'Sua vez' : '—')),
@@ -288,7 +297,12 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
         );
       });
   const moreButton = opened && p.more > 0 ? el('button', { type: 'button', class: 'btn outline', 'data-parked': 'more', onClick: more }, `Mostrar mais ${p.more}`) : null;
-  return el('div', { class: 'card wall-parked' }, head, ...(opened ? [el('div', { class: 'wall-parked-list' }, ...rows, moreButton)] : []));
+  return el(
+    'section',
+    { class: 'card wall-parked', 'aria-labelledby': titleId },
+    el('h2', { class: 'wall-parked-h', id: titleId }, head),
+    ...(opened ? [el('div', { class: 'wall-parked-list', role: 'list', 'aria-labelledby': titleId }, ...rows), moreButton] : []),
+  );
 }
 
 function foot(v, machine) {
@@ -320,22 +334,37 @@ export async function mount(area, ctx) {
   // ADR-0028: the parked keys on screen when "Mostrar mais" was pressed; the first row beyond them gets the focus.
   let moreFrom = null;
 
-  // The selector with the core's `count` on "Precisam de você" and "Ociosas" (C2, issue 245).
+  // ADR-0028: the state filter, persistent buttons (label and number) so a redraw never replaces the one with the focus.
   const buttons = new Map();
+  const numbers = new Map();
   const selector = el(
     'div',
-    { class: 'wall-seg', role: 'group', 'aria-label': 'Filtrar sessões' },
+    { class: 'wall-seg', role: 'group', 'aria-label': 'Estado' },
     ...FILTERS.map((f) => {
-      const b = el('button', { type: 'button', 'data-filter': f.id, 'aria-pressed': f.id === filter ? 'true' : 'false', onClick: () => choose(f.id) }, f.rotulo);
+      const n = el('span', { class: 'wall-seg-n' });
+      const b = el('button', { type: 'button', 'data-filter': f.id, 'aria-pressed': f.id === filter ? 'true' : 'false', onClick: () => choose(f.id) }, el('span', {}, `${f.rotulo} `), n);
       buttons.set(f.id, b);
+      numbers.set(f.id, n);
       return b;
     }),
   );
-  const refresh = el('button', { type: 'button', class: 'btn outline', 'data-action': 'refresh', onClick: () => read() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'wall', title: 'Mural ao vivo', sub: 'Um card por sessão aberta nesta máquina', actions: [selector, refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
-  const sub = head.querySelector?.('.sub') ?? null;
-  // Issue 243 (C46): the machine filter on its own row under the header.
-  const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), draw(), read()), reread: () => read(), onLayout: () => draw() });
+  // ADR-0028: one live region, built once; its text is written only when the sentence changes.
+  const lead = el('b', {});
+  const rest = el('span', {});
+  const summary = el('p', { class: 'wall-summary', 'aria-live': 'polite', 'aria-atomic': 'true' }, lead, rest);
+  let said = '';
+  function say(counts) {
+    const parts = summaryOf(counts);
+    const text = summaryText(parts);
+    if (text === said) return;
+    said = text;
+    lead.textContent = parts.lead;
+    rest.textContent = parts.rest ? ` ${parts.rest}` : '';
+  }
+  const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, newSessionButton({ read: ctx.read, write: ctx.write })));
+  // Issue 243 (C46): the machine menu sits at the end of the row of the state filter.
+  const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), draw(), read()), reread: () => read(), onLayout: () => draw(), menu: { itemsOf: (b) => b.cards ?? [] }, fallbackFocus: () => buttons.get(filter) });
+  const segs = el('div', { class: 'wall-segs' }, selector, machines.row);
 
   function choose(id) {
     filter = id;
@@ -376,20 +405,19 @@ export async function mount(area, ctx) {
     return now ?? (leader ? findSpot(fresh, 'link', leader) : null);
   }
 
-  function focusTarget(was, held, fresh) {
-    if (!was) return null;
-    if (area.contains(was)) return was;
-    const spot = spots.find((x) => x.node === was);
+  // ADR-0028: where the focus goes when its node is gone, by the kind of control it was on.
+  function movedTo(was, held, fresh, spot) {
     if (spot) {
-      const lost = spot.kind === 'retry' ? refresh : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
+      const lost = spot.kind === 'retry' ? buttons.get(filter) : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
       return findSpot(fresh, spot.kind, spot.id) ?? lost;
     }
-    // ADR-0028: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
+    // A control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
     if (held.popover && held.key) {
       const open = findSpot(fresh, 'open', held.key);
-      return open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;
+      const same = open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;
+      if (same) return same;
     }
-    // ADR-0028: after "Mostrar mais" the focus goes to the first row that was not there before.
+    // After "Mostrar mais" the focus goes to the first row that was not there before.
     if (held.toggled?.[1] === 'more' && moreFrom) {
       const added = fresh.find((x) => x.kind === 'parked' && !moreFrom.has(x.id));
       if (added) {
@@ -397,8 +425,23 @@ export async function mount(area, ctx) {
         return added.node;
       }
     }
-    if (held.toggled) return [...(area.querySelectorAll?.(`[${held.toggled[0]}]`) ?? [])].find((n) => n.getAttribute(held.toggled[0]) === held.toggled[1]) ?? null;
+    if (held.toggled) {
+      const again = [...(area.querySelectorAll?.(`[${held.toggled[0]}]`) ?? [])].find((n) => n.getAttribute(held.toggled[0]) === held.toggled[1]);
+      if (again) return again;
+    }
     return held.key ? findSpot(fresh, 'link', held.key) : null;
+  }
+
+  function focusTarget(was, held, fresh) {
+    if (!was) return null;
+    if (area.contains(was)) return was;
+    const spot = spots.find((x) => x.node === was);
+    const moved = movedTo(was, held, fresh, spot);
+    if (moved) return moved;
+    // ADR-0028: a session the state filter hides is still in the answer: the focus goes to the pressed segment, from any control of it.
+    const key = spot?.kind === 'child' ? (leaderKeyOf(spot.id) ?? held.key) : (spot?.id ?? held.key);
+    const answered = (wall?.cards ?? []).some((c) => itemKey(c) === key);
+    return key && answered ? buttons.get(filter) : null;
   }
 
   function draw() {
@@ -422,38 +465,62 @@ export async function mount(area, ctx) {
 
   function build(fresh) {
     if (!wall) {
+      say(null);
+      for (const n of numbers.values()) n.textContent = '';
       const shown = failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' });
       keepRetry(shown, fresh);
-      return [head, ...machines.parts(), shown];
+      return [head, segs, ...machines.parts(), shown];
     }
-    for (const f of FILTERS) buttons.get(f.id).replaceChildren(filterLabel(f, wall.count));
+    const all = wall.cards ?? [];
+    const counts = countsOf(all);
+    say(counts);
+    const total = all.length;
+    numbers.get('all').textContent = String(total);
+    for (const id of ['blocked', 'active', 'idle']) numbers.get(id).textContent = String(counts[id]);
+    numbers.get('blocked').className = `wall-seg-n${counts.blocked > 0 ? ' wall-seg-need' : ''}`;
     const f = FILTERS.find((x) => x.id === filter);
-    const cards = (wall.cards ?? []).filter(f.passa);
+    const cards = all.filter(f.passa);
     const band = failure ? errorBand({ title: 'O mural não atualizou.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } }) : null;
     keepRetry(band, fresh);
     const nest = {
       isOpen: (id) => opened.has(id),
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
-      titleOf: (id) => (wall.cards ?? []).find((x) => x.id === id)?.title ?? null,
+      titleOf: (id) => all.find((x) => x.id === id)?.title ?? null,
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
-    const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known));
-    const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known));
-    const body = cards.length
-      ? el(
-          'div',
-          { class: 'wall-body' },
-          needs.length ? el('section', { class: 'wall-need' }, el('h2', { class: 'wall-h' }, ATTENTION_PLURAL.blocked), el('div', { class: 'wall-grid' }, ...needs.map((b) => b.node))) : null,
-          rest.length ? el('div', { class: 'wall-list' }, ...rest.map((b) => b.node)) : null,
-        )
+    const by = sectionsOf(cards);
+    const sections = [];
+    const section = (id, title, count, ...content) => {
+      const h = el('h2', { class: 'wall-h', id: `wall-h-${id}` }, `${title} `, el('span', { class: 'wall-h-n' }, String(count)));
+      return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content);
+    };
+    const list = (id, nodes, extra = '') => el('div', { class: `wall-list${extra}`, role: 'list', 'aria-labelledby': `wall-h-${id}` }, ...nodes);
+    const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known).node);
+    const calm = (filter === 'all' || filter === 'blocked') && total > 0 && !machines.chosenDown();
+    if (by.blocked.length) {
+      sections.push(section('blocked', ATTENTION_PLURAL.blocked, by.blocked.length, el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...by.blocked.map((c) => card(c, ctx.write, nest, known).node))));
+    } else if (calm) {
+      sections.push(section('blocked', ATTENTION_PLURAL.blocked, 0, calmBlock()));
+    }
+    if (by.active.length) {
+      const spans = by.active.map((c) => Boolean(treeSummary(c.tree)) && nest.isOpen(c.id));
+      const nodes = duoCells(spans).map((cell) => {
+        if (cell.i === null) return el('div', { class: `wall-filler${cell.last ? ' wall-last' : ''}${cell.first ? ' wall-first' : ''}`, 'aria-hidden': 'true' });
+        return row(by.active[cell.i], ctx.write, nest, known, ` wall-${cell.side}${cell.first ? ' wall-first' : ''}${cell.last ? ' wall-last' : ''}`).node;
+      });
+      sections.push(section('active', 'Ativas', by.active.length, list('active', nodes, ' wall-duo')));
+    }
+    const pair = ['idle', 'completed'].filter((id) => by[id].length).map((id) => section(id, id === 'idle' ? 'Ociosas' : 'Concluídas', by[id].length, list(id, rowsOf(id))));
+    if (pair.length) sections.push(el('div', { class: 'wall-pair' }, ...pair));
+    const body = sections.length
+      ? el('div', { class: 'wall-body' }, ...sections)
       : machines.chosenDown()
         ? null
         : empty({ icon: 'wall', title: f.vazio, text: filter === 'all' ? `Abra uma sessão do Claude Code ${machines.hasRemotes() ? whereText(machines.choice, machines.machines(), { form: 'any' }) : 'nesta máquina'} e ela aparece aqui.` : 'Troque o filtro para ver as outras.' });
-    if (sub) sub.textContent = machines.hasRemotes() ? `Um card por sessão aberta, ${whereText(machines.choice, machines.machines())}` : 'Um card por sessão aberta nesta máquina';
     // The band is part of "Todas": the other filters are about the cards.
     const parked = filter === 'all' ? parkedBand(wall.parked, parkedOpen, { toggle: () => ((parkedOpen = !parkedOpen), draw()), more: () => ((moreFrom = new Set(spots.filter((x) => x.kind === 'parked').map((x) => x.id))), (parkedLimit = PARKED_MAX), read()), spot: nest.spot }) : null;
-    return [head, ...machines.parts(), band, body, parked].filter(Boolean);
+    return [head, segs, ...machines.parts(), band, body, parked].filter(Boolean);
   }
 
   async function read() {

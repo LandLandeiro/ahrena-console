@@ -42,6 +42,10 @@ class No {
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
   }
+  // As in the browser: assigning the text replaces the children by one text node, and an empty text by none (#752).
+  set textContent(v: string) {
+    this.replaceChildren(...(String(v) === '' ? [] : [String(v)]));
+  }
   /** Todos os elementos abaixo deste que passam no teste. */
   todos(teste: (e: Elemento) => boolean): Elemento[] {
     const out: Elemento[] = [];
@@ -97,6 +101,22 @@ class Elemento extends No {
   set innerHTML(v: string) {
     this.html = v;
   }
+  // The machine menu (#752) reads and writes `hidden`, like the browser reflects the attribute.
+  get hidden() {
+    return this.atributos.has('hidden');
+  }
+  set hidden(v: boolean) {
+    if (v) this.atributos.set('hidden', '');
+    else this.atributos.delete('hidden');
+  }
+  get lastChild() {
+    return this.filhos.at(-1) ?? null;
+  }
+  insertBefore(no: No, ref: No | null) {
+    no.remove();
+    no.parent = this;
+    this.filhos.splice(ref ? this.filhos.indexOf(ref) : this.filhos.length, 0, no);
+  }
   get classes() {
     return (this.getAttribute('class') ?? '').split(/\s+/);
   }
@@ -110,6 +130,8 @@ Object.assign(globalThis, {
     createElement: (t: string) => new Elemento(t),
     createElementNS: (_ns: string, t: string) => new Elemento(t),
     createTextNode: (t: string) => new Texto(t),
+    addEventListener: () => {},
+    removeEventListener: () => {},
     querySelector: (sel: string) => head.todos((e) => sel === `link[href="${e.getAttribute('href')}"]`)[0] ?? null,
   },
 });
@@ -243,7 +265,11 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.replace('Passo ', ''));
     const idleWithPlan = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } }));
     assert.equal(idleWithPlan.ratio, null, 'an idle row is the icon, the written label and the time: no "X de Y" (#751)');
-    assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } })).ratio, '4 de 5', 'only the idle row drops it');
+    const completed = rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } }));
+    assert.equal(completed.ratio, null, 'a completed row shows the time of its last activity, no "X de Y" (#752)');
+    assert.match(completed.time, /^\d\d:\d\d$/);
+    assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', since: 'not a date' })).time, null, 'no clock without a date');
+    assert.equal(rowContent(cardDeExemplo('r')).time, null, 'only a completed row has one');
     const bare = rowContent(cardDeExemplo('r', { plan: null }));
     assert.equal(bare.fraction, 0);
     assert.equal(bare.ratio, null);
@@ -294,23 +320,22 @@ describe('Mural: a tela montada', () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
       await ate(() => sessionsOf(area).length > 0);
-      assert.match(area.textContent, /Mural ao vivo.*Um card por sessão aberta nesta máquina/);
+      assert.match(area.textContent, /^Mural ao vivo2 sessões precisam de você\. 1 trabalhando, 1 em pausa e 1 concluída\./);
       const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
-      assert.deepEqual(filtros.map((f) => f.textContent), ['Todas', 'Precisam de você · 2', 'Ociosas · 1', 'Ativas']);
+      assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 5', 'Precisam de você 2', 'Ativas 1', 'Ociosas 1'], 'the name of each segment reads "Ativas 1", with a real space');
       assert.equal(filtros[0]!.getAttribute('aria-pressed'), 'true');
-      assert.ok(area.todos((e) => e.getAttribute('data-action') === 'refresh').length === 1, 'o Atualizar do wireframe');
+      assert.equal(area.todos((e) => e.getAttribute('data-action') === 'refresh').length, 0, 'no Atualizar: the live stream and "Tentar de novo" read again (#752)');
 
-      const needSection = comClasse(area, 'wall-need');
+      const needSection = comClasse(area, 'wall-sec-blocked');
       assert.equal(needSection.length, 1);
       assert.equal(needSection[0]!.tag, 'section');
-      assert.equal(needSection[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent).join(), 'Precisam de você');
+      assert.equal(needSection[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent).join(), 'Precisam de você 2');
       const cards = cardsOf(area);
       assert.deepEqual(cards.map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1'], 'the blocked ones, in the core order, the error included');
       assert.ok(cards.every((c) => c.tag === 'div' && needSection[0]!.todos((e) => e === c).length === 1));
       const listBox = comClasse(area, 'wall-list');
-      assert.equal(listBox.length, 1, 'one list, no title: grouping is #752');
-      assert.deepEqual(rowsOf(listBox[0]!).map((c) => c.getAttribute('data-session')), ['ativa-1', 'espera-2', 'feita-1'], 'the core order, ungrouped');
-      assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você']);
+      assert.deepEqual(listBox.map((l) => rowsOf(l).map((c) => c.getAttribute('data-session'))), [['ativa-1'], ['espera-2'], ['feita-1']], 'one list per section, the core order inside each (#752)');
+      assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você 2', 'Ativas 1', 'Ociosas 1', 'Concluídas 1']);
       assert.deepEqual(
         sessionsOf(area).map((c) => comClasse(c, 'wall-link')[0]!.getAttribute('href')),
         ['/ui/sessions/espera-1', '/ui/sessions/erro-1', '/ui/sessions/ativa-1', '/ui/sessions/espera-2', '/ui/sessions/feita-1'],
@@ -346,7 +371,12 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(idleRow, 'state-tag')[0]!.textContent, 'Ociosa');
       assert.equal(comClasse(idleRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'paused');
       assert.match(comClasse(idleRow, 'wall-since')[0]!.textContent, /^há \d+ (min|h|d)$/);
-      assert.equal(comClasse(rowsOf(area)[2]!, 'wall-phrase')[0]!.textContent, 'Terminou sem erro');
+      const doneRow = rowsOf(area)[2]!;
+      assert.equal(comClasse(doneRow, 'wall-phrase')[0]!.textContent, 'Terminou sem erro');
+      assert.equal(comClasse(doneRow, 'state-tag')[0]!.textContent, 'Concluída', 'the written state stays in the row (#751)');
+      assert.match(comClasse(doneRow, 'wall-since')[0]!.textContent, /^\d\d:\d\d$/, 'the clock time of the last activity');
+      assert.equal(comClasse(doneRow, 'wall-since')[0]!.getAttribute('title'), 'Última atividade');
+      assert.equal(comClasse(doneRow, 'wall-ratio').length, 0);
       assert.ok(head.todos((e) => e.getAttribute('href') === '/ui/wall.css').length === 1, 'a tela carrega o próprio CSS');
     } finally {
       await sair();
@@ -435,13 +465,35 @@ describe('Mural: a tela montada', () => {
     }
   });
 
-  test('with nothing blocked there is no section and no empty title, only the list', async () => {
+  test('with nothing blocked the section stays with the calm block of the prototype, which is not a live region (#752)', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[0]!, MURAL.cards[2]!] }));
     try {
       await ate(() => rowsOf(area).length === 2);
-      assert.equal(comClasse(area, 'wall-need').length, 0);
-      assert.equal(area.todos((e) => e.tag === 'h2').length, 0);
-      assert.doesNotMatch(area.textContent, /Precisam de você(?! ·)/);
+      const calm = comClasse(area, 'wall-calm');
+      assert.equal(calm.length, 1);
+      assert.equal(calm[0]!.textContent, 'Nada precisa de você agora' + 'Quando um agente pedir uma decisão ou uma permissão, ela aparece aqui primeiro.');
+      assert.equal(comClasse(calm[0]!, 'wall-calm-tile')[0]!.getAttribute('aria-hidden'), 'true');
+      assert.equal(comClasse(calm[0]!, 'icon').length, 1, 'the check icon');
+      assert.deepEqual(comClasse(area, 'wall-sec-blocked')[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent), ['Precisam de você 0']);
+      assert.equal(area.todos((e) => e.getAttribute('aria-live') !== null || e.getAttribute('role') === 'status' || e.getAttribute('role') === 'alert').filter((e) => calm[0]!.contains(e) || e.contains(calm[0])).length, 0, 'neither the block nor what holds it is a live region');
+      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^Nada precisa de você agora\. 1 trabalhando e 1 em pausa\.$/);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('the calm block shows under Todas and Precisam de você, not under another filter, and not when the wall is empty (#752)', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[0]!] }));
+    try {
+      await ate(() => rowsOf(area).length === 1);
+      const botao = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
+      assert.equal(comClasse(area, 'wall-calm').length, 1);
+      botao('blocked').click();
+      assert.equal(comClasse(area, 'wall-calm').length, 1, 'the filter of the blocked ones says it is calm too');
+      assert.equal(comClasse(area, 'state').length, 0, 'and not the empty state');
+      botao('idle').click();
+      assert.equal(comClasse(area, 'wall-calm').length, 0);
+      assert.match(area.textContent, /Nenhuma sessão ociosa/);
     } finally {
       await sair();
     }
@@ -508,10 +560,10 @@ describe('Mural: a tela montada', () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [idleWithPlan, cardDeExemplo('w1')] }));
     try {
       await ate(() => rowsOf(area).length === 2);
-      const [idle, working] = rowsOf(area);
-      assert.equal(comClasse(idle!, 'wall-ratio').length, 0);
-      assert.match(comClasse(idle!, 'wall-since')[0]!.textContent, /^há /);
-      assert.equal(comClasse(working!, 'wall-ratio')[0]!.textContent, '4 de 5');
+      const byId = (id: string) => rowsOf(area).find((r) => r.getAttribute('data-session') === id)!;
+      assert.equal(comClasse(byId('i1'), 'wall-ratio').length, 0);
+      assert.match(comClasse(byId('i1'), 'wall-since')[0]!.textContent, /^há /);
+      assert.equal(comClasse(byId('w1'), 'wall-ratio')[0]!.textContent, '4 de 5');
     } finally {
       await sair();
     }
@@ -559,7 +611,7 @@ describe('Mural: a tela montada', () => {
   test('the filter switches on the client, without a new request; blocked and idle apart; an empty filter shows its empty state', async () => {
     const soAtivas = { ...MURAL, count: { all: 1, waiting: 0, active: 1, blocked: 0, idle: 0 }, cards: [MURAL.cards[0]] };
     let dados: unknown = MURAL;
-    const { area, rotas, sair } = await montarTela(async () => dados);
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => dados);
     try {
       await ate(() => sessionsOf(area).length === 5);
       const botao = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
@@ -574,11 +626,13 @@ describe('Mural: a tela montada', () => {
       assert.deepEqual(rotas, ['/api/wall?machine=all'], 'só a primeira leitura');
 
       dados = soAtivas;
-      area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
+      for (const f of ouvintes.reiniciar) f();
       await ate(() => rotas.length === 2 && sessionsOf(area).length === 1);
       botao('blocked').click();
       assert.equal(sessionsOf(area).length, 0);
-      assert.match(area.textContent, /Ninguém precisa de você agora/);
+      assert.equal(comClasse(area, 'wall-calm').length, 1, 'other cards exist, so the calm block answers (#752)');
+      botao('idle').click();
+      assert.match(area.textContent, /Nenhuma sessão ociosa/);
     } finally {
       await sair();
     }
@@ -602,7 +656,7 @@ describe('Mural: a tela montada', () => {
 
   test('sem o núcleo: o erro com "Tentar de novo", que relê; depois, falha vira a faixa e os cards ficam', async () => {
     let falhar = true;
-    const { area, rotas, sair } = await montarTela(async () => {
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => {
       if (falhar) throw Object.assign(new Error('O núcleo em 127.0.0.1 não respondeu'), { status: 0 });
       return MURAL;
     });
@@ -617,7 +671,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(rotas.length, 2);
 
       falhar = true;
-      area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
+      for (const f of ouvintes.reiniciar) f();
       await ate(() => comClasse(area, 'error-band').length === 1);
       assert.match(comClasse(area, 'error-band')[0]!.textContent, /O mural não atualizou/);
       assert.equal(sessionsOf(area).length, 5, 'os cards de antes continuam');
@@ -720,12 +774,12 @@ describe('Mural: ao vivo com atividade contínua', () => {
   });
 
   test('o foco do teclado volta ao card da mesma sessão depois de redesenhar', async () => {
-    const { area, rotas, sair } = await montarTela(async () => MURAL);
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
     try {
       await ate(() => sessionsOf(area).length === 5);
       const antes = sessionsOf(area).find((c) => c.getAttribute('data-session') === 'espera-2')!;
       antes.focus();
-      area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
+      for (const f of ouvintes.reiniciar) f();
       await ate(() => rotas.length === 2 && sessionsOf(area)[0] !== undefined && !sessionsOf(area).includes(antes));
       const doc = (globalThis as unknown as { document: { activeElement: Elemento } }).document;
       assert.notEqual(doc.activeElement, antes);
@@ -815,7 +869,7 @@ describe('#751: the sheet of the wall', () => {
   test('the list clips nothing: the ring and the failure popover of the last row show, the corners come from the first and the last row (#751)', () => {
     assert.doesNotMatch(ruleOf('.wall-list'), /overflow/);
     assert.match(ruleOf('.wall-list > .wall-row:first-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\) 0 0/);
-    assert.match(ruleOf('.wall-list > .wall-row:last-child'), /border-radius:\s*0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)/);
+    assert.match(ruleOf('.wall-list > .wall-row:last-child, .wall-list > .wall-row:has(+ .wall-filler:last-child)'), /border-radius:\s*0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)/);
     assert.match(ruleOf('.wall-list > .wall-row:only-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\)/);
   });
 
@@ -874,12 +928,9 @@ describe('#751: the sheet of the wall', () => {
     assert.equal(declared('.wall-row', 'padding'), '12px 16px');
   });
 
-  test('below 600px the side of a row goes under the text, in the second line of the grid, and wraps (#751)', () => {
+  test('below 600px the machine goes away and the action sits at the right edge; the side wraps under the text only when it does not fit (#751, #752)', () => {
     const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
-    assert.match(small, /\.wall-main \{[^}]*grid-template-columns:\s*28px minmax\(0, 1fr\)\s*;/);
-    const side = small.match(/\.wall-side \{([^}]*)\}/)?.[1] ?? '';
-    assert.match(side, /grid-column:\s*2/);
-    assert.match(side, /flex-wrap:\s*wrap/);
+    assert.match(declared('.wall-main', 'flex-wrap') ?? '', /wrap/);
     assert.match(small, /\.wall-row \.wall-mach \{[^}]*display:\s*none/);
     assert.match(small, /\.wall-side \.wall-act \{[^}]*margin-left:\s*auto/, 'the action sits at the right edge, so the failure notice opens inside the screen and not past its left edge');
     assert.doesNotMatch(sheet, /wall-row \.wall-bar/, 'the row has no bar, so no rule for it');
@@ -897,8 +948,10 @@ describe('#751: the sheet of the wall', () => {
     assert.match(declared('.wall-state', 'max-width') ?? '', /100%/);
     assert.match(rule('state-icon.css', '.state-tag'), /min-width:\s*0[^}]*max-width:\s*100%/);
     assert.match(declared('.wall-who', 'flex-wrap') ?? '', /wrap/);
-    assert.match(declared('.wall-main', 'grid-template-columns') ?? '', /minmax\(0, auto\)$/);
+    assert.match(declared('.wall-main', 'flex-wrap') ?? '', /wrap/);
+    assert.equal(declared('.wall-main', 'min-width'), '0');
     assert.equal(declared('.wall-side', 'min-width'), '0');
+    assert.equal(declared('.wall-side', 'max-width'), '100%');
   });
 
   test('the screen never sets the height of a button: the card action gets its size from openAction', () => {
@@ -907,17 +960,14 @@ describe('#751: the sheet of the wall', () => {
     assert.doesNotMatch(sheet, /\.open-button|\.btn[^{]*\{[^}]*(height|--btn-h)/);
   });
 
-  test('the header wraps and its actions take the whole row up to 1000px, so the screen does not scroll sideways at 700 or 900 (#751)', () => {
+  test('the header and the segments wrap, so the screen does not scroll sideways at 700 or 900 (#751, #752)', () => {
     const block = (width: number) => css('wall.css').match(new RegExp(`@media \\(max-width: ${width}px\\) \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? '';
-    const wide = block(1000);
-    assert.match(wide, /\.cc-head:has\(\.wall-seg\) \{[^}]*flex-wrap:\s*wrap/);
-    const actions = wide.match(/\.cc-head:has\(\.wall-seg\) \.actions \{([^}]*)\}/)?.[1] ?? '';
-    assert.match(actions, /flex-wrap:\s*wrap/);
-    assert.match(actions, /width:\s*100%/);
-    assert.match(actions, /margin-left:\s*0/);
-    assert.match(actions, /justify-content:\s*flex-start/);
-    assert.match(wide, /\.wall-seg \{[^}]*flex-wrap:\s*wrap[^}]*max-width:\s*100%/);
-    for (const narrow of [600, 640]) assert.doesNotMatch(block(narrow), /cc-head|\.wall-seg/, `the ${narrow}px block repeats the header rules`);
+    assert.match(declared('.wall-top', 'flex-wrap') ?? '', /wrap/);
+    assert.match(declared('.wall-segs', 'flex-wrap') ?? '', /wrap/);
+    assert.match(declared('.wall-seg', 'flex-wrap') ?? '', /wrap/);
+    assert.match(declared('.wall-seg', 'max-width') ?? '', /100%/);
+    assert.equal(declared('.wall-top-text', 'min-width'), '0');
+    for (const narrow of [600, 640]) assert.doesNotMatch(block(narrow), /wall-top|wall-segs|\.wall-seg /, `the ${narrow}px block repeats the header rules`);
     assert.equal(block(640), '', 'no 640px block is left');
   });
 
