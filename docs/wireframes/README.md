@@ -40,3 +40,9 @@ node docs/wireframes/montar.mjs --checar
 ```
 
 Os dados são sintéticos, com o vocabulário do simulador (`packages/nucleo/src/simulador`).
+
+## Redesign visual
+
+O redesign visual (redesign-wall, redesign-home, redesign-sessions, redesign-session-detail e redesign-session-detail-working, épico #748, decisão [0028](../decisoes/0028-console-visual-redesign.md), aprovado por Fernando em 24/11/2026), numa seção própria no fim: a linguagem nova aplicada primeiro ao Mural ao vivo, com tema claro e escuro no mesmo nível, fonte do sistema, cantos suaves, estado como ícone desenhado mais rótulo, cor por agente no monograma e ícone de máquina. O Mural se organiza por quem precisa de você: cards só para quem espera, com a pergunta em letra grande e a resposta ali mesmo, e listas para Trabalhando, Em pausa e Concluídas, com a frase-resumo no topo. Início, Sessões e o Detalhe aparecem como referência para a #759. Capturas em [capturas/](capturas/) como `redesign-<tela>-<largura>-<tema>.png` (por exemplo `redesign-wall-1100-dark.png`), e o Mural no celular em `redesign-wall-390-light.png`.
+
+O protótipo navegável aprovado é [redesign-prototype.html](redesign-prototype.html), uma cópia byte a byte do que o Fernando aprovou. Abra no navegador: tem dados fictícios, tema claro e escuro, um evento ao vivo simulado a cada 15 s e as telas Mural, Início, Sessões e Detalhe (`#mural`, `#inicio`, `#sessoes`, `#s-n1`). É uma referência congelada: as cores são escritas à mão, fica fora de `montar.mjs` e de `capturar.mjs` e não entra no artefato publicado (`index.html`). As capturas em `capturas/redesign-*` são as dele.
