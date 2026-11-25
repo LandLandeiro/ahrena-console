@@ -180,7 +180,7 @@ function card(c, write, nest, known) {
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
-  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel });
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel, reveal: true });
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
@@ -201,7 +201,7 @@ function row(c, write, nest, known) {
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const working = v.state.kind === 'working';
   const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
-  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null });
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null, reveal: true });
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',

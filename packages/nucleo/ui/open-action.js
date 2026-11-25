@@ -127,10 +127,10 @@ function setState(id, st) {
  * The action for one session (`{ id, open }`), or `null` when there is nothing to open.
  * `size`: 'full' | 'small' | 'icon'. `write` swaps the transport (tests, the screen's `ctx.write`).
  * `label` replaces the text of the button and `primary` draws it with the primary fill (ADR-0028); a
- * session of another machine keeps its own text and its outline, since it never opens from here. `primary` is also the
+ * session of another machine keeps its own text and its outline, since it never opens from here. `reveal` scrolls the notice into view when it changes (ADR-0028). `primary` is also the
  * 32px button of the kit (`md`) in every size, the remote one included; the screen never sets a button's height.
  */
-export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS, label: customLabel = null, primary = false } = {}) {
+export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS, label: customLabel = null, primary = false, reveal = false } = {}) {
   // Issue 243: a session of another machine never POSTs to this core, whatever its `open` says.
   const remote = typeof session?.machine?.id === 'string' && session.machine.id !== '' && session.machine.id !== 'local';
   const d = describeOpenAction(remote && session?.open ? { target: 'remote', command: null } : session?.open, { machine });
@@ -157,7 +157,7 @@ export function openAction(session, { size = 'full', write = defaultWrite, machi
   // aria-disabled keeps the title readable on hover; the click does nothing.
   if (d.disabled) button.setAttribute('aria-disabled', 'true');
   const why = size === 'full' && d.where ? el('span', { class: 'open-why' }, icon('server'), d.where) : null;
-  const status = openStatusView(key, button, { iconOnly: compact || size === 'small', closable: compact, restoreDisabled: d.disabled });
+  const status = openStatusView(key, button, { iconOnly: compact || size === 'small', closable: compact, restoreDisabled: d.disabled, reveal });
   const root = el('span', { class: `open-action open-size-${size}${className ? ` ${className}` : ''}`, 'data-open-target': d.target }, button, why, status);
   // Nothing inside the action reaches the card or the row around it.
   root.addEventListener('click', (ev) => ev.stopPropagation?.());
@@ -200,9 +200,10 @@ export async function requestOpen(key, id, { write = defaultWrite, successMs = S
  * The state of a session's open beside the `button` that asks for it (issue 532): the `open-status` node that says
  * "Abrindo…", the success or the failure with "Copiar comando", and keeps `button` aria-busy while the open is in flight.
  * It follows the state of `key` across redraws, as the action of `openAction` does; `iconOnly` makes the copy a bare icon,
- * `closable` adds "Fechar", and `restoreDisabled` keeps a button that never opens aria-disabled.
+ * `closable` adds "Fechar", `restoreDisabled` keeps a button that never opens aria-disabled and `reveal` scrolls the notice into view
+ * (the least scroll) when it changes on a page that already shows it (ADR-0028).
  */
-export function openStatusView(key, button, { iconOnly = false, closable = false, restoreDisabled = false } = {}) {
+export function openStatusView(key, button, { iconOnly = false, closable = false, restoreDisabled = false, reveal = false } = {}) {
   const status = el('span', { class: 'open-status', role: 'status', 'aria-live': 'polite' });
   let timer = null;
 
@@ -224,6 +225,7 @@ export function openStatusView(key, button, { iconOnly = false, closable = false
     const copy = st.kind === 'fail' && st.command ? copyButton(st.command, iconOnly) : null;
     const close = st.kind === 'fail' && closable ? closeButton(() => setState(key, null)) : null;
     status.replaceChildren(...[msg, copy, close].filter(Boolean));
+    if (reveal && status.isConnected === true) status.scrollIntoView?.({ block: 'nearest' });
     if (st.until !== null) {
       timer = setTimeout(draw, Math.max(0, st.until - Date.now()));
       // In node (the tests) a pending fade does not hold the process open; browsers return a number.
