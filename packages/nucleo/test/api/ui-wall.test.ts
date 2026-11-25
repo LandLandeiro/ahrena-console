@@ -829,6 +829,19 @@ describe('#751: the sheet of the wall', () => {
     assert.doesNotMatch(sheet, /\.open-button|\.btn[^{]*\{[^}]*(height|--btn-h)/);
   });
 
+  test('390px: the header wraps from 640px (as the base did) and its actions wrap and take the whole row below 600px, so the screen does not scroll sideways', () => {
+    const block = (width: number) => css('wall.css').match(new RegExp(`@media \\(max-width: ${width}px\\) \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? '';
+    assert.match(block(640), /\.cc-head:has\(\.wall-seg\) \{[^}]*flex-wrap:\s*wrap/, 'the band 600 to 640 keeps the wrapped header');
+    const actions = block(600).match(/\.cc-head:has\(\.wall-seg\) \.actions \{([^}]*)\}/)?.[1] ?? '';
+    assert.match(actions, /flex-wrap:\s*wrap/);
+    assert.match(actions, /width:\s*100%/);
+    assert.match(actions, /margin-left:\s*0/);
+  });
+
+  test('the screen has no double blank lines', () => {
+    assert.doesNotMatch(css('screens/wall.js'), /\n\n\n/);
+  });
+
   test('the dead rules of the old card are gone', () => {
     for (const dead of ['wall-badge', 'wall-b-', 'wall-gr(?![a-z])', 'wall-bars', 'wall-planrow', 'wall-st-', 'wall-prj', 'wall-l1', 'wall-detail', 'wall-pill']) assert.doesNotMatch(sheet, new RegExp(dead), dead);
     const code = css('screens/wall.js');

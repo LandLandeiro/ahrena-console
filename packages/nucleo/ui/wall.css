@@ -107,5 +107,11 @@
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
   .wall-row .wall-mach, .wall-row .wall-bar { display: none; }
   .wall-side { gap: 10px; }
+  .cc-head:has(.wall-seg) .actions { flex-wrap: wrap; width: 100%; margin-left: 0; justify-content: flex-start; }
+  .wall-seg { flex-wrap: wrap; max-width: 100%; }
+}
+
+/* ADR-0028: the header wraps from 640px, as before the redesign. */
+@media (max-width: 640px) {
   .cc-head:has(.wall-seg) { flex-wrap: wrap; }
 }

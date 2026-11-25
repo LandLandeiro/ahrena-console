@@ -24,7 +24,6 @@ const AGENT = 'Claude';
 export const PARKED_PAGE = 7;
 export const PARKED_MAX = 100;
 
-
 // The same groups as the core's `count` (issue 245): blocked (errors included), idle, active.
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas', passa: () => true, vazio: 'Nenhuma sessão aberta' },
@@ -38,7 +37,6 @@ export function filterLabel(filter, count) {
   const n = filter.count ? count?.[filter.count] : undefined;
   return Number.isInteger(n) ? `${filter.rotulo} · ${n}` : filter.rotulo;
 }
-
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
 const clean = (text) => String(text ?? '').trim();
