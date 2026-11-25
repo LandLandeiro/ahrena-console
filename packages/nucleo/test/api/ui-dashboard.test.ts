@@ -24,6 +24,9 @@ class No {
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
   }
+  contains(outro: unknown): boolean {
+    return outro === this || this.filhos.some((f) => f.contains(outro));
+  }
   /** Todos os elementos abaixo deste que passam no teste. */
   todos(teste: (e: Elemento) => boolean): Elemento[] {
     const out: Elemento[] = [];
