@@ -92,6 +92,18 @@ describe('#752: the menu of the machines', () => {
     assert.equal(down.item('ws').querySelectorAll('svg').length >= 1, true, 'the wifi-off icon and the words, never the colour alone');
   });
 
+  test('a choice forgets the numbers of the old one at once: the options show none until the answer of the new choice comes', () => {
+    const m = make();
+    m.answer([LOCAL, WS], cards('local', 'ws', 'ws'));
+    assert.deepEqual(labels(m), ['Todas as máquinas3', 'Esta máquina1', 'Workstation2']);
+    m.button().click();
+    m.item('local').click();
+    assert.deepEqual(m.calls.change, ['local']);
+    assert.deepEqual(labels(m), ['Todas as máquinas', 'Esta máquina', 'Workstation'], 'the items of the old answer are no numbers of the new choice');
+    m.answer([LOCAL, WS], cards('local'));
+    assert.deepEqual(labels(m), ['Todas as máquinas', 'Esta máquina1', 'Workstation'], 'the answer of one machine counts only that machine');
+  });
+
   test('opening: the button toggles it, the focus goes to the checked option, aria-controls names the menu', () => {
     const m = make();
     m.answer([LOCAL, WS], cards('local'));

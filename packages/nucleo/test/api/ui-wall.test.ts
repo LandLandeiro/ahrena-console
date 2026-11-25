@@ -324,6 +324,9 @@ describe('Mural: a tela montada', () => {
       const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
       assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 5', 'Precisam de você 2', 'Ativas 1', 'Ociosas 1'], 'the name of each segment reads "Ativas 1", with a real space');
       assert.equal(filtros[0]!.getAttribute('aria-pressed'), 'true');
+      const groups = area.todos((e) => e.getAttribute('role') === 'group' && e.getAttribute('aria-label') === 'Estado');
+      assert.equal(groups.length, 1, 'the state segments are one named group (#752)');
+      assert.deepEqual(groups[0]!.todos((e) => e.getAttribute('data-filter') !== null), filtros, 'and the group holds the four of them');
       assert.equal(area.todos((e) => e.getAttribute('data-action') === 'refresh').length, 0, 'no Atualizar: the live stream and "Tentar de novo" read again (#752)');
 
       const needSection = comClasse(area, 'wall-sec-blocked');
@@ -1215,19 +1218,38 @@ describe('#752: no refresh button; the live stream and "Tentar de novo" read aga
 });
 
 describe('#752: list semantics of the sections, the nested children and Paradas', () => {
+  const cleanLists = (area: No) => {
+    const lists = area.todos((e) => e.getAttribute('role') === 'list');
+    for (const list of lists) {
+      const named = list.getAttribute('aria-label') || list.getAttribute('aria-labelledby');
+      assert.ok(named, `a list with no name: ${list.classes.join(' ')}`);
+      for (const kid of list.children) assert.ok(kid.getAttribute('role') === 'listitem' || kid.getAttribute('aria-hidden') === 'true', `a child of a list that is no item: ${kid.classes.join(' ')}`);
+    }
+    return lists;
+  };
+
+  test('the filler that a three-row Ativas list draws is aria-hidden, and the list holds nothing else that is no item', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('a1'), cardDeExemplo('a2'), cardDeExemplo('a3')] }));
+    try {
+      await ate(() => rowsOf(area).length === 3);
+      const fillers = comClasse(area, 'wall-filler');
+      assert.equal(fillers.length, 1);
+      assert.equal(fillers[0]!.getAttribute('aria-hidden'), 'true');
+      assert.equal(fillers[0]!.getAttribute('role'), null, 'it is no list item');
+      assert.equal(cleanLists(area).length, 1);
+    } finally {
+      await sair();
+    }
+  });
+
   test('every list has a name and holds only list items or aria-hidden fillers; the children and Paradas lists are named', async () => {
     const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
     try {
       await ate(() => sessionsOf(area).length === 2);
       comClasse(area, 'wall-treeline')[0]!.click();
       area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!.click();
-      const lists = area.todos((e) => e.getAttribute('role') === 'list');
+      const lists = cleanLists(area);
       assert.ok(lists.length >= 3, 'sections, the children and Paradas');
-      for (const list of lists) {
-        const named = list.getAttribute('aria-label') || list.getAttribute('aria-labelledby');
-        assert.ok(named, `a list with no name: ${list.classes.join(' ')}`);
-        for (const kid of list.children) assert.ok(kid.getAttribute('role') === 'listitem' || kid.getAttribute('aria-hidden') === 'true', `a child of a list that is no item: ${kid.classes.join(' ')}`);
-      }
       assert.match(comClasse(area, 'wall-kids')[0]!.getAttribute('aria-label')!, /^Filhas de /);
       const band = comClasse(area, 'wall-parked-list')[0]!;
       assert.equal(area.todos((e) => e.getAttribute('id') === band.getAttribute('aria-labelledby')).length, 1, 'Paradas is named by its heading');
@@ -1254,6 +1276,8 @@ describe('#752: the sheet of the sections', () => {
     assert.equal(declared('.wall-top', 'margin-bottom'), '12px', 'the main gap of 16px plus 12px');
     assert.equal(declared('.wall-segs', 'margin-bottom'), '12px');
     assert.equal(declared('.wall-parked', 'margin-top'), '12px');
+    assert.equal(declared('.wall-body', 'gap'), '28px', 'between the sections');
+    assert.equal(declared('.wall-pair', 'gap'), '28px', 'between Ociosas and Concluídas side by side');
     assert.match(css('shell.css'), /\.cc-main \{[^}]*gap:\s*16px/);
     const head = rules.find((r) => /^\.wall-h\b/.test(r.selector) && /margin/.test(r.body));
     assert.ok(head, 'a heading rule with a margin');
@@ -1318,5 +1342,130 @@ describe('#752: round 3, the sheet and the names measured in the browser', () =>
     } finally {
       await sair();
     }
+  });
+});
+
+describe('#752: Argos round 1, the columns and the side-by-side sections of the screen', () => {
+  const activeCard = (id: string, extra: Card = {}) => cardDeExemplo(id, extra);
+  const leader = (id: string) => activeCard(id, { tree: { total: 1, blocked: 0, active: 1, parked: 0 }, children: [child(`${id}-k`)] });
+  const activeList = (area: No) => comClasse(comClasse(area, 'wall-sec-active')[0]!, 'wall-list')[0]!;
+  const shape = (list: No) => (list as Elemento).children.map((n) => (n.classes.includes('wall-filler') ? 'filler' : n.getAttribute('data-session')));
+
+  test('the Ativas list is the two-column one; Ociosas and Concluídas share one pair, and with a single one the pair still wraps it', async () => {
+    const { area, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      assert.ok(activeList(area).classes.includes('wall-duo'));
+      const pairs = comClasse(area, 'wall-pair');
+      assert.equal(pairs.length, 1);
+      assert.deepEqual((pairs[0] as Elemento).children.map((n) => n.classes.find((c) => c.startsWith('wall-sec-'))), ['wall-sec-idle', 'wall-sec-completed']);
+      assert.ok(comClasse(area, 'wall-body')[0]!.contains(pairs[0]!));
+      assert.equal(comClasse(area, 'wall-body')[0]!.children.includes(pairs[0] as Elemento), true, 'the pair is one child of the body, so the body gap is the one between the sections');
+    } finally {
+      await sair();
+    }
+    const one = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[2]!] }));
+    try {
+      await ate(() => rowsOf(one.area).length === 1);
+      assert.equal(comClasse(one.area, 'wall-pair').length, 1);
+      assert.equal(comClasse(one.area, 'wall-sec-completed').length, 0);
+    } finally {
+      await one.sair();
+    }
+  });
+
+  test('an odd count of active rows ends in one aria-hidden filler; an even one has none', async () => {
+    const odd = await montarTela(async () => ({ ...MURAL, cards: [activeCard('a1'), activeCard('a2'), activeCard('a3')] }));
+    try {
+      await ate(() => rowsOf(odd.area).length === 3);
+      assert.deepEqual(shape(activeList(odd.area)), ['a1', 'a2', 'a3', 'filler']);
+      const filler = comClasse(odd.area, 'wall-filler')[0]!;
+      assert.ok(filler.classes.includes('wall-last') && filler.classes.includes('wall-first') === false, 'the filler sits in the last grid row only');
+    } finally {
+      await odd.sair();
+    }
+    const even = await montarTela(async () => ({ ...MURAL, cards: [activeCard('a1'), activeCard('a2')] }));
+    try {
+      await ate(() => rowsOf(even.area).length === 2);
+      assert.deepEqual(shape(activeList(even.area)), ['a1', 'a2']);
+    } finally {
+      await even.sair();
+    }
+  });
+
+  test('a leader on the right-hand side that opens its tree spans both columns and a filler takes the hole before it', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [activeCard('a1'), leader('lid')] }));
+    try {
+      await ate(() => rowsOf(area).length === 2);
+      assert.deepEqual(shape(activeList(area)), ['a1', 'lid'], 'closed, the two share a grid row');
+      comClasse(area, 'wall-treeline')[0]!.click();
+      assert.deepEqual(shape(activeList(area)), ['a1', 'filler', 'lid']);
+      const row = rowsOf(area).find((r) => r.getAttribute('data-session') === 'lid')!;
+      assert.ok(row.classes.includes('wall-full'), 'the open leader spans both');
+      comClasse(area, 'wall-treeline')[0]!.click();
+      assert.deepEqual(shape(activeList(area)), ['a1', 'lid'], 'closed again, the filler goes');
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('#752: Argos round 1, the sheet of the header, the columns and the layers', () => {
+  const sheet = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const blocks: { query: string; inner: string }[] = [];
+  let outside = '';
+  for (let i = 0; i < sheet.length; ) {
+    const at = sheet.indexOf('@media', i);
+    if (at < 0) {
+      outside += sheet.slice(i);
+      break;
+    }
+    outside += sheet.slice(i, at);
+    const start = sheet.indexOf('{', at);
+    let depth = 1;
+    let j = start + 1;
+    while (depth > 0 && j < sheet.length) depth += sheet[j] === '{' ? 1 : sheet[j] === '}' ? -1 : 0, j++;
+    blocks.push({ query: sheet.slice(at + 6, start).trim(), inner: sheet.slice(start + 1, j - 1) });
+    i = j;
+  }
+  const declaredIn = (text: string, selector: string, prop: string) => [...text.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].find((m) => m[1]!.trim() === selector)?.[2]!.match(new RegExp(`(?:^|[;\\s])${prop}:\\s*([^;]+)`))?.[1]?.trim();
+  const block = (query: string) => blocks.find((b) => b.query === query)?.inner ?? '';
+
+  test('the button of the header goes to the right edge when the header wraps, so its panel never opens off the left edge of a phone', () => {
+    assert.equal(declaredIn(outside, '.wall-top', 'flex-wrap'), 'wrap');
+    assert.equal(declaredIn(outside, '.wall-top-act', 'flex'), 'none');
+    assert.equal(declaredIn(outside, '.wall-top-act', 'margin-left'), 'auto');
+  });
+
+  test('the pair of lists is a grid of columns of at least 420px that fit, the filler is hidden, and the two-column rule is inside the 1280px block only', () => {
+    assert.equal(declaredIn(outside, '.wall-pair', 'grid-template-columns'), 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))');
+    assert.equal(declaredIn(outside, '.wall-pair', 'display'), 'grid');
+    assert.equal(declaredIn(outside, '.wall-filler', 'display'), 'none');
+    assert.equal(blocks.filter((b) => /min-width/.test(b.query)).map((b) => b.query).join(), '(min-width: 1280px)');
+    const wide = block('(min-width: 1280px)');
+    assert.equal(declaredIn(wide, '.wall-list.wall-duo', 'display'), 'grid');
+    assert.equal(declaredIn(wide, '.wall-list.wall-duo', 'grid-template-columns'), 'repeat(2, minmax(0, 1fr))');
+    assert.equal(declaredIn(wide, '.wall-duo > .wall-filler', 'display'), 'block');
+    assert.equal(declaredIn(wide, '.wall-duo > .wall-full, .wall-duo > .wall-span', 'grid-column'), '1 / -1');
+    assert.doesNotMatch(outside, /wall-duo[^{]*\{[^}]*(grid|display)/, 'outside the block the list is one column');
+  });
+
+  test('the last row beside the hidden filler closes the list only below 1280px; from 1280px the corners and dividers come from the two-column rules', () => {
+    assert.doesNotMatch(outside, /:has\(\+ \.wall-filler/);
+    assert.doesNotMatch(block('(min-width: 1280px)'), /:has\(/);
+    const narrow = block('(max-width: 1279.98px)');
+    assert.equal(declaredIn(narrow, '.wall-list > .wall-row:has(+ .wall-filler:last-child)', 'border-bottom'), '0');
+    assert.match(declaredIn(narrow, '.wall-list > .wall-row:has(+ .wall-filler:last-child)', 'border-radius') ?? '', /^0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)$/);
+    const wide = block('(min-width: 1280px)');
+    assert.match(declaredIn(wide, '.wall-list.wall-duo > .wall-row.wall-last.wall-left, .wall-list.wall-duo > .wall-row.wall-last.wall-full', 'border-bottom-left-radius') ?? '', /--radius-card/);
+    assert.equal(declaredIn(wide, '.wall-list.wall-duo > .wall-row.wall-last.wall-left, .wall-list.wall-duo > .wall-row.wall-last.wall-full', 'border-bottom-right-radius'), undefined, 'the left cell beside the filler keeps a square bottom-right corner');
+  });
+
+  test('the row with an open failure popover goes over the rows and the trees below it, like the controls of its own side', () => {
+    const z = (selector: string) => Number(declaredIn(outside, selector, 'z-index'));
+    const over = z('.wall-row:has(.wall-act [role="status"]:not(:empty))');
+    assert.equal(over, 3);
+    assert.equal(over, z('.wall-act:has([role="status"]:not(:empty))'));
+    for (const below of ['.wall-tree', '.wall-act', '.wall-row:has(.wall-link:focus-visible)']) assert.ok(over > z(below), `${below} stays under the open failure`);
   });
 });

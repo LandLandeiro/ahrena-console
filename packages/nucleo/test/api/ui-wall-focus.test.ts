@@ -186,6 +186,20 @@ describe('#751: the redraw of the wall keeps the focus', () => {
     assert.equal(focusLog.filter((f) => f.node === select).length, 0, 'the select was not focused again');
   });
 
+  test('#752: the last remote goes while the focus is on the machine button: it falls to the pressed state segment, not to the body', async () => {
+    const at = '2026-10-22T23:00:00Z';
+    const local = { id: 'local', label: 'Esta máquina', state: 'connected', reason: null, lastReadAt: at };
+    const remote = { id: 'ws', label: 'Workstation', state: 'connected', reason: null, lastReadAt: at };
+    const s = await mountWith(wallOf([blocked('c1'), session('a1')], { machines: [local, remote] }));
+    one(s.area, '[data-filter="active"]').click();
+    const button = one(s.area, '[data-machine-menu]');
+    button.focus();
+    assert.equal(active(), button);
+    s.state.wall = wallOf([blocked('c1'), session('a1')], { machines: [local] });
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-filter="active"]'));
+  });
+
   test('the machine menu keeps the focus on its button after a machine is chosen', async () => {
     const machines = [
       { id: 'local', label: 'Esta máquina', state: 'connected', reason: null, lastReadAt: '2026-10-22T23:00:00Z' },

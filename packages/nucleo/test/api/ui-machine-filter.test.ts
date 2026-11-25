@@ -442,6 +442,27 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     live.leave.abort();
   });
 
+  test('#752: while the read of a newly chosen machine is on its way the sentence and the numbers are empty, and they come back with the answer', async () => {
+    setUrl('/ui/wall');
+    const f = context((route) => (route.includes('machine=ws') ? { count: {}, cards: [wallCard('w1')], machines: machinesUp } : { count: {}, cards: [wallCard('s1')], machines: machinesUp }));
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const read = f.ctx.read;
+    let asked = false;
+    f.ctx.read = async (route: string) => (route.includes('/api/wall?machine=ws') ? ((asked = true), await gate, read(route)) : read(route));
+    const area = new ElementoFalso('main');
+    await wall.mount(area, f.ctx);
+    await until(() => /trabalhando/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
+    one(area, '[aria-haspopup="menu"]')!.click();
+    one(area, '[role="menuitemradio"][data-machine="ws"]')!.click();
+    await until(() => asked, 'the read of the chosen machine');
+    assert.equal(texto(one(area, '.wall-summary')).trim(), '', 'the sentence of the other machine is gone');
+    assert.deepEqual(all(area, '.wall-seg-n').map((n) => texto(n)), ['', '', '', ''], 'and so are the numbers');
+    release();
+    await until(() => /trabalhando/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
+    f.leave.abort();
+  });
+
   test('opening on a remote choice reads /api/machines for the other segments', async () => {
     setUrl('/ui/wall?machine=ws');
     const f = context((route) => (route === '/api/machines' ? machinesUp : { count: {}, cards: [], machines: [machinesUp[1]] }));
