@@ -1,6 +1,5 @@
 // #749: a field, a checkbox and a background-less button are drawn with --border-control (3:1),
-// never with --border, which is only the divider (decision 0028, docs/design.md).
-// Reads every .css under packages/nucleo/ui. Runs with: node --test test/ui-control-borders.test.mjs
+// #749: never with --border, which is only the divider (ADR-0028, docs/design.md).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
@@ -9,10 +8,9 @@ import { join, relative } from 'node:path'
 const ROOT = new URL('..', import.meta.url).pathname
 const UI = join(ROOT, 'packages/nucleo/ui')
 
-// Controls the screens render, checked against the JS that builds them (tag or role), not the name.
-// A pattern matches the last compound of a selector: `.x` is the class, `select.x` only the select.
+// #749: controls the screens render, checked against the JS that builds them (tag or role), not the name.
+// #749: a pattern matches the last compound of a selector: `.x` is the class, `select.x` only the select.
 const CONTROLS = [
-  // fields: input, select, textarea, or a label/span drawn as the field around one
   '.ac-select', '.ac-field', '.ac-input', '.ac-text',
   '.an-dl-select', '.an-dl-field',
   '.feed-field', '.feed-selector',
@@ -22,17 +20,16 @@ const CONTROLS = [
   '.sm-input', '.dk-find', '.fwi-input', '.fwi-issue', '.wb-select',
   '.wb-edit-title', '.wb-edit-input', '.wb-edit-textarea', '.wb-edit-select',
   '.field',
-  // checkboxes: the box and the role=checkbox buttons
   '.fwi-box', '.fwi-plat',
-  // background-less buttons: transparent, or the same colour as the surface behind
+  // #749: background-less buttons: transparent, or the same colour as the surface behind
   '.btn.outline', '.btn.danger', '.pp-chip', '.up-version', '.kb-more', '.wb-done-more',
   '.sm-cmd', '.sm-mic', '.open-icon', '.sd-note-head',
 ]
 
-// The visible box of these is drawn by a child or the browser; nothing may give them the divider.
+// #749: the visible box of these is drawn by a child or the browser; nothing may give them the divider.
 const EDGELESS = ['.fwi-plug']
 
-// Anything that targets these elements is a control, named or not: a new rule is caught too.
+// #749: anything that targets these elements is a control, named or not: a new rule is caught too.
 const CONTROL_TAG = /(^|[^\w-])(input|select|textarea)(?![\w-])/
 const CONTROL_ROLE = /\[role=["']?checkbox["']?\]/
 const DIVIDER = /var\(\s*--border\s*\)/
@@ -45,7 +42,7 @@ function cssFiles(dir) {
   })
 }
 
-// Flat list of { selector, body, line }; descends into @media/@supports/@layer, skips other at-rules.
+// #749: flat list of { selector, body, line }; descends into @media/@supports/@layer, skips other at-rules.
 function rules(src, from = 0, to = src.length, out = []) {
   let i = from
   let start = from
@@ -77,13 +74,12 @@ function rules(src, from = 0, to = src.length, out = []) {
 
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
 
-// Last compound of a selector part: what the rule is drawn on.
 function subject(part) {
   const compounds = part.trim().split(/\s*[>+~]\s*|\s+(?![^[]*\])/).filter(Boolean)
   return compounds.at(-1) ?? ''
 }
 
-// `.x` is the class (not `.x-y`), `select.x` only a select with it.
+// #749: `.x` is the class (not `.x-y`), `select.x` only a select with it.
 function matchesPattern(compound, pattern) {
   let at = compound.indexOf(pattern)
   while (at !== -1) {

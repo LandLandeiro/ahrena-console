@@ -202,7 +202,7 @@ test('dark and light have identical colour keys, each a hex, and nothing is left
 test('each status has the same keys, all hex, in the dark and the light theme', () => {
   for (const id of STATUS) {
     const dark = roleKeys(tokens.status[id].dark)
-    // Only active and waiting carry a decorative tag border.
+    // #749: only active and waiting carry a decorative tag border.
     assert.deepEqual(dark, STATUS_WITH_BORDER.includes(id) ? ['badge', 'border', 'dot', 'text'] : ['badge', 'dot', 'text'], `${id}.dark`)
     assert.deepEqual(roleKeys(tokens.status[id].light), dark, `${id}.light`)
     for (const theme of THEMES) for (const key of dark) assert.ok(isHex(tokens.status[id][theme][key]), `status.${id}.${theme}.${key} is not a hex`)
@@ -246,8 +246,8 @@ test('#749: the orange stroke is not text on sidebar and segment in the light th
   }
 })
 
-// The full matrix: every text role over every background role, in both themes. The pairs under 4.5:1 are
-// the ones docs/design.md lists as "not text there"; a pair leaving or joining that list fails here.
+// #749: the full matrix: every text role over every background role, in both themes. The pairs under 4.5:1 are
+// #749: the ones docs/design.md lists as "not text there"; a pair leaving or joining that list fails here.
 const TEXT_BELOW_AA = {
   dark: {
     subtle: ['track'],
