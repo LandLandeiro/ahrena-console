@@ -87,6 +87,10 @@ class Elemento extends No {
   click() {
     for (const f of this.ouvintes.get('click') ?? []) f({});
   }
+  dispatchEvent(ev: { type: string }) {
+    for (const f of this.ouvintes.get(ev.type) ?? []) f(ev);
+    return true;
+  }
   focus() {
     (globalThis as unknown as { document: { activeElement: unknown } }).document.activeElement = this;
   }
@@ -104,6 +108,13 @@ class Elemento extends No {
 const head = new Elemento('head');
 Object.assign(globalThis, {
   Node: No,
+  MouseEvent: class {
+    type: string;
+    constructor(type: string, init: Record<string, unknown> = {}) {
+      this.type = type;
+      Object.assign(this, init);
+    }
+  },
   document: {
     head,
     activeElement: null as unknown,
@@ -894,6 +905,14 @@ describe('#751: the sheet of the wall', () => {
     }
   });
 
+  test('the state tag of a card and of a row sits above the stretched link, so its title shows, and under the failure notice (#751)', () => {
+    const sel = '.wall-tag';
+    assert.match(ruleOf(sel), /position:\s*relative/);
+    assert.match(declared(sel, 'cursor') ?? '', /pointer/);
+    assert.ok(Number(declared(sel, 'z-index')) >= 1, 'above the link, which is z-index auto');
+    assert.ok(Number(declared(sel, 'z-index')) < Number(declared('.wall-act:has([role="status"]:not(:empty))', 'z-index')), 'the failure notice stays on top');
+  });
+
   test('the row is 68px tall: line-height 1.5 on the title and the phrase (#751)', () => {
     assert.equal(declared('.wall-rt', 'line-height'), '1.5');
     assert.equal(declared('.wall-phrase', 'line-height'), '1.5');
@@ -1169,6 +1188,33 @@ describe('Wall: a session without a title shows "Sem título" (#751)', () => {
     try {
       await ate(() => sessionsOf(area).length === 5);
       assert.equal(links(area, 'lider')[0]!.textContent, '  Revisar o PR  ');
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('Wall: a click on the state label opens the session, as the stretched link does (#751)', () => {
+  const ask = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  test('card and row forward the click, with its modifiers, to their link; the label of a nested child has no link to forward to', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...WALL_WITH_CHILDREN, cards: [cardDeExemplo('b', { ...ask }), cardDeExemplo('r'), WALL_WITH_CHILDREN.cards[0]!] }));
+    try {
+      await ate(() => sessionsOf(area).length === 3);
+      for (const id of ['b', 'r']) {
+        const box = sessionsOf(area).find((e) => e.getAttribute('data-session') === id)!;
+        const link = box.todos((e) => e.tag === 'a' && e.classes.includes('wall-link'))[0]!;
+        const got: Record<string, unknown>[] = [];
+        link.addEventListener('click', (ev) => got.push(ev as Record<string, unknown>));
+        const tag = box.todos((e) => e.classes.includes('state-tag'))[0]!;
+        assert.ok(tag.classes.includes('wall-tag'), `${id}: the tag is the one the sheet raises`);
+        for (const f of tag.ouvintes.get('click') ?? []) f({ button: 0, ctrlKey: true, metaKey: false, shiftKey: false, altKey: false });
+        assert.equal(got.length, 1, `${id}: one click reaches the link`);
+        assert.equal(got[0]!.ctrlKey, true, `${id}: ctrl/cmd click keeps its meaning`);
+        assert.equal(got[0]!.bubbles, true, `${id}: it bubbles, so the router sees it`);
+      }
+      area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!.click();
+      const kidTag = area.todos((e) => e.getAttribute('data-child') === 'tl')[0]!.todos((e) => e.classes.includes('state-tag'))[0]!;
+      assert.equal(kidTag.ouvintes.get('click')?.length ?? 0, 0);
     } finally {
       await sair();
     }
