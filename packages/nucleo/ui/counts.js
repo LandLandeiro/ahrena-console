@@ -38,7 +38,6 @@ const queuedTag = (n) => (n > 0 ? { tone: 'active', text: String(n), note: 'na f
  * is called with every batch of the live stream and reads only what the batch moves.
  */
 export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout, now = Date.now }) {
-  const shown = { wall: 0, work: 0 };
   // Whether the last number read of the board was above zero; an error leaves it as it was (ADR-0028), so the window still reads.
   let hadQueue = false;
   function reader(route, id, tagOf, count) {
@@ -56,7 +55,6 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
         // ADR-0028: a failure (409, 502, 503, offline) is no number, the tag goes away.
       }
       if (mine !== latest) return;
-      shown[id] = tag ? n : 0;
       if (id === 'work' && answered) hadQueue = n > 0;
       nav.tag(id, tag);
     };
