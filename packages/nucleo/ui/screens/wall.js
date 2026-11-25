@@ -362,9 +362,9 @@ export async function mount(area, ctx) {
     const doc = globalThis.document;
     const was = doc?.activeElement && doc.activeElement !== doc.body ? doc.activeElement : null;
     const top = area.scrollTop ?? 0;
-    // The toggles of the tree and of the band are buttons inside a card: the focus goes back to the one just used.
+    // ADR-0028: the toggles of the tree and of the band are buttons inside a card; the focus goes back to the one just used.
     const toggled = was ? ['data-tree', 'data-toggle', 'data-parked'].map((a) => [a, was.getAttribute?.(a)]).find(([, v]) => v) ?? null : null;
-    // Issue 243: by machine + id (`data-key`), since two machines can have the same session id.
+    // ADR-0028: by machine + id (`data-key`), since two machines can have the same session id.
     const holder = was?.closest?.('[data-session]') ?? null;
     const held = { toggled, key: holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null };
     const fresh = [];

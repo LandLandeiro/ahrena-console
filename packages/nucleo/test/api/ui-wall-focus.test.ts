@@ -13,7 +13,7 @@ Object.assign(globalThis, {
   },
 });
 
-// The fake focus ignores its options: record them, to hold every focus of the redraw to `preventScroll`.
+// #751: the fake focus ignores its options; record them to hold every focus of the redraw to preventScroll.
 const focusLog: { node: ElementoFalso; options: unknown }[] = [];
 const realFocus = ElementoFalso.prototype.focus;
 ElementoFalso.prototype.focus = function (this: ElementoFalso, options?: unknown) {
@@ -86,7 +86,7 @@ function start(initial: Card) {
     navigate: () => {},
     liveState: () => 'live',
   };
-  // Like the browser, the scroll of a container that loses children falls back to the top.
+  // #751: like the browser, the scroll of a container that loses children falls back to the top.
   let scroll = 0;
   Object.defineProperty(area, 'scrollTop', { get: () => scroll, set: (v: number) => void (scroll = v) });
   const realReplace = area.replaceChildren.bind(area);
@@ -110,7 +110,7 @@ function start(initial: Card) {
       ElementoFalso.prototype.remove = realRemove;
     },
     leave,
-    // A re-read through the Atualizar button, resolved when the redraw is done.
+    // #751: a re-read through the Atualizar button, resolved when the redraw is done.
     async refresh() {
       const before = state.reads;
       focusLog.length = 0;
