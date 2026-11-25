@@ -414,7 +414,7 @@ test('#700/AC-2: no generated or hand-written consumer references a green token'
   assert.deepEqual(found, [], 'a consumer still references the retired green')
 })
 
-// #749: every error label painted by the /ui CSS reaches 4.5:1 on the background really behind it, mixes included.
+// #749: the /ui CSS paints no error text on its own background, its direct parent's or any color-mix of a --status-error-* token under 4.5:1.
 const UI_DIR = new URL('../packages/nucleo/ui/', import.meta.url)
 
 function uiCssFiles(dir = UI_DIR) {
@@ -476,64 +476,65 @@ function paint(value, theme) {
 function themeHex(name, theme) {
   const status = name.match(/^status-([a-z]+)-(dot|text|badge)$/)
   if (status) return tokens.status[status[1]][theme][status[2]]
-  const gray = name.match(/^gray-(\d+)$/)
-  if (gray) return tokens.gray[gray[1]]
   const key = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
   if (tokens.themes[theme][key]) return tokens.themes[theme][key]
   throw new Error(`no token behind --${name}`)
 }
 
 const over = (top, below) => top.rgb.map((c, i) => c * top.a + below[i] * (1 - top.a))
-const relLuminance = (c) => {
-  const [r, g, b] = c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-const ratio = (a, b) => {
-  const [hi, lo] = [relLuminance(a), relLuminance(b)].sort((x, y) => y - x)
-  return (hi + 0.05) / (lo + 0.05)
-}
+const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`
 
 const ERROR_TEXT = /^var\(--status-error-text\)$/
+const ERROR_MIX = /^color-mix\(.*--status-error-/s
 const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/)?.[1])
+// #749: the one mix of an error token that holds no text: the recording meter bar.
+const ERROR_MIX_WITHOUT_TEXT = new Set(['screens/session-message.css .sm-level i'])
 
-// #749: the label pairs: a rule that sets the error text, with its own background or, for a descendant, the nearest rule of the same file that paints the ancestor.
-function errorLabels() {
+// #749: the pairs measured: a rule that sets the error text with its own background or, for a descendant, the rule of its direct parent selector; and every rule whose background is a mix of an error token, against the error text.
+function errorPairs() {
   const labels = []
+  const mixes = []
   for (const file of uiCssFiles()) {
+    const name = file.pathname.split('/packages/nucleo/ui/')[1]
     const rules = cssRules(file)
     for (const { selector, decls } of rules) {
+      const own = backgroundOf(decls)
+      if (ERROR_MIX.test(own ?? '') && !ERROR_MIX_WITHOUT_TEXT.has(`${name} ${selector}`)) mixes.push({ file: name, selector, background: own })
       if (!ERROR_TEXT.test(decls.color ?? '')) continue
-      let background = backgroundOf(decls)
+      let background = own
       if (!background) {
-        const ancestor = selector.replace(/\s*(?:>\s*)?[^\s>]+$/, '')
-        background = rules.find((r) => r.selector === ancestor && backgroundOf(r.decls))
-        background = background && backgroundOf(background.decls)
+        const parent = selector.replace(/\s*(?:>\s*)?[^\s>]+$/, '')
+        background = backgroundOf(rules.find((r) => r.selector === parent && backgroundOf(r.decls))?.decls ?? {})
       }
-      if (background) labels.push({ file: file.pathname.split('/packages/nucleo/ui/')[1], selector, background })
+      if (background) labels.push({ file: name, selector, background })
     }
   }
-  return labels
+  return { labels, mixes }
 }
 
-test('#749: every error label reaches 4.5:1 on the background really behind it, on bg, surface and raised, in both themes', () => {
-  const labels = errorLabels()
-  const found = new Set(labels.map((l) => l.selector))
-  for (const known of ['.attention-chip-error', '.attention-pill-error', '.b-error', '.wall-b-error', '.kb-b-error', '.sd-s-error', '.wb-pill-error', '.prj-pill.failed', '.wft-pill-error', '.dev-pill-error']) {
-    assert.ok(found.has(known), `the guard does not find ${known}: it would pass with nothing to check`)
+test('#749: error text reaches 4.5:1 on its own background, its direct parent and every mix of an error token, on bg, surface and raised, in both themes', () => {
+  const { labels, mixes } = errorPairs()
+  const found = new Set(labels.map((l) => `${l.file} ${l.selector}`))
+  const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'wall-b-error', 'kb-b-error', 'sd-s-error', 'wb-pill-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
+  for (const needle of known) {
+    assert.ok([...found].some((f) => f.includes(needle)), `the guard does not find ${needle}: it would pass with nothing to check`)
+  }
+  for (const file of ['repos.css', 'feed.css', 'dashboard.css', 'sessions.css', 'history.css', 'screens/machine-connection.css', 'screens/clouds.css', 'screens/machine.css', 'screens/workflows.css']) {
+    assert.ok(found.has(`${file} .b-error`), `the guard does not find .b-error in ${file}`)
   }
   assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)
+  assert.ok(mixes.length >= 8, `the guard found only ${mixes.length} mixes of an error token`)
   const low = []
   for (const theme of THEMES) {
     const t = tokens.themes[theme]
-    const text = rgb(tokens.status.error[theme].text)
-    for (const label of labels) {
-      const back = paint(label.background, theme)
+    const text = tokens.status.error[theme].text
+    for (const pair of [...labels, ...mixes]) {
+      const back = paint(pair.background, theme)
       for (const surface of ['bg', 'surface', 'raised']) {
-        const behind = over(back, rgb(t[surface]))
-        const r = ratio(text, behind)
-        if (r < AA_TEXT) low.push(`${label.file} ${label.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${label.background}`)
+        const r = contrast(text, hex(over(back, rgb(t[surface]))))
+        if (r < AA_TEXT) low.push(`${pair.file} ${pair.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${pair.background}`)
       }
     }
   }
-  assert.deepEqual(low, [], 'an error label is under 4.5:1: paint it with the opaque pair --status-error-badge')
+  assert.deepEqual(low, [], 'error text is under 4.5:1: paint it with the opaque pair --status-error-badge')
 })
