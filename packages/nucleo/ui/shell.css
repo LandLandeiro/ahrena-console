@@ -128,16 +128,19 @@ button { font: inherit; cursor: pointer; }
 .btn.outline { border-color: var(--border-control); background: var(--surface); }
 .btn.filled { background: var(--accent); color: var(--on-accent); font-weight: var(--weight-semibold); }
 .btn.ghost { color: var(--muted); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: var(--weight-semibold); }
 .btn.danger { color: var(--status-error-text); border-color: color-mix(in srgb, var(--status-error-dot) 45%, var(--border-control)); background: var(--surface); }
 .btn.danger.filled { background: var(--status-error-dot); border-color: transparent; color: var(--on-accent); }
 .btn.outline:hover:not(:disabled):not([aria-disabled="true"]), .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--raised); }
 .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { color: var(--text); }
 .btn.filled:hover:not(:disabled):not([aria-disabled="true"]) { filter: brightness(1.1); }
+.btn.primary:hover:not(:disabled):not([aria-disabled="true"]) { filter: brightness(1.15); }
 .btn.danger:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-badge); }
 .btn.danger.filled:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-dot); filter: brightness(1.1); }
 .btn:active:not(:disabled):not([aria-disabled="true"]) { transform: translateY(1px); }
 .btn.outline:active:not(:disabled):not([aria-disabled="true"]), .btn.ghost:active:not(:disabled):not([aria-disabled="true"]) { background: var(--bg); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 28%, transparent); }
 .btn.filled:active:not(:disabled):not([aria-disabled="true"]) { filter: brightness(.86); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 30%, transparent); }
+.btn.primary:active:not(:disabled):not([aria-disabled="true"]) { filter: brightness(.9); }
 .btn.danger:active:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--status-error-badge) 60%, var(--bg)); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 28%, transparent); }
 .btn.danger.filled:active:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-dot); }
 .btn[data-state="done"] { color: var(--status-completed-text); border-color: color-mix(in srgb, var(--status-completed-dot) 55%, var(--border-control)); background: color-mix(in srgb, var(--status-completed-badge) 70%, var(--surface)); }

@@ -126,8 +126,10 @@ function setState(id, st) {
 /**
  * The action for one session (`{ id, open }`), or `null` when there is nothing to open.
  * `size`: 'full' | 'small' | 'icon'. `write` swaps the transport (tests, the screen's `ctx.write`).
+ * `label` replaces the text of the button and `primary` draws it with the primary fill (ADR-0028); a
+ * session of another machine keeps its own text and its outline, since it never opens from here.
  */
-export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS } = {}) {
+export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS, label: customLabel = null, primary = false } = {}) {
   // Issue 243: a session of another machine never POSTs to this core, whatever its `open` says.
   const remote = typeof session?.machine?.id === 'string' && session.machine.id !== '' && session.machine.id !== 'local';
   const d = describeOpenAction(remote && session?.open ? { target: 'remote', command: null } : session?.open, { machine });
@@ -137,7 +139,8 @@ export function openAction(session, { size = 'full', write = defaultWrite, machi
   // local one of the same id. The write still goes by the session id (only local sessions open).
   const key = remote ? `${session.machine.id}:${id}` : id;
   const compact = size === 'icon';
-  const label = size === 'small' && d.smallLabel ? d.smallLabel : d.label;
+  const label = size === 'small' && d.smallLabel ? d.smallLabel : typeof customLabel === 'string' && customLabel && !d.disabled ? customLabel : d.label;
+  const filled = primary === true && !d.disabled;
   // Where the button cannot say "roda em…" beside it (wall foot, icon), the server icon says it.
   const iconName = d.target === 'remote' && size !== 'full' ? 'server' : d.icon;
 
@@ -145,7 +148,7 @@ export function openAction(session, { size = 'full', write = defaultWrite, machi
     ? el('button', { type: 'button', class: 'open-icon', title: d.title, 'aria-label': d.disabled ? d.title : d.label, 'data-open-target': d.target }, icon(iconName))
     : el(
         'button',
-        { type: 'button', class: `btn outline ${size === 'full' ? 'md' : 'sm'} open-button`, title: d.title, 'data-open-target': d.target },
+        { type: 'button', class: `btn ${filled ? 'primary' : 'outline'} ${size === 'full' ? 'md' : 'sm'} open-button`, title: d.title, 'data-open-target': d.target },
         icon(iconName),
         label,
         size === 'full' && d.external ? icon('external') : null,

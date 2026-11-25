@@ -107,6 +107,51 @@ describe('open action: what it shows per target', () => {
   });
 });
 
+describe('open action: label and primary variant (#751)', () => {
+  const session = { id: UUID, open: { target: 'desktop', command: null } };
+  const classes = (root: ElementoFalso) => root.querySelector('button')!.getAttribute('class')!.split(' ');
+
+  test('without options the button is the outline one, with its own label, as on the other screens', () => {
+    const root = openAction(session, { size: 'small' }) as ElementoFalso;
+    assert.ok(classes(root).includes('outline'));
+    assert.ok(!classes(root).includes('primary'));
+    assert.equal(texto(root.querySelector('button')), 'Abrir no Claude Desktop');
+  });
+
+  test('label changes the text and primary swaps outline for primary, keeping the size and the target', () => {
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    const button = root.querySelector('button')!;
+    assert.equal(texto(button), 'Responder no Claude');
+    assert.ok(classes(root).includes('primary'));
+    assert.ok(!classes(root).includes('outline'));
+    assert.ok(classes(root).includes('sm'));
+    assert.equal(button.getAttribute('data-open-target'), 'desktop');
+    assert.equal(button.getAttribute('title'), 'Abre a conversa no Claude Desktop');
+  });
+
+  test('a remote session stays as it is: aria-disabled, "Roda em …", never primary', () => {
+    const remote = { id: UUID, open: { target: 'desktop', command: null }, machine: { id: 'ws', label: 'ws-exemplo' } };
+    const root = openAction(remote, { size: 'small', machine: 'ws-exemplo', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    assert.equal(root.querySelector('button')!.getAttribute('aria-disabled'), 'true');
+    assert.equal(texto(root), 'Roda em ws-exemplo');
+    assert.ok(!classes(root).includes('primary'));
+    assert.ok(classes(root).includes('outline'));
+  });
+
+  test('an action that does not exist is still null', () => {
+    assert.equal(openAction({ id: UUID, open: { target: 'none', command: null } }, { size: 'small', label: 'x', primary: true }), null);
+  });
+
+  test('the primary click still opens the session', async () => {
+    const w = stubWriter({ ok: true, opened: 'desktop' });
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true, write: w.write }) as ElementoFalso;
+    root.querySelector('button')!.click();
+    assert.deepEqual(w.calls, [{ route: openRoute(UUID), body: {} }]);
+    w.release();
+    await settle();
+  });
+});
+
 describe('open action: the click', () => {
   test('the clipboard refuses: "Não deu para copiar", data-copied false', async () => {
     stubClipboard(async () => {
