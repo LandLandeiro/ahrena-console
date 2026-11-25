@@ -92,10 +92,13 @@
 .wf-node-vol { fill: var(--muted); }
 .wf-node:focus { outline: none; }
 
-@media (max-width: 1000px) {
-  .wf-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* ADR-0028: the header actions need about 1175 px of window with a classic scrollbar; below 1200 they wrap. */
+@media (max-width: 1200px) {
   .cc-head:has(.wf-seg) { flex-wrap: wrap; }
   .cc-head:has(.wf-seg) > div:nth-child(2) { flex: 1 1 0; min-width: 240px; }
+}
+@media (max-width: 1000px) {
+  .wf-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
   .wf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
