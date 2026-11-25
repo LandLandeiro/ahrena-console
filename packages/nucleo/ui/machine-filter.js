@@ -317,6 +317,11 @@ function createMenu({ pick, signal, fallbackFocus }) {
   const id = `mf-menu-${++menuSerial}`;
   const button = el('button', { type: 'button', class: 'btn outline mf-menu-button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'data-machine-menu': '' });
   const panel = el('div', { id, class: 'mf-menu-panel', role: 'menu', 'aria-label': 'Máquina', hidden: true });
+  // ADR-0028: the button is built once; a redraw writes only the part that changed, so the focus and the reading are not disturbed.
+  const lead = el('span', { class: 'mf-menu-icon' });
+  const name = el('span', { class: 'mf-menu-label' });
+  const off = el('span', { class: 'mf-menu-off' }, ' sem conexão');
+  button.append(lead, name, icon('chevron-down'));
   const root = el('div', { class: 'mf-menu' }, button, panel);
   let items = new Map();
   const isOpen = () => !panel.hidden;
@@ -329,7 +334,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
     panel.hidden = true;
     button.setAttribute('aria-expanded', 'false');
     button.removeAttribute('aria-controls');
-    document.removeEventListener('click', outside);
+    document.removeEventListener('pointerdown', outside, true);
     if (returnFocus) button.focus({ preventScroll: true });
   }
 
@@ -338,7 +343,8 @@ function createMenu({ pick, signal, fallbackFocus }) {
       panel.hidden = false;
       button.setAttribute('aria-expanded', 'true');
       button.setAttribute('aria-controls', id);
-      document.addEventListener('click', outside);
+      // ADR-0028: capturing, because a control inside the page stops the event before it reaches the document.
+      document.addEventListener('pointerdown', outside, true);
     }
     const list = [...items.values()].map((v) => v.node);
     const target = where === 'last' ? list.at(-1) : where === 'first' ? list[0] : (list.find((n) => n.getAttribute('aria-checked') === 'true') ?? list[0]);
@@ -377,8 +383,15 @@ function createMenu({ pick, signal, fallbackFocus }) {
     if (nodes.length !== panel.children.length || nodes.some((n, i) => panel.children[i] !== n)) panel.replaceChildren(...nodes);
     items = next;
     const chosen = entries.find((e) => e.id === choice);
-    const name = chosen?.label ?? (choice === LOCAL ? LOCAL_LABEL : choice === ALL ? ALL_LABEL : 'Máquina remota');
-    button.replaceChildren(...[icon(menuIcon(choice, chosen?.down)), el('span', { class: 'mf-menu-label' }, name), chosen?.down ? el('span', { class: 'mf-menu-off' }, ' sem conexão') : null, icon('chevron-down')].filter(Boolean));
+    const text = chosen?.label ?? (choice === LOCAL ? LOCAL_LABEL : choice === ALL ? ALL_LABEL : 'Máquina remota');
+    const which = menuIcon(choice, chosen?.down);
+    if (lead.getAttribute('data-icon') !== which) {
+      lead.setAttribute('data-icon', which);
+      lead.replaceChildren(icon(which));
+    }
+    if (name.textContent !== text) name.textContent = text;
+    if (chosen?.down && !off.parentNode) button.insertBefore(off, button.lastChild);
+    else if (!chosen?.down && off.parentNode) off.remove();
     if (focused === null || !isOpen()) return;
     // The option under the focus is gone: the next one, else the one before it, else the button.
     const at = order.indexOf(focused);
@@ -484,7 +497,8 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     if (menuUi) drawMenu(remotes);
     else row.replaceChildren(...(remotes ? [machineControl(known, choice, choose)] : []));
     row.hidden = !remotes;
-    const segment = (id) => (menuUi ? menuUi.button : [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === id));
+    // ADR-0028: with every remote gone the button is hidden, and a hidden control is never a place for the focus.
+    const segment = (id) => (menuUi ? (remotes ? menuUi.button : menuUi.fallbackFocus()) : [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === id));
     if (held !== null) segment(held)?.focus({ preventScroll: true });
     const now = Date.now();
     const down = remotes ? downFor(known, choice) : [];

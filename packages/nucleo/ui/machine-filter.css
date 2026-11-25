@@ -44,6 +44,7 @@
 .mf-menu-item:focus-visible, .mf-menu-button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -2px; }
 .mf-menu-button:focus-visible { outline-offset: 2px; }
 .mf-menu-icon { display: inline-flex; flex: none; color: var(--muted); }
+.mf-menu-button .mf-menu-icon { color: inherit; }
 .mf-menu-item .icon, .mf-menu-button .icon { width: 15px; height: 15px; flex: none; }
 .mf-menu-count { margin-left: auto; flex: none; color: var(--subtle); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
 .mf-menu-check { display: inline-flex; flex: none; visibility: hidden; }

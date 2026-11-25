@@ -20,10 +20,12 @@ type Card = { id: string; machine?: { id: string } };
 const cards = (...machines: string[]): Card[] => machines.map((m, i) => ({ id: `s${i}`, machine: { id: m } }));
 
 let listeners = 0;
-const realAdd = documentoFalso.addEventListener;
-const realRemove = documentoFalso.removeEventListener;
-documentoFalso.addEventListener = (t, f) => (listeners++, realAdd(t, f));
-documentoFalso.removeEventListener = (t, f) => (listeners--, realRemove(t, f));
+// The fake document has no capture phase: what it can prove is how the listener was registered, and that it runs on its own.
+const registered: { type: string; capture: unknown }[] = [];
+const realAdd = documentoFalso.addEventListener as (t: string, f: unknown, o?: unknown) => void;
+const realRemove = documentoFalso.removeEventListener as (t: string, f: unknown, o?: unknown) => void;
+documentoFalso.addEventListener = ((t: string, f: unknown, o?: unknown) => (listeners++, registered.push({ type: t, capture: o }), realAdd(t, f))) as typeof documentoFalso.addEventListener;
+documentoFalso.removeEventListener = ((t: string, f: unknown, o?: unknown) => (listeners--, realRemove(t, f, o))) as typeof documentoFalso.removeEventListener;
 
 function make(options: Record<string, unknown> = {}) {
   mf.resetMachineChoice();
@@ -167,12 +169,24 @@ describe('#752: the menu of the machines', () => {
     m.answer([LOCAL, WS], cards('local'));
     const elsewhere = new ElementoFalso('button');
     m.button().click();
-    documentoFalso.dispatchEvent({ type: 'click', target: m.panel() });
+    documentoFalso.dispatchEvent({ type: 'pointerdown', target: m.panel() });
     assert.equal(m.panel().hidden, false);
     elsewhere.focus();
-    documentoFalso.dispatchEvent({ type: 'click', target: elsewhere });
+    documentoFalso.dispatchEvent({ type: 'pointerdown', target: elsewhere });
     assert.equal(m.panel().hidden, true);
     assert.equal(active(), elsewhere, 'the focus stays where the person put it');
+  });
+
+  test('the click outside listens in the capture phase, so a control that stops the event does not keep the menu open', () => {
+    const m = make();
+    m.answer([LOCAL, WS], cards('local'));
+    registered.length = 0;
+    m.button().click();
+    assert.deepEqual(registered, [{ type: 'pointerdown', capture: true }]);
+    const stopper = new ElementoFalso('button');
+    stopper.addEventListener('pointerdown', (e: { stopPropagation: () => void }) => e.stopPropagation());
+    documentoFalso.dispatchEvent({ type: 'pointerdown', target: stopper });
+    assert.equal(m.panel().hidden, true, 'the document saw it first, whatever the target does with it');
   });
 
   test('the listeners of the document are there only while it is open, and an abort closes it', () => {
@@ -271,6 +285,39 @@ describe('#752: the menu of the machines', () => {
     m.answer([LOCAL, WS], cards('local'));
     assert.equal(m.host.querySelectorAll('.mf-notice').length, 0);
     assert.equal(active(), m.button());
+  });
+
+  test('the link of the notice with every remote gone: the button is hidden, so the focus goes to the fallback of the screen', () => {
+    const m = make();
+    m.answer([LOCAL, DOWN], cards('local'));
+    m.host.querySelector('.mf-notice-link')!.focus();
+    m.answer([LOCAL], cards('local'));
+    assert.equal(m.filter.row.hidden, true);
+    assert.equal(active(), m.fallback);
+    assert.equal(m.calls.fallback, 1);
+  });
+
+  test('a redraw with the same state writes nothing into the button; a change writes only its part', () => {
+    const m = make();
+    m.answer([LOCAL, WS], cards('local'));
+    const before = [...m.button().childNodes];
+    const label = before[1]!;
+    m.answer([LOCAL, WS], cards('local', 'ws'));
+    assert.deepEqual([...m.button().childNodes], before, 'the same nodes, in the same order');
+    assert.equal(m.button().childNodes[1], label, 'the label node stays');
+    assert.ok(m.button().childNodes.every((n) => n !== null && n !== undefined));
+  });
+
+  test('the chosen machine going down adds only the "sem conexão" text and the icon, in place', () => {
+    place.search = '?machine=ws';
+    const m = make();
+    m.answer([LOCAL, WS], cards('ws'));
+    const [lead, label, chevron] = [...m.button().childNodes];
+    m.answer([LOCAL, DOWN], []);
+    assert.deepEqual([m.button().childNodes[0], m.button().childNodes[1], m.button().childNodes[3]], [lead, label, chevron]);
+    assert.match(m.button().textContent, /^Workstation\s*sem conexão$/);
+    m.answer([LOCAL, WS], cards('ws'));
+    assert.deepEqual([...m.button().childNodes], [lead, label, chevron], 'and takes it away again');
   });
 
   test('the parts of the screen are the notices only: the row is placed by the screen beside the state filter', () => {
