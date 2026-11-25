@@ -75,6 +75,14 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
     timers.set(key, setTimer(() => (timers.delete(key), load()), DEBOUNCE_MS));
   }
   let queueReadAt = -Infinity;
+  let tail;
+  // The tail read: only while the number is still above zero, and never on top of a read that is already pending.
+  function readTail() {
+    tail = undefined;
+    if (shown.work <= 0 || timers.has('work')) return;
+    queueReadAt = now();
+    loadWork();
+  }
 
   return {
     refresh: () => Promise.all([loadAttention(), loadWork()]).then(() => {}),
@@ -84,9 +92,14 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
       if ([...types].some((t) => ATTENTION_CHANGES.has(t))) later('attention', loadAttention);
       if ([...types].some((t) => WORK_CHANGES.has(t))) later('work', loadWork);
       // The queue moves by itself when the core opens a session: while the number is above zero, a session change reads it, once per window.
-      if (types.has('session') && shown.work > 0 && now() - queueReadAt >= QUEUE_REREAD_MS) {
-        queueReadAt = now();
-        later('work', loadWork);
+      if (types.has('session') && shown.work > 0) {
+        if (now() - queueReadAt >= QUEUE_REREAD_MS) {
+          queueReadAt = now();
+          later('work', loadWork);
+        } else if (tail === undefined) {
+          // Inside the window the change is not lost: one read at the end of it (issue 750, round 3).
+          tail = setTimer(readTail, queueReadAt + QUEUE_REREAD_MS - now());
+        }
       }
     },
     /** A write the person made to the board (queue, dequeue, retry) moves the number and the core emits no change for it. */

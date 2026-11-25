@@ -294,6 +294,7 @@ function clock() {
   const pending = new Map<number, { at: number; f: () => void }>();
   return {
     now: () => now,
+    pendingCount: () => pending.size,
     setTimer: (f: () => void, ms: number) => (pending.set(++next, { at: now + ms, f }), next),
     clearTimer: (id: number) => void pending.delete(id),
     async advance(ms: number) {
@@ -394,6 +395,60 @@ describe('#750 the orange number does not go stale', () => {
     assert.equal(total(reads, '/api/work') - before, 2);
     before = total(reads, '/api/attention');
     assert.ok(before >= 3, 'the attention reads as before');
+  });
+
+  test('a session change inside the 30 s window reads once at the end of it (the tail read), and the first change opened the window', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(2) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    counts.changed([{ type: 'session' }]);
+    await time.advance(20_000);
+    assert.equal(total(reads, '/api/work') - before, 1, 'still inside the window: no read');
+    await time.advance(10_000);
+    assert.equal(total(reads, '/api/work') - before, 2, 'one read at the end of the window');
+    await time.advance(60_000);
+    assert.equal(total(reads, '/api/work') - before, 2, 'the tail reads once and schedules nothing more');
+  });
+
+  test('several session changes inside the window make one tail read, not one each', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(2) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    for (let i = 0; i < 3; i++) {
+      counts.changed([{ type: 'session' }]);
+      await time.advance(3000);
+    }
+    await time.advance(30_000);
+    assert.equal(total(reads, '/api/work') - before, 2, 'the first read plus one tail read');
+  });
+
+  test('when the number is zero at the end of the window the tail does not read', async () => {
+    let queued = 2;
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(queued) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    counts.changed([{ type: 'session' }]);
+    queued = 0;
+    counts.changed([{ type: 'repos' }]);
+    await time.advance(1100);
+    assert.equal(total(reads, '/api/work') - before, 2, 'the board change read zero');
+    await time.advance(60_000);
+    assert.equal(total(reads, '/api/work') - before, 2, 'with zero nothing is read at the end');
+  });
+
+  test('with the number at zero a session change schedules no timer at all', async () => {
+    const { counts, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(0) });
+    await counts.refresh();
+    counts.changed([{ type: 'session' }]);
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    assert.equal(time.pendingCount(), 0);
   });
 
   test('with zero queued a session change keeps reading /api/attention only', async () => {
