@@ -51,9 +51,9 @@
 .wall-bar::-webkit-progress-bar { background: var(--track); border-radius: 2px; }
 .wall-bar::-webkit-progress-value { background: var(--muted); border-radius: 2px; }
 .wall-bar::-moz-progress-bar { background: var(--muted); border-radius: 2px; }
-.wall-bar.wall-high { color: var(--status-error-dot); }
-.wall-bar.wall-high::-webkit-progress-value { background: var(--status-error-dot); }
-.wall-bar.wall-high::-moz-progress-bar { background: var(--status-error-dot); }
+.wall-bar.wall-high { color: var(--status-error-text); }
+.wall-bar.wall-high::-webkit-progress-value { background: var(--status-error-text); }
+.wall-bar.wall-high::-moz-progress-bar { background: var(--status-error-text); }
 
 /* ---------- the list of the others: one container, one row per session ---------- */
 .wall-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }

@@ -789,7 +789,9 @@ describe('#751: the sheet of the wall', () => {
     assert.equal(declared('.wall-bar', 'border-radius'), '2px');
     assert.equal(declared('.wall-bar', 'background'), 'var(--track)');
     assert.equal(declared('.wall-bar::-webkit-progress-value', 'background'), 'var(--muted)');
-    assert.equal(declared('.wall-bar.wall-high::-webkit-progress-value', 'background'), 'var(--status-error-dot)');
+    assert.equal(declared('.wall-bar.wall-high::-webkit-progress-value', 'background'), 'var(--status-error-text)');
+    assert.equal(declared('.wall-bar.wall-high::-moz-progress-bar', 'background'), 'var(--status-error-text)');
+    assert.equal(declared('.wall-bar.wall-high', 'color'), 'var(--status-error-text)');
   });
 
   test('the dead rules of the old card are gone', () => {
@@ -849,7 +851,7 @@ describe('#751: contrast of the wall, both themes', () => {
     test(`${theme}: the bars are at least 3:1 on the track`, () => {
       const track = tokens.themes[theme].track as string;
       assert.ok(ratio(token('--muted', theme), track) >= 3, `muted ${ratio(token('--muted', theme), track).toFixed(2)}`);
-      assert.ok(ratio(token('--status-error-dot', theme), track) >= 3, `danger ${ratio(token('--status-error-dot', theme), track).toFixed(2)}`);
+      assert.ok(ratio(token('--status-error-text', theme), track) >= 3, `danger ${ratio(token('--status-error-text', theme), track).toFixed(2)}`);
     });
   }
 });
