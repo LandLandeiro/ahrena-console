@@ -9,9 +9,11 @@ import { documentoFalso, ElementoFalso, instalarDomFalso, texto } from './fake-d
 instalarDomFalso();
 
 // @ts-expect-error: browser module, plain JavaScript
-import { createLiveBlock, machinesText } from '../../ui/live-block.js';
+import { createLiveBlock, LIVE_LABELS, machinesText } from '../../ui/live-block.js';
 // @ts-expect-error: browser module, plain JavaScript
 import { createAccountMenu } from '../../ui/account-menu.js';
+// @ts-expect-error: browser module, plain JavaScript
+import { ICON_NAMES } from '../../ui/dom.js';
 // @ts-expect-error: browser module, plain JavaScript
 import { createEscape } from '../../ui/escape.js';
 // @ts-expect-error: browser module, plain JavaScript
@@ -30,7 +32,8 @@ describe('issue 750: the markup of the footer', () => {
     assert.match(html, /<b>Você<\/b>/);
     assert.match(html, /<a class="cc-gh" id="github" hidden><\/a>/);
     assert.match(html, /<button type="button" class="cc-ibtn" id="theme-button"><\/button>/);
-    assert.match(html, /<button type="button" class="cc-ibtn" id="account-button" aria-label="Opções da conta" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu">/);
+    assert.match(html, /<button type="button" class="cc-ibtn" id="account-button" aria-label="Opções da conta" aria-expanded="false" aria-controls="account-menu">/);
+    assert.doesNotMatch(html, /aria-haspopup="true"/, 'the menu is a disclosure, not a role=menu: it promises nothing it does not do');
     assert.match(html, /<div class="cc-menu" id="account-menu" hidden>/);
     assert.match(html, /<a class="cc-menu-item" href="\/ui\/connections">Conexões<\/a>/);
     assert.match(html, /id="port"/);
@@ -50,50 +53,129 @@ describe('issue 750: the markup of the footer', () => {
 });
 
 describe('issue 750: the "Ao vivo" block', () => {
-  const version = () => { const b = new ElementoFalso('button'); b.setAttribute('class', 'version up-version mono'); return b; };
+  const v = (label = 'versão 0.0.22', extra = {}) => ({ label, title: 'Versão do app', fresh: false, expanded: false, ...extra });
   function block() {
     const node = new ElementoFalso('div');
-    return { node, live: createLiveBlock({ node }) };
+    const clicks: number[] = [];
+    return { node, clicks, live: createLiveBlock({ node, onVersion: () => clicks.push(1) }) };
   }
 
-  test('the state line is the live region, and the note says machines and version', () => {
+  test('the state line is the live region, and the note says machines and version in text', () => {
     const { node, live } = block();
-    live.draw({ state: 'live', machines: 2, versionKey: 'v1', makeVersion: () => { const b = version(); b.append('v0.0.22'); return b; } });
+    live.draw({ state: 'live', machines: 2, version: v() });
     assert.equal(node.dataset.state, 'live');
     const region = node.querySelector('[aria-live]')!;
     assert.equal(texto(region), 'Ao vivo');
     assert.equal(region.getAttribute('aria-live'), 'polite');
-    assert.equal(texto(node.querySelector('.cc-live-note')), '2 máquinas · v0.0.22');
+    assert.equal(texto(node.querySelector('.cc-live-note')), '2 máquinas · versão 0.0.22');
     assert.equal(node.querySelectorAll('.up-version').length, 1);
+    assert.equal(texto(node.querySelector('.up-version')), 'versão 0.0.22');
+  });
+
+  test('the dot is a 8 px dot, not the antenna icon, and says nothing to a screen reader', () => {
+    const { node, live } = block();
+    live.draw({ state: 'live', machines: 1, version: null });
+    const dot = node.querySelector('.cc-live-dot')!;
+    assert.equal(dot.getAttribute('aria-hidden'), 'true');
+    assert.equal(node.querySelector('svg'), null);
   });
 
   test('one machine is singular, and an unread count says nothing', () => {
     assert.equal(machinesText(1), '1 máquina');
     assert.equal(machinesText(3), '3 máquinas');
     const { node, live } = block();
-    live.draw({ state: 'connecting', machines: null, versionKey: '', makeVersion: () => null });
+    live.draw({ state: 'connecting', machines: null, version: null });
     assert.equal(texto(node), 'Conectando');
-    assert.equal(node.querySelector('.cc-live-note'), null);
+    assert.equal(node.querySelector('.cc-live-note')!.hidden, true);
   });
 
   test('offline is said in words and the note stays', () => {
     const { node, live } = block();
-    live.draw({ state: 'offline', machines: 1, versionKey: '', makeVersion: () => null });
+    live.draw({ state: 'offline', machines: 1, version: null });
     assert.equal(texto(node.querySelector('[aria-live]')), 'Sem conexão');
     assert.equal(texto(node.querySelector('.cc-live-note')), '1 máquina');
+    assert.equal(node.dataset.state, 'offline');
   });
 
-  test('the same state does not redraw: the version button keeps the focus it has', () => {
+  test('the live region is the same node on every draw, and its text is rewritten only when it changes', () => {
     const { node, live } = block();
-    const input = { state: 'live', machines: 2, versionKey: 'v1', makeVersion: version };
-    live.draw(input);
+    live.draw({ state: 'connecting', machines: null, version: null });
+    const region = node.querySelector('[aria-live]')!;
+    const text = region.firstChild;
+    live.draw({ state: 'connecting', machines: 2, version: v() });
+    assert.equal(node.querySelector('[aria-live]'), region);
+    assert.equal(region.firstChild, text, 'the same text is not written again');
+    live.draw({ state: 'live', machines: 2, version: v() });
+    assert.equal(node.querySelector('[aria-live]'), region, 'the node stays so the change is announced');
+    assert.equal(texto(region), 'Ao vivo');
+    const next = region.firstChild;
+    live.draw({ state: 'live', machines: 3, version: v() });
+    assert.equal(region.firstChild, next);
+    live.draw({ state: 'offline', machines: 3, version: v() });
+    assert.equal(node.querySelector('[aria-live]'), region);
+    assert.equal(texto(region), 'Sem conexão');
+  });
+
+  test('the version button is one node: opening and closing the panel changes its attributes and keeps the focus', () => {
+    const { node, live, clicks } = block();
+    live.draw({ state: 'live', machines: 2, version: v() });
     const button = node.querySelector('.up-version')!;
     button.focus();
-    live.draw({ ...input });
+    live.draw({ state: 'live', machines: 2, version: v('versão 0.0.22', { expanded: true }) });
+    assert.equal(node.querySelector('.up-version'), button);
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+    assert.equal(documentoFalso.activeElement, button);
+    live.draw({ state: 'live', machines: 2, version: v('versão 0.0.22', { expanded: false, fresh: true, title: 'Há uma versão nova do app' }) });
+    assert.equal(node.querySelector('.up-version'), button);
+    assert.equal(button.getAttribute('aria-expanded'), 'false');
+    assert.equal(button.getAttribute('title'), 'Há uma versão nova do app');
+    assert.equal(button.hasAttribute('data-new'), true);
+    assert.equal(button.querySelector('.up-dot')!.getAttribute('aria-label'), 'versão nova');
+    assert.equal(documentoFalso.activeElement, button);
+    live.draw({ state: 'live', machines: 2, version: v() });
+    assert.equal(button.hasAttribute('data-new'), false);
+    assert.equal(button.querySelector('.up-dot'), null);
+    assert.equal(documentoFalso.activeElement, button);
+    button.click();
+    assert.equal(clicks.length, 1);
+  });
+
+  test('a machine count that arrives while the version button has the focus does not take it away', () => {
+    const { node, live } = block();
+    live.draw({ state: 'live', machines: null, version: v() });
+    const button = node.querySelector('.up-version')!;
+    button.focus();
+    live.draw({ state: 'live', machines: 2, version: v() });
     assert.equal(node.querySelector('.up-version'), button);
     assert.equal(documentoFalso.activeElement, button);
-    live.draw({ ...input, versionKey: 'v2' });
-    assert.notEqual(node.querySelector('.up-version'), button);
+    assert.equal(texto(node.querySelector('.cc-live-note')), '2 máquinas · versão 0.0.22');
+  });
+
+  test('focusVersion() puts the focus on the version button, and does nothing without one', () => {
+    const { node, live } = block();
+    live.draw({ state: 'live', machines: 1, version: null });
+    assert.doesNotThrow(() => live.focusVersion());
+    live.draw({ state: 'live', machines: 1, version: v() });
+    live.focusVersion();
+    assert.equal(documentoFalso.activeElement, node.querySelector('.up-version'));
+  });
+
+  test('the labels are the ones app.js writes in the headers: one table', () => {
+    assert.deepEqual(LIVE_LABELS, { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conexão' });
+    assert.doesNotMatch(app, /const LABELS = /);
+    assert.match(app, /LIVE_LABELS\[state\]/);
+  });
+
+  test('Escape on the version panel gives the focus back to the version button', () => {
+    assert.match(app, /close: \(\) => \(appUpdate\.close\(\), drawLive\(\), live\.focusVersion\(\)\)/);
+  });
+});
+
+describe('issue 750: no icon without a user', () => {
+  test('the menu and ellipsis drawings live in index.html, not in dom.js; sun and moon are drawn by the theme button', () => {
+    assert.ok(!ICON_NAMES.includes('menu'));
+    assert.ok(!ICON_NAMES.includes('ellipsis'));
+    assert.ok(ICON_NAMES.includes('sun') && ICON_NAMES.includes('moon'));
   });
 });
 
@@ -145,6 +227,68 @@ describe('issue 750: the account menu', () => {
     other.focus();
     documentoFalso.dispatchEvent({ type: 'click', target: outside });
     assert.equal(documentoFalso.activeElement, other);
+  });
+});
+
+describe('issue 750: the account menu closes when the focus leaves it', () => {
+  function rig() {
+    const button = new ElementoFalso('button');
+    const panel = new ElementoFalso('div');
+    panel.id = 'account-menu';
+    panel.hidden = true;
+    const first = new ElementoFalso('a');
+    first.setAttribute('href', '/ui/connections');
+    panel.append(first);
+    const outside = new ElementoFalso('input');
+    const account = createAccountMenu({ button, menu: panel, doc: documentoFalso });
+    return { button, panel, first, outside, account };
+  }
+  const out = (from: ElementoFalso, to: ElementoFalso | null) => from.dispatchEvent({ type: 'focusout', relatedTarget: to });
+  const tab = (on: ElementoFalso) => on.dispatchEvent({ type: 'keydown', key: 'Tab' });
+
+  test('Tab from the menu to something else closes it and leaves the focus where the person put it', () => {
+    const { panel, first, outside, account } = rig();
+    account.open();
+    outside.focus();
+    out(first, outside);
+    assert.equal(panel.hidden, true);
+    assert.equal(documentoFalso.activeElement, outside);
+  });
+
+  test('Shift+Tab from the button to something else closes it', () => {
+    const { panel, button, outside, account } = rig();
+    account.open();
+    out(button, outside);
+    assert.equal(panel.hidden, true);
+  });
+
+  test('moving between the button and the menu keeps it open', () => {
+    const { panel, button, first, account } = rig();
+    account.open();
+    out(button, first);
+    out(first, button);
+    assert.equal(panel.hidden, false);
+  });
+
+  test('a focusout that goes nowhere (a click that Safari does not focus) keeps it open, unless it came from Tab', () => {
+    const { panel, button, first, account } = rig();
+    account.open();
+    out(button, null);
+    assert.equal(panel.hidden, false);
+    tab(first);
+    out(first, null);
+    assert.equal(panel.hidden, true);
+  });
+
+  test('a closed menu ignores the focus; the Tab flag does not leak to the next time', () => {
+    const { panel, first, outside, account } = rig();
+    out(first, outside);
+    assert.equal(panel.hidden, true);
+    account.open();
+    tab(first);
+    out(first, first);
+    out(first, null);
+    assert.equal(panel.hidden, false, 'the flag was spent by the first focusout');
   });
 });
 

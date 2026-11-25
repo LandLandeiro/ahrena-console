@@ -28,6 +28,20 @@ export function createAccountMenu({ button, menu, doc = document }) {
     if (!isOpen() || !(ev.target instanceof Element) || menu.contains(ev.target) || button.contains(ev.target)) return;
     close({ restoreFocus: false });
   });
+  // Tab (or Shift+Tab) out of the menu and the button closes it; the focus stays where the person put it. A focusout with
+  // nowhere to go is a click on a button the browser does not focus (Safari), not a Tab, so it keeps the menu open.
+  let tabbed = false;
+  for (const node of [button, menu]) node.addEventListener('keydown', (ev) => void (tabbed = ev.key === 'Tab'));
+  function left(ev) {
+    const to = ev.relatedTarget;
+    const byTab = tabbed;
+    tabbed = false;
+    if (!isOpen()) return;
+    if (to instanceof Element ? menu.contains(to) || button.contains(to) : !byTab) return;
+    close({ restoreFocus: false });
+  }
+  button.addEventListener('focusout', left);
+  menu.addEventListener('focusout', left);
   menu.addEventListener('click', (ev) => {
     if (ev.target instanceof Element && ev.target.closest('a[href]')) close({ restoreFocus: false });
   });

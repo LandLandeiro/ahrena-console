@@ -3,7 +3,7 @@
 
 import { write, read } from './api.js';
 import { startLive } from './live.js';
-import { header, el } from './dom.js';
+import { header } from './dom.js';
 import { error, empty } from './states.js';
 import { findScreen, litItem } from './screens.js';
 import { createNav } from './nav.js';
@@ -12,7 +12,7 @@ import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
 import { createTheme } from './theme.js';
-import { createLiveBlock } from './live-block.js';
+import { createLiveBlock, LIVE_LABELS } from './live-block.js';
 import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
 import { createDrawer } from './drawer.js';
@@ -20,7 +20,7 @@ import { createDrawer } from './drawer.js';
 const nav = document.getElementById('nav');
 const area = document.getElementById('content');
 const liveCard = document.getElementById('live');
-const live = createLiveBlock({ node: liveCard });
+const live = createLiveBlock({ node: liveCard, onVersion: () => (appUpdate.toggle(), drawLive()) });
 const port = document.getElementById('port');
 
 port.textContent = location.host;
@@ -73,7 +73,7 @@ const accountMenu = createAccountMenu({ button: document.getElementById('account
 // Below 860 px the bar is a drawer; the column (top bar, notice, screen) is the inert background while it is open.
 const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), background: [document.querySelector('.cc-col')] });
 createEscape(document, [
-  { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive()) },
+  { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive(), live.focusVersion()) },
   accountMenu,
   drawer,
 ]);
@@ -106,24 +106,22 @@ async function readVersion() {
   drawLive();
 }
 
-const LABELS = { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conexão' };
-
 // The version in the footer is a button (issue 330): it opens the version panel, and has a dot while a newer one waits.
+// The text is the one of the note, "versão 0.0.22" (issue 750); live-block.js keeps the node, so the focus stays on it.
 function versionButton() {
   if (!version) return null;
   const fresh = hasUpdate(appUpdate.view);
-  const button = el('button', { type: 'button', class: 'version up-version mono', 'aria-haspopup': 'dialog', 'aria-expanded': String(appUpdate.isOpen), title: fresh ? 'Há uma versão nova do app' : 'Versão do app', 'data-new': fresh || undefined, onClick: () => (appUpdate.toggle(), drawLive()) }, fresh ? el('span', { class: 'up-dot', role: 'img', 'aria-label': 'versão nova' }) : null, `v${version}`);
-  return button;
+  return { label: `versão ${version}`, title: fresh ? 'Há uma versão nova do app' : 'Versão do app', fresh, expanded: appUpdate.isOpen };
 }
 
 function drawLive() {
   const { state, error: e, nextAttempt } = liveState;
   const seconds = nextAttempt ? Math.max(1, Math.round((nextAttempt - Date.now()) / 1000)) : null;
   liveCard.title = state === 'offline' ? `${e?.message ?? 'O núcleo não respondeu'}. Tentando de novo${seconds ? ` em ${seconds} s` : ''}.` : '';
-  live.draw({ state, machines: machineCount, versionKey: `${version}|${hasUpdate(appUpdate.view)}|${appUpdate.isOpen}`, makeVersion: versionButton });
+  live.draw({ state, machines: machineCount, version: versionButton() });
   for (const p of document.querySelectorAll('[data-live]')) {
     p.dataset.state = state;
-    p.textContent = LABELS[state];
+    p.textContent = LIVE_LABELS[state];
   }
 }
 

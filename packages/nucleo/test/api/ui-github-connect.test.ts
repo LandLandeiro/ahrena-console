@@ -98,11 +98,19 @@ describe('github-connect.js: the pure parts', () => {
     assert.equal(texto(node), 'GitHub esperando');
     github = { state: 'connected', login: '<b>dev</b>' };
     await footer.refresh();
-    assert.equal(texto(node), '<b>dev</b> conectado', 'the login is text');
+    assert.equal(texto(node), 'GitHub conectado', 'the line says "GitHub conectado": the login is no longer in the visible text, it is cut at 248 px');
     assert.equal(node.getAttribute('aria-label'), 'GitHub: conectado como <b>dev</b>');
+    assert.equal(node.getAttribute('title'), 'GitHub: conectado como <b>dev</b>', 'the login is text, in the title');
+    assert.equal(node.querySelector('.cc-gh-name')!.textContent, 'GitHub');
+    github = { state: 'unavailable', reason: 'no-vault' };
+    await footer.refresh();
+    assert.equal(texto(node), 'GitHub indisponível');
+    assert.equal(node.getAttribute('title'), 'GitHub: indisponível');
+    github = { state: 'connected', login: '<b>dev</b>' };
+    await footer.refresh();
     const failing = gc.createGithubFooter({ node, read: async () => Promise.reject(new Error('404')) });
     await failing.refresh();
-    assert.equal(texto(node), '<b>dev</b> conectado', 'a failed read keeps what was there');
+    assert.equal(texto(node), 'GitHub conectado', 'a failed read keeps what was there');
   });
 
   test('the shell wires the footer: index.html has the card, app.js refreshes it on start, restart and connections', () => {
