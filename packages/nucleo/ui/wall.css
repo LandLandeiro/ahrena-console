@@ -41,10 +41,10 @@
 /* ADR-0028: an open failure goes over the rows below, their trees and the Paradas band. */
 .wall-act:has([role="status"]:not(:empty)) { z-index: 3; }
 
-.wall-foot { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--muted); min-width: 0; }
-.wall-num { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wall-foot { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--subtle); min-width: 0; }
+.wall-num { color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .wall-over { color: var(--status-error-text); }
-.wall-mach { margin-left: auto; position: relative; color: var(--muted); }
+.wall-mach { margin-left: auto; position: relative; color: var(--subtle); }
 
 /* ---------- the bars: <progress>, neutral, with no inline style ---------- */
 .wall-bar { -webkit-appearance: none; appearance: none; flex: 1; display: block; height: 4px; min-width: 40px; border: 0; border-radius: 2px; overflow: hidden; background: var(--track); color: var(--muted); }
@@ -66,10 +66,11 @@
 .wall-text { display: flex; flex-direction: column; min-width: 0; }
 .wall-rt { font-size: 15px; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
-.wall-phrase { display: block; font-size: 13.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wall-side { display: flex; align-items: center; gap: 16px; font-size: var(--text-sm); color: var(--muted); white-space: nowrap; }
-.wall-since { color: var(--muted); font-variant-numeric: tabular-nums; }
-.wall-ratio { color: var(--muted); font-variant-numeric: tabular-nums; }
+.wall-phrase { display: block; font-size: 13.5px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wall-phrase-work { color: var(--muted); }
+.wall-side { display: flex; align-items: center; gap: 16px; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
+.wall-since { color: var(--subtle); font-variant-numeric: tabular-nums; }
+.wall-ratio { color: var(--subtle); font-variant-numeric: tabular-nums; }
 .wall-row .wall-mach { margin-left: 0; }
 
 /* ---------- the children nested in a leader and the "Paradas" band (C85 to C87, issue 333) ---------- */

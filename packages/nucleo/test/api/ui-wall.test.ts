@@ -798,6 +798,25 @@ describe('#751: the sheet of the wall', () => {
     assert.equal(declared('.wall-bar.wall-high', 'color'), 'var(--status-error-text)');
   });
 
+  test('the meta text (the foot, the right side of the row, the phrase of a row that is not working) is --subtle; the phrase of the working one is --muted (#751)', () => {
+    for (const selector of ['.wall-foot', '.wall-num', '.wall-mach', '.wall-side', '.wall-since', '.wall-ratio', '.wall-phrase']) assert.equal(declared(selector, 'color'), 'var(--subtle)', selector);
+    assert.equal(declared('.wall-phrase-work', 'color'), 'var(--muted)');
+    assert.equal(declared('.wall-over', 'color'), 'var(--status-error-text)');
+  });
+
+  test('the working row marks its phrase, the others do not', async () => {
+    const { area, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => linhasDe(area).length > 0);
+      const phrase = (id: string) => comClasse(linhasDe(area).find((r) => r.getAttribute('data-session') === id)!, 'wall-phrase')[0]!;
+      assert.ok(phrase('ativa-1').classes.includes('wall-phrase-work'));
+      assert.ok(!phrase('espera-2').classes.includes('wall-phrase-work'));
+      assert.ok(!phrase('feita-1').classes.includes('wall-phrase-work'));
+    } finally {
+      await sair();
+    }
+  });
+
   test('the dead rules of the old card are gone', () => {
     for (const dead of ['wall-badge', 'wall-b-', 'wall-gr(?![a-z])', 'wall-bars', 'wall-planrow', 'wall-st-', 'wall-prj', 'wall-l1', 'wall-detail', 'wall-pill']) assert.doesNotMatch(sheet, new RegExp(dead), dead);
     const code = css('screens/wall.js');
@@ -841,8 +860,8 @@ describe('#751: contrast of the wall, both themes', () => {
     assert.ok(v, `${selector} has no ${prop}: var(--…)`);
     return v;
   };
-  const ON_SURFACE = ['.wall-tt', '.wall-age', '.wall-name', '.wall-ask', '.wall-num', '.wall-over', '.wall-mach', '.wall-from', '.wall-rt', '.wall-phrase', '.wall-since', '.wall-ratio'];
-  const ON_RAISED = ['.wall-rt', '.wall-phrase', '.wall-since', '.wall-ratio', '.wall-mach'];
+  const ON_SURFACE = ['.wall-tt', '.wall-age', '.wall-name', '.wall-ask', '.wall-foot', '.wall-num', '.wall-over', '.wall-mach', '.wall-from', '.wall-rt', '.wall-phrase', '.wall-phrase-work', '.wall-side', '.wall-since', '.wall-ratio'];
+  const ON_RAISED = ['.wall-rt', '.wall-phrase', '.wall-phrase-work', '.wall-side', '.wall-since', '.wall-ratio', '.wall-mach'];
   for (const theme of ['dark', 'light'] as const) {
     for (const [surface, TEXT] of [['surface', ON_SURFACE], ['raised', ON_RAISED]] as const) {
       test(`${theme}: the text of the wall is at least 4.5:1 on --${surface}`, () => {

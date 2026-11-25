@@ -200,7 +200,7 @@ function row(c, write, nest, known) {
       'div',
       { class: 'wall-main' },
       agentMonogram(AGENT),
-      el('div', { class: 'wall-text' }, titleLine(link, parentTitle), v.phrase ? el('span', { class: 'wall-phrase', title: v.phrase }, v.phrase) : null),
+      el('div', { class: 'wall-text' }, titleLine(link, parentTitle), v.phrase ? el('span', { class: `wall-phrase${working ? ' wall-phrase-work' : ''}`, title: v.phrase }, v.phrase) : null),
       el(
         'div',
         { class: 'wall-side' },
