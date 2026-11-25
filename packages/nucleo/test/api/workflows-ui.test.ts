@@ -259,4 +259,8 @@ describe('#750 the Workflows header wraps before the three filters need more tha
     assert.match(block('1000'), /\.wf-kpis \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
     assert.doesNotMatch(block('1000'), /wf-seg/);
   });
+
+  test('the KPI card keeps 10 px at the sides, so "Profundidade" fits its label at 1100 px', () => {
+    assert.match(css, /\.wf-kpi \{ padding: 12px 10px;/);
+  });
 });

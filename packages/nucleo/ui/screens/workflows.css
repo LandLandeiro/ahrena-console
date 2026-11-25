@@ -21,7 +21,7 @@
 
 /* ---------- KPIs ---------- */
 .wf-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
-.wf-kpi { padding: 12px 12px; height: 96px; display: flex; flex-direction: column; justify-content: space-between; position: relative; min-width: 0; }
+.wf-kpi { padding: 12px 10px; height: 96px; display: flex; flex-direction: column; justify-content: space-between; position: relative; min-width: 0; }
 .wf-kpi-label { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); font-weight: var(--weight-semibold); padding-right: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wf-kpi-ic { position: absolute; top: 11px; right: 10px; font-size: 15px; }
 .wf-color-accent { color: var(--accent-text); }
