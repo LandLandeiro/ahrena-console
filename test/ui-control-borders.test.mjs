@@ -28,7 +28,8 @@ const CONTROLS = [
 ]
 
 // #749: the visible box of these is drawn by a child or the browser; nothing may give them the divider.
-const EDGELESS = ['.fwi-plug']
+// #750: `.up-version` is text in the live block, with no edge at all.
+const EDGELESS = ['.fwi-plug', '.up-version']
 
 // #749: anything that targets these elements is a control, named or not: a new rule is caught too.
 const CONTROL_TAG = /(^|[^\w-])(input|select|textarea)(?![\w-])/

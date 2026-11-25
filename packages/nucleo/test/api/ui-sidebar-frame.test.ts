@@ -78,6 +78,8 @@ describe('issue 750: the bar', () => {
       assert.match(body, /outline-offset: 2px/, selector);
     }
     assert.match(rule(shell, '.cc-gh:focus-visible'), /outline: 2px solid var\(--accent-line\)/);
+    assert.match(rule(shell, '.cc-menu-item:focus-visible'), /outline: 2px solid var\(--accent-line\); outline-offset: 2px/);
+    assert.match(rule(shell, '.cc-menu'), /padding: 4px/, 'the menu leaves room for the ring of its items: offset 2 + width 2');
   });
 
   test('the measures of the kit: brand 16/12 without a line under it, titles with margin 11px 0 3px, hover at 60% surface, 1 px between items', () => {
