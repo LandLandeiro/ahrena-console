@@ -268,7 +268,7 @@ describe('#751: the phrase of an idle row says the reason first', () => {
   });
   test('without a known reason the phrase is the text, as before; a working or completed row does not change', () => {
     assert.equal(idle(null, 'Rodo os testes?'), 'Rodo os testes?');
-    assert.equal(idle('nao-existe', 'Rodo os testes?'), 'Rodo os testes?');
+    assert.equal(idle('unknown-key', 'Rodo os testes?'), 'Rodo os testes?');
     assert.equal(idle('permission', 'Bash: npm run migrate'), 'Bash: npm run migrate');
     assert.equal(rowContent(cardDeExemplo('r')).phrase, 'Rodar a bateria');
     assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } })).phrase, 'Terminou sem erro');
@@ -674,7 +674,7 @@ describe('Mural: ao vivo com atividade contínua', () => {
         asking('ao-vivo-1', { target: 'terminal-live', command: 'x' }),
         asking('remota-1', { target: 'remote', command: null }),
         asking('sem-1', { target: 'none', command: null }),
-        cardDeExemplo('linha-1', { open: { target: 'desktop', command: null } }),
+        cardDeExemplo('row-1', { open: { target: 'desktop', command: null } }),
       ],
     };
     const writes: string[] = [];
