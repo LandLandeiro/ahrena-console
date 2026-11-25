@@ -23,7 +23,7 @@ const CONTROLS = [
   '.fwi-box', '.fwi-plat',
   // #749: background-less buttons: transparent, or the same colour as the surface behind
   // #749: bare `.btn` covers every state and variant of the button (done, failed, hover), not `.btn-note`
-  '.btn', '.btn.outline', '.btn.danger', '.pp-chip', '.up-version', '.kb-more', '.wb-done-more',
+  '.btn', '.btn.outline', '.btn.danger', '.pp-chip', '.kb-more', '.wb-done-more',
   '.sm-cmd', '.sm-mic', '.open-icon', '.sd-note-head',
 ]
 
