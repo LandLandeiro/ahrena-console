@@ -1,0 +1,18 @@
+/* The state icon and its tag: a class per kind and a brand.css variable, never a hex (ADR-0028). */
+
+.state-icon { flex: none; }
+.state-icon-needs { color: var(--status-waiting-dot); }
+.state-icon-permission { color: var(--status-waiting-dot); }
+.state-icon-working { color: var(--status-active-text); }
+.state-icon-queued { color: var(--status-active-text); }
+.state-icon-paused { color: var(--subtle); }
+.state-icon-completed { color: var(--muted); }
+.state-icon-answered { color: var(--muted); }
+.state-icon-error { color: var(--status-error-text); }
+.state-icon .si-ring { stroke: currentColor; }
+.state-icon .si-mark { stroke: currentColor; }
+.state-icon .si-dot, .state-icon .si-fill, .state-icon .si-disc { fill: currentColor; }
+.state-icon .si-cut { stroke: var(--surface); }
+
+.state-tag { display: inline-flex; align-items: center; gap: 7px; min-width: 0; color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+.state-tag-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
