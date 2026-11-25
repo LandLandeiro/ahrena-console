@@ -296,7 +296,7 @@ function foot(v, machine) {
     step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
     step ? bar({ tipo: 'plan', valor: step.step, max: step.total, rotulo: step.label }) : null,
     v.usage ? el('span', { class: 'wall-num wall-over', 'data-foot': 'usage' }, v.usage.label) : null,
-    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: `Contexto: ${v.usage.pct}%` }) : null,
+    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: v.usage.label }) : null,
     machine,
   ].filter(Boolean);
   return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;

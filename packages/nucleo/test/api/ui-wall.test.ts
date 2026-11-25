@@ -381,6 +381,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(card, 'open-button')[0]!.textContent, 'Abrir para retomar');
       assert.doesNotMatch(card.textContent, /Passo/);
       assert.equal(comClasse(card, 'wall-bar').length, 1);
+      assert.equal(comClasse(card, 'wall-bar')[0]!.getAttribute('aria-label'), 'Uso da conversa 96%', 'the bar says what the text beside it says (#751)');
     } finally {
       await sair();
     }
