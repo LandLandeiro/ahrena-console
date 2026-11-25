@@ -123,7 +123,7 @@ describe('issue 750: the bar', () => {
     assert.match(off, /background: transparent/);
     assert.match(off, /border: 2px solid var\(--status-error-dot\)/);
     assert.match(rule(shell, '.cc-live[data-state="live"] .cc-live-dot'), /animation: cc-pulse/);
-    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.cc-live-dot \{ animation: none; \}/);
+    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.cc-live\[data-state=\"live\"\] \.cc-live-dot \{ animation: none; \}/);
     assert.match(shell, /@keyframes cc-pulse/);
   });
 

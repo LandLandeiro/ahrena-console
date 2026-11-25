@@ -68,7 +68,7 @@ button { font: inherit; cursor: pointer; }
 /* Without a connection the dot is hollow: the word says it, and so does the shape, not only the color. */
 .cc-live[data-state="offline"] .cc-live-dot { background: transparent; border: 2px solid var(--status-error-dot); }
 @keyframes cc-pulse { 50% { box-shadow: 0 0 0 4px transparent; } 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--status-completed-dot) 40%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .cc-live-dot { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cc-live[data-state="live"] .cc-live-dot { animation: none; } }
 .cc-me { position: relative; display: flex; align-items: center; gap: 8px; padding: 2px 0; }
 .cc-avatar { width: 32px; height: 32px; flex: none; border: 1px solid var(--border); border-radius: var(--radius-full); background: var(--avatar); color: var(--text); display: grid; place-items: center; font-size: 11px; font-weight: var(--weight-semibold); }
 .cc-me-text { min-width: 0; flex: 1; display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.25; color: var(--text); }
