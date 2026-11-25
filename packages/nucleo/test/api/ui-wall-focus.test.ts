@@ -610,3 +610,99 @@ describe('#751: the focus follows a session that became a nested child, a parked
     assert.equal(active(), s.area.querySelector('[data-parked-row="p7"] a'));
   });
 });
+
+describe('#752: the focus when the state filter hides the session it was on', () => {
+  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' } });
+  const pressed = (s: Awaited<ReturnType<typeof mountWith>>) => one(s.area, '.wall-seg button[aria-pressed="true"]');
+
+  test('the link, the open button and the popover controls of a hidden session hand the focus to the pressed segment', async () => {
+    for (const where of ['a.wall-link', '.open-icon', '.open-button', '.open-copy', '.open-close']) {
+      const popover = where === '.open-copy' || where === '.open-close';
+      const s = await mountWith(wallOf([session('a1'), idle('i1')]));
+      if (popover) {
+        s.state.failOpen = true;
+        s.state.failCommand = true;
+        const trigger = one(s.area, '[data-key="local:a1"] .open-icon');
+        trigger.focus();
+        trigger.click();
+        await until(() => s.area.querySelector('.open-fail') !== null);
+      }
+      const control = s.area.querySelector(`[data-key="local:a1"] ${where}`);
+      if (!control) continue;
+      control.focus();
+      one(s.area, '[data-filter="idle"]').click();
+      await new Promise((r) => setTimeout(r, 20));
+      assert.equal(s.area.querySelector('[data-key="local:a1"]'), null, `${where}: the session is hidden`);
+      assert.equal(active(), pressed(s), `${where}: the focus is on the pressed segment`);
+      assert.equal(pressed(s).getAttribute('data-filter'), 'idle');
+      cleanup?.();
+      cleanup = null;
+    }
+  });
+
+  test('the toggle of a tree and the controls of a card follow the same road', async () => {
+    const leader = session('l1', { tree: { total: 1, blocked: 0, active: 1, parked: 0 }, children: [kid('k1')] });
+    const s = await mountWith(wallOf([leader, idle('i1')]));
+    const toggle = s.area.querySelector('[data-key="local:l1"] .wall-treeline')!;
+    toggle.focus();
+    one(s.area, '[data-filter="idle"]').click();
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(active(), pressed(s));
+    cleanup?.();
+    cleanup = null;
+    const c = await mountWith(wallOf([blocked('b1'), idle('i1')]));
+    one(c.area, '[data-key="local:b1"] .open-button').focus();
+    one(c.area, '[data-filter="idle"]').click();
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(active(), pressed(c));
+  });
+});
+
+describe('#752: a session that changes section keeps the focus on the same kind of control', () => {
+  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' } });
+  const done = (id: string) => session(id, { status: 'completed', state: 'completed', activity: { type: 'completed', text: '' } });
+  const shapes: [string, (id: string) => Card][] = [['active', (id) => session(id)], ['idle', idle], ['completed', done], ['blocked', (id) => blocked(id)]];
+
+  test('the link and the open button of a session moving through active, idle, completed and blocked', async () => {
+    for (const [, from] of shapes) {
+      for (const [target, to] of shapes) {
+        for (const where of ['a.wall-link', '.open-icon, .open-button']) {
+          const s = await mountWith(wallOf([from('m1'), session('z1')]));
+          const control = s.area.querySelector(`[data-key="local:m1"] ${where}`)!;
+          control.focus();
+          s.state.wall = wallOf([to('m1'), session('z1')]);
+          await s.refresh();
+          const now = active();
+          assert.ok(now, `${where} -> ${target}: the focus is somewhere`);
+          assert.equal(now!.closest('[data-key="local:m1"]')?.getAttribute('data-key'), 'local:m1', `${where} -> ${target}: the focus stays in the session`);
+          cleanup?.();
+          cleanup = null;
+        }
+      }
+    }
+  });
+
+  test('copy and close of the popover: on a row they stay; a card has no Fechar, so the focus falls to its open button', async () => {
+    for (const [target, to] of shapes) {
+      for (const where of ['.open-copy', '.open-close']) {
+        const s = await mountWith(wallOf([session('m1'), session('z1')]));
+        s.state.failOpen = true;
+        s.state.failCommand = true;
+        const trigger = one(s.area, '[data-key="local:m1"] .open-icon');
+        trigger.focus();
+        trigger.click();
+        await until(() => s.area.querySelector('.open-fail') !== null);
+        one(s.area, `[data-key="local:m1"] ${where}`).focus();
+        s.state.wall = wallOf([to('m1'), session('z1')]);
+        await s.refresh();
+        const now = active();
+        assert.ok(now, `${where} -> ${target}: the focus is somewhere`);
+        const inSession = now!.closest('[data-key="local:m1"]');
+        assert.ok(inSession, `${where} -> ${target}: the focus stays in the session`);
+        if (target === 'blocked' && where === '.open-close') assert.ok(now!.classList.contains('open-button'), 'a card has no Fechar: the focus falls to its open button');
+        cleanup?.();
+        cleanup = null;
+      }
+    }
+  });
+});
