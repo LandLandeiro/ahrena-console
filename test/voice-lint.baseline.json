@@ -576,12 +576,6 @@
     "count": 1
   },
   {
-    "file": "packages/nucleo/ui/screens/wall.js",
-    "rule": "filler-long-dash",
-    "text": "contexto —",
-    "count": 1
-  },
-  {
     "file": "packages/nucleo/ui/screens/work-board-issue-edit.js",
     "rule": "limit-label-characters",
     "text": "Descrição da issue (Markdown)",

@@ -333,20 +333,23 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     assert.deepEqual(f.routes, ['/api/wall?machine=all']);
     assert.equal(all(area, '.mf-filter').length, 0);
     assert.equal(all(area, '.mf-tag').length, 0);
+    assert.equal(all(area, '.mf-mach').length, 0, 'no remote known: no machine mark either (#751)');
     assert.equal(all(area, '.mf-notice').length, 0);
     f.leave.abort();
   });
 
   test('with a remote: the filter on its own row, the tag only on the remote card, the remote card opens the remote Detail with its open action off', async () => {
     setUrl('/ui/wall');
-    const f = context(() => ({ count: {}, cards: [wallCard('s1'), wallCard('s1', { machine: WS, open: { target: 'remote', command: null } })], machines: machinesUp }));
+    const needs = { status: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+    const f = context(() => ({ count: {}, cards: [wallCard('s1', needs), wallCard('s1', { ...needs, machine: WS, open: { target: 'remote', command: null } })], machines: machinesUp }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
     assert.equal(all(area, '.mf-row .mf-filter').length, 1);
     const cards = all(area, '.wall-card');
     assert.deepEqual(cards.map((c) => c.getAttribute('data-key')), ['local:s1', 'ws:s1']);
     assert.equal(all(cards[0]!, '.mf-tag').length, 0);
-    assert.equal(texto(one(cards[1]!, '.wall-prj')), 'projeto-exemplo · feat/1-exemplo Workstation', 'the tag shares the project line');
+    assert.equal(texto(one(cards[0]!, '.mf-mach')), 'Esta máquina', 'with a remote known, this one is named too (#751)');
+    assert.equal(texto(one(cards[1]!, '.mf-mach')), 'Workstation', 'the remote one always, with its name written (#751)');
     assert.equal(one(cards[1]!, 'a.wall-link')!.getAttribute('href'), '/ui/sessions/s1?machine=ws');
     assert.equal(one(cards[0]!, 'a.wall-link')!.getAttribute('href'), '/ui/sessions/s1');
     const off = one(cards[1]!, '.open-action button')!;
@@ -381,13 +384,13 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     assert.match(texto(one(area, '.mf-notice')), /^Workstation sem conexão desde/);
     assert.equal(all(area, '.error-band').length, 0);
     assert.ok(one(area, '.mf-seg button[data-machine="ws"]')!.classList.contains('mf-off'));
-    assert.equal(all(area, '.wall-card').length, 1, 'this machine\'s list stays');
+    assert.equal(all(area, '.wall-row').length, 1, 'this machine\'s list stays');
 
     one(area, '.mf-seg button[data-machine="ws"]')!.click();
     await until(() => f.routes.includes('/api/wall?machine=ws'));
     await tick();
     assert.equal(all(area, '.mf-notice').length, 1);
-    assert.equal(all(area, '.wall-card').length, 0);
+    assert.equal(all(area, '.wall-row').length, 0);
     assert.equal(all(area, '.state').length, 0, 'no empty card: the notice says why');
     assert.equal(all(area, '.mf-seg button').length, 3, 'the other segments stay');
     f.leave.abort();
