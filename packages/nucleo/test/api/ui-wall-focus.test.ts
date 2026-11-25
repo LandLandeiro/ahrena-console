@@ -117,11 +117,13 @@ function start(initial: Card, failRead = false) {
       ElementoFalso.prototype.remove = realRemove;
     },
     leave,
-    // #751: a re-read through the Atualizar button, resolved when the redraw is done.
+    // #752: asks for a re-read the way a change of the core does.
+    poke: () => changes.forEach((f) => f()),
+    // #751: a re-read like the one a change of the core asks for, resolved when the redraw is done.
     async refresh() {
       const before = state.reads;
       focusLog.length = 0;
-      one(area, '[data-action="refresh"]').click();
+      for (const f of changes) f();
       await until(() => state.reads > before);
       await new Promise((r) => setTimeout(r, 20));
     },
@@ -148,10 +150,10 @@ async function mountWith(initial: Card) {
 }
 
 describe('#751: the redraw of the wall keeps the focus', () => {
-  test('the header controls: the filter, Atualizar and Nova sessão keep their node and their focus', async () => {
+  test('the header controls: the state segments and Nova sessão keep their node and their focus', async () => {
     const s = await mountWith(wallOf([blocked('c1'), session('r1')]));
     const head = s.area.firstChild;
-    for (const selector of ['[data-filter="idle"]', '[data-action="refresh"]', '.ns-button']) {
+    for (const selector of ['[data-filter="idle"]', '[data-filter="active"]', '.ns-button']) {
       const control = one(s.area, selector);
       control.focus();
       await s.refresh();
@@ -184,7 +186,7 @@ describe('#751: the redraw of the wall keeps the focus', () => {
     assert.equal(focusLog.filter((f) => f.node === select).length, 0, 'the select was not focused again');
   });
 
-  test('the machine selector keeps the focus on the chosen machine', async () => {
+  test('the machine menu keeps the focus on its button after a machine is chosen', async () => {
     const machines = [
       { id: 'local', label: 'Esta máquina', state: 'connected', reason: null, lastReadAt: '2026-10-22T23:00:00Z' },
       { id: 'ws', label: 'Workstation', state: 'connected', reason: null, lastReadAt: '2026-10-22T23:00:00Z' },
@@ -368,10 +370,10 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
     await new Promise((r) => setTimeout(r, 20));
   }
 
-  test('the retry of the band: the focus goes to the new button, and to Atualizar when the band is gone', async () => {
+  test('the retry of the band: the focus goes to the new button, and to the pressed state segment when the band is gone', async () => {
     const s = await mountWith(wallOf([blocked('c1')]));
     s.state.failRead = true;
-    one(s.area, '[data-action="refresh"]').click();
+    s.poke();
     await until(() => s.area.querySelector('.error-band') !== null);
     const first = one(s.area, '.error-band button');
     first.focus();
@@ -383,10 +385,10 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
     s.state.failRead = false;
     await retry(s, '.error-band button');
     assert.equal(s.area.querySelector('.error-band'), null);
-    assert.equal(active(), one(s.area, '[data-action="refresh"]'));
+    assert.equal(active(), one(s.area, '[data-filter="all"]'));
   });
 
-  test('the retry of the full-screen error: the same, and the focus goes to Atualizar once the wall is read', async () => {
+  test('the retry of the full-screen error: the same, and the focus goes to the pressed state segment once the wall is read', async () => {
     const s = start(wallOf([blocked('c1')]), true);
     cleanup = () => {
       s.restoreRemove();
@@ -404,10 +406,10 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
     s.state.failRead = false;
     await retry(s, '[role="alert"] button');
     await until(() => s.area.querySelector('[data-session]') !== null);
-    assert.equal(active(), one(s.area, '[data-action="refresh"]'));
+    assert.equal(active(), one(s.area, '[data-filter="all"]'));
   });
 
-  test('the link of the notice of a machine that is down keeps the focus by its data-machine; when the notice is gone the focus goes to that machine segment', async () => {
+  test('the link of the notice of a machine that is down keeps the focus by its data-machine; when the notice is gone the focus goes to the machine menu button', async () => {
     const s = await mountWith(wallOf([blocked('c1')], { machines: [local, machine('unreachable')] }));
     const link = one(s.area, '.mf-notice[data-machine="ws"] .mf-notice-link');
     link.focus();
@@ -418,12 +420,12 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
     s.state.wall = wallOf([blocked('c1')], { machines: [local, machine('connected')] });
     await s.refresh();
     assert.equal(s.area.querySelector('.mf-notice'), null);
-    assert.equal(active(), one(s.area, '.mf-seg [data-machine="ws"]'));
+    assert.equal(active(), one(s.area, '[data-machine-menu]'));
   });
 });
 
 describe('#751: a redraw does not take a focus nobody had', () => {
-  test('a redraw with the focus on the body leaves it on the body, and Atualizar is not focused', async () => {
+  test('a redraw with the focus on the body leaves it on the body, and no segment is focused', async () => {
     const s = await mountWith(wallOf([blocked('c1'), session('r1')]));
     documentoFalso.activeElement = null;
     await s.refresh();
@@ -434,7 +436,7 @@ describe('#751: a redraw does not take a focus nobody had', () => {
   test('a retry that resolves after the focus went elsewhere leaves the focus where it went', async () => {
     const s = await mountWith(wallOf([blocked('c1')]));
     s.state.failRead = true;
-    one(s.area, '[data-action="refresh"]').click();
+    s.poke();
     await until(() => s.area.querySelector('.error-band') !== null);
     one(s.area, '.error-band button').focus();
     let release = () => {};
@@ -449,7 +451,7 @@ describe('#751: a redraw does not take a focus nobody had', () => {
     await until(() => s.area.querySelector('.error-band') === null);
     assert.equal(active(), one(s.area, '[data-key="local:c1"] a.wall-link'), 'the focus stayed on the link of the card');
     s.state.failRead = true;
-    one(s.area, '[data-action="refresh"]').click();
+    s.poke();
     await until(() => s.area.querySelector('.error-band') !== null);
     one(s.area, '.error-band button').focus();
     s.state.gate = new Promise<void>((resolve) => (release = resolve));
@@ -457,10 +459,10 @@ describe('#751: a redraw does not take a focus nobody had', () => {
     const again = s.state.attempts;
     one(s.area, '.error-band button').click();
     await until(() => s.state.attempts > again);
-    one(s.area, '[data-action="refresh"]').focus();
+    one(s.area, '[data-filter="all"]').focus();
     release();
     await until(() => s.area.querySelector('.error-band') === null);
-    assert.equal(active(), one(s.area, '[data-action="refresh"]'), 'the focus stayed on Atualizar');
+    assert.equal(active(), one(s.area, '[data-filter="all"]'), 'the focus stayed on the segment');
   });
 });
 

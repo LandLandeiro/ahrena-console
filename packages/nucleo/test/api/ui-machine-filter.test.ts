@@ -365,7 +365,8 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const f = context(() => ({ count: {}, cards: [wallCard('s1', needs), wallCard('s1', { ...needs, machine: WS, open: { target: 'remote', command: null } })], machines: machinesUp }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    assert.equal(all(area, '.mf-row .mf-filter').length, 1);
+    assert.equal(all(area, '.mf-row [aria-haspopup="menu"]').length, 1, 'the wall (#752): a button with a menu, not the loose segments');
+    assert.equal(all(area, '.mf-seg').length, 0);
     const cards = all(area, '.wall-card');
     assert.deepEqual(cards.map((c) => c.getAttribute('data-key')), ['local:s1', 'ws:s1']);
     assert.equal(all(cards[0]!, '.mf-tag').length, 0);
@@ -386,11 +387,14 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const f = context(() => ({ count: {}, cards: [], machines: machinesUp }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    one(area, '.mf-seg button[data-machine="ws"]')!.click();
+    const menuItem = (id: string) => one(area, `[role="menuitemradio"][data-machine="${id}"]`)!;
+    one(area, '[aria-haspopup="menu"]')!.click();
+    menuItem('ws').click();
     await until(() => f.routes.includes('/api/wall?machine=ws'), 'the read of the chosen machine');
     assert.equal(page.search, '?machine=ws');
     assert.equal(mf.initialChoice(''), 'ws');
-    one(area, '.mf-seg button[data-machine="all"]')!.click();
+    one(area, '[aria-haspopup="menu"]')!.click();
+    menuItem('all').click();
     await until(() => f.routes.at(-1) === '/api/wall?machine=all');
     assert.equal(page.search, '', 'Todas leaves the URL');
     f.leave.abort();
@@ -404,16 +408,17 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     assert.equal(all(area, '.mf-notice').length, 1);
     assert.match(texto(one(area, '.mf-notice')), /^Workstation sem conexão desde/);
     assert.equal(all(area, '.error-band').length, 0);
-    assert.ok(one(area, '.mf-seg button[data-machine="ws"]')!.classList.contains('mf-off'));
+    assert.ok(one(area, '[role="menuitemradio"][data-machine="ws"]')!.classList.contains('mf-off'));
     assert.equal(all(area, '.wall-row').length, 1, 'this machine\'s list stays');
 
-    one(area, '.mf-seg button[data-machine="ws"]')!.click();
+    one(area, '[aria-haspopup="menu"]')!.click();
+    one(area, '[role="menuitemradio"][data-machine="ws"]')!.click();
     await until(() => f.routes.includes('/api/wall?machine=ws'));
     await tick();
     assert.equal(all(area, '.mf-notice').length, 1);
     assert.equal(all(area, '.wall-row').length, 0);
     assert.equal(all(area, '.state').length, 0, 'no empty card: the notice says why');
-    assert.equal(all(area, '.mf-seg button').length, 3, 'the other segments stay');
+    assert.equal(all(area, '[role="menuitemradio"]').length, 3, 'the other options stay');
     f.leave.abort();
   });
 
@@ -422,9 +427,9 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const f = context((route) => (route === '/api/machines' ? machinesUp : { count: {}, cards: [], machines: [machinesUp[1]] }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    await until(() => all(area, '.mf-seg button').length === 3, 'the three segments');
+    await until(() => all(area, '[role="menuitemradio"]').length === 3, 'the three options');
     assert.ok(f.routes.includes('/api/machines'));
-    assert.equal(one(area, '.mf-seg button[aria-pressed="true"]')!.getAttribute('data-machine'), 'ws');
+    assert.equal(one(area, '[role="menuitemradio"][aria-checked="true"]')!.getAttribute('data-machine'), 'ws');
     f.leave.abort();
   });
 
