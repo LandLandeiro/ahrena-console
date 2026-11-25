@@ -473,10 +473,12 @@ export async function mount(area, ctx) {
     }
     const all = wall.cards ?? [];
     const counts = countsOf(all);
-    say(counts);
     const total = all.length;
-    numbers.get('all').textContent = String(total);
-    for (const id of ['blocked', 'active', 'idle']) numbers.get(id).textContent = String(counts[id]);
+    // ADR-0028: nothing is known about a chosen machine that is down: no sentence, no numbers.
+    const unknown = machines.chosenDown() && total === 0;
+    say(unknown ? null : counts);
+    numbers.get('all').textContent = unknown ? '' : String(total);
+    for (const id of ['blocked', 'active', 'idle']) numbers.get(id).textContent = unknown ? '' : String(counts[id]);
     numbers.get('blocked').setAttribute('class', `wall-seg-n${counts.blocked > 0 ? ' wall-seg-need' : ''}`);
     const f = FILTERS.find((x) => x.id === filter);
     const cards = all.filter(f.passa);

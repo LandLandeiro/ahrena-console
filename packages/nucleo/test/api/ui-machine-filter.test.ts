@@ -422,6 +422,26 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     f.leave.abort();
   });
 
+  test('#752: a chosen machine that is down says nothing about it: no sentence and no numbers; with cards it behaves as usual', async () => {
+    setUrl('/ui/wall?machine=ws');
+    const f = context((route) => (route === '/api/machines' ? machinesDown : { count: {}, cards: [], machines: [machinesDown[1]] }));
+    const area = new ElementoFalso('main');
+    await wall.mount(area, f.ctx);
+    await until(() => all(area, '.wall-summary').length === 1 && all(area, '.wall-seg-n').length > 0 && f.routes.includes('/api/wall?machine=ws'));
+    await tick();
+    assert.equal(texto(one(area, '.wall-summary')).trim(), '', 'no "Nada precisa de você agora."');
+    assert.deepEqual(all(area, '.wall-seg-n').map((n) => texto(n)), ['', '', '', ''], 'the segments hold no zeros');
+    f.leave.abort();
+
+    const live = context((route) => (route === '/api/machines' ? machinesDown : { count: {}, cards: [wallCard('s1')], machines: [machinesDown[1]] }));
+    const again = new ElementoFalso('main');
+    await wall.mount(again, live.ctx);
+    await until(() => all(again, '.wall-row').length === 1);
+    assert.match(texto(one(again, '.wall-summary')), /trabalhando/);
+    assert.equal(texto(all(again, '.wall-seg-n')[0]!), '1');
+    live.leave.abort();
+  });
+
   test('opening on a remote choice reads /api/machines for the other segments', async () => {
     setUrl('/ui/wall?machine=ws');
     const f = context((route) => (route === '/api/machines' ? machinesUp : { count: {}, cards: [], machines: [machinesUp[1]] }));
