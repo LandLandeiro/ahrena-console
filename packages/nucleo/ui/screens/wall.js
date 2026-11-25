@@ -272,7 +272,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
     'button',
     { type: 'button', class: 'wall-parked-head', 'data-parked': 'toggle', 'aria-expanded': opened ? 'true' : 'false', onClick: toggle },
     icon(opened ? 'chevron-down' : 'chevron-right'),
-    el('b', {}, p.title),
+    el('b', { id: 'wall-h-parked' }, p.title),
     el('span', { class: 'wall-muted wall-trunc' }, 'sem atividade há mais de 180 min e sem pedir nada a você'),
     el('span', { class: 'wall-muted wall-parked-r' }, opened ? `Mostrando ${p.shown} de ${p.total} · as mais recentes` : 'Recolhida'),
   );
@@ -300,7 +300,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
   return el(
     'section',
     { class: 'card wall-parked', 'aria-labelledby': titleId },
-    el('h2', { class: 'wall-parked-h', id: titleId }, head),
+    el('h2', { class: 'wall-parked-h' }, head),
     ...(opened ? [el('div', { class: 'wall-parked-list', role: 'list', 'aria-labelledby': titleId }, ...rows), moreButton] : []),
   );
 }

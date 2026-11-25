@@ -1283,3 +1283,38 @@ describe('#752: the sheet of the sections', () => {
     }
   });
 });
+
+describe('#752: round 3, the sheet and the names measured in the browser', () => {
+  const sheet = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
+  const declared = (selector: string, prop: string) => rules.find((r) => r.selector === selector)?.body.match(new RegExp(`(?:^|[;\\s])${prop}:\\s*([^;]+)`))?.[1]?.trim();
+
+  test('the toggle of Paradas takes the width of its block, so it never makes the page scroll sideways', () => {
+    assert.equal(declared('.wall-parked-head', 'width'), '100%');
+  });
+
+  test('the rest of the sentence and the second line of the calm block are --muted, and the segment numbers take the colour of their label', () => {
+    assert.equal(declared('.wall-summary', 'color'), 'var(--muted)');
+    assert.equal(declared('.wall-calm-text', 'color'), 'var(--muted)');
+    assert.equal(declared('.wall-seg-n', 'color'), undefined);
+  });
+
+  test('Paradas is named by its title alone, the id sits on the bold text and not on the heading or the button', async () => {
+    const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      for (const open of [false, true]) {
+        if (open) area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!.click();
+        const band = comClasse(area, 'wall-parked')[0]!;
+        const named = area.todos((e) => e.getAttribute('id') === band.getAttribute('aria-labelledby'));
+        assert.equal(named.length, 1);
+        assert.equal(named[0]!.tag, 'b');
+        assert.match(named[0]!.textContent, /^Paradas \(\d+\)$/);
+        assert.equal(comClasse(area, 'wall-parked-h')[0]!.getAttribute('id'), null);
+      }
+    } finally {
+      await sair();
+    }
+  });
+});
+
