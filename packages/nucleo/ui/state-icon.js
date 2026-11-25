@@ -7,7 +7,6 @@ const SVG = 'http://www.w3.org/2000/svg';
 
 export const STATE_KINDS = ['needs', 'permission', 'working', 'queued', 'paused', 'completed', 'error', 'answered'];
 
-
 // Today's labels, kept until the names change (ADR-0028).
 const KIND_LABEL = {
   needs: ATTENTION_LABEL.blocked,

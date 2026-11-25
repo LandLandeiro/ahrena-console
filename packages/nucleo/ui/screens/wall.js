@@ -1,31 +1,29 @@
-// Mural ao vivo (C2, #34): um card por sessão aberta nesta máquina, do mesmo tamanho, três por linha.
-// Lê `GET /api/wall`, que já vem ordenado pelo núcleo (issue 245: blocked, idle, then the rest); the
-// selector Todas / Precisam de você / Ociosas / Ativas filters on the client, without a new request. Ao vivo: qualquer mudança relê o mural (com uma pequena espera, para
-// juntar a rajada); `aoReiniciar` relê na hora.
+// ADR-0028: the blocked sessions are cards under "Precisam de você", the rest is one list; `GET /api/wall` comes in the core's order.
 //
 // As barras são `<progress>`: a largura sai do `value`, sem estilo inline (a CSP bloqueia).
 // As funções sem DOM (formatação e o que cada card mostra) saem exportadas para o teste.
 
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { attentionOf, attentionPill, attentionTone, isBlocked, isIdle, reasonChip, statusWithoutAttention } from '../attention.js';
+import { ATTENTION_PLURAL, attentionOf, isBlocked, isIdle } from '../attention.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
+import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
 import { newSessionButton } from '../new-session.js';
-import { createMachineFilter, itemHref, itemKey, machineTag, sinceText, whereText } from '../machine-filter.js';
+import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceText, whereText } from '../machine-filter.js';
 
 const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Releitura depois de uma rajada de mudanças. */
 export const DEBOUNCE_MS = 400;
-/** Contexto a partir daqui pinta a barra com a cor de erro. */
-export const HIGH_CONTEXT = 80;
+/** Contexto acima daqui aparece em vermelho no pé do card. */
+export const HIGH_CONTEXT = 90;
+const AGENT = 'Claude';
 
 /** C85: the "Paradas" band shows this many rows at first; "Mostrar mais" asks for all of them (the core stops at 100). */
 export const PARKED_PAGE = 7;
 export const PARKED_MAX = 100;
 
-export const STATUS_LABEL = { active: 'Ativa', completed: 'Concluída', error: 'Com erro', abandoned: 'Abandonada' };
-const EFFORTS = { low: 'baixo', medium: 'médio', high: 'alto', xhigh: 'muito alto', max: 'máximo' };
 
 // The same groups as the core's `count` (issue 245): blocked (errors included), idle, active.
 export const FILTERS = [
@@ -41,63 +39,55 @@ export function filterLabel(filter, count) {
   return Number.isInteger(n) ? `${filter.rotulo} · ${n}` : filter.rotulo;
 }
 
-// ---------- Formatação ----------
-
-const dollar = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** Em dólar, como no wireframe ("~1,84"), sempre com "~": é estimativa. `null` (uso sem preço) é traço. */
-export const cost = (usd) => (usd === null || usd === undefined ? '—' : `~${dollar.format(usd)}`);
-
-/** Só a família: "claude-opus-5-5" → "Opus"; "Sonnet 5.5" → "Sonnet"; sem modelo, traço. */
-export function modelName(id) {
-  const text = String(id ?? '').trim();
-  if (!text) return '—';
-  const family = /(opus|sonnet|haiku|fable)/i.exec(text);
-  const word = family ? family[1].toLowerCase() : text.split(/\s+/)[0];
-  return `${word[0].toUpperCase()}${word.slice(1)}`;
-}
-
-/** "high" → "alto"; o que não reconhece sai como veio; sem esforço, traço. */
-export const effort = (e) => (e ? (EFFORTS[e] ?? e) : '—');
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
+const clean = (text) => String(text ?? '').trim();
 
-/**
- * O que o card mostra, sem DOM. Plano `null` é "Plano 0/0" com a barra vazia (o wireframe desenha
- * assim a sessão sem plano); contexto `null` é "contexto —" com a barra vazia.
- */
+// ADR-0028: the plan is null without steps; the step is done + 1 while one runs, never above the total.
+function planOf(c) {
+  const total = c.plan?.total;
+  if (!(total > 0)) return null;
+  const done = Math.min(Math.max(0, c.plan.done ?? 0), total);
+  return { done, total, step: Math.min(total, c.plan.current ? done + 1 : done) };
+}
+
+const base = (c) => ({
+  id: c.id,
+  // ADR-0028: two machines can have the same id; a remote card opens its Detail with `?machine=`.
+  key: itemKey(c),
+  machine: c.machine ?? null,
+  href: itemHref(c),
+  open: c.open ?? null,
+  title: c.title,
+  state: stateOfSession({ attention: c.attention, status: c.status }),
+});
+
+/** What a card shows, without DOM: the ask, the action, the step and the usage of the conversation. */
 export function cardContent(c) {
-  const plan = c.plan ?? { done: 0, total: 0 };
+  const v = base(c);
+  const plan = planOf(c);
   const pct = c.context ? limit(c.context.pct) : null;
-  let row;
-  const attention = attentionOf(c.attention);
-  if (attention && attention.reason !== 'error') row = { tipo: 'pede', attention, texto: c.activity?.text ?? '' };
-  else if (c.status === 'error') row = { tipo: 'erro', texto: c.activity?.text ?? '' };
-  else if (c.status === 'completed') row = { tipo: 'concluida', texto: 'Terminou sem erro' };
-  else if (c.status === 'abandoned') row = { tipo: 'parada', texto: c.activity?.text ?? '' };
-  else row = { tipo: 'fazendo', texto: c.activity?.text ?? '' };
+  const failed = v.state.kind === 'error';
   return {
-    id: c.id,
-    // Issue 243: two machines can have the same id; a remote card opens its Detail with `?machine=`.
-    key: itemKey(c),
-    machine: c.machine ?? null,
-    href: itemHref(c),
-    open: c.open ?? null,
-    status: c.status,
-    attention,
-    tone: attentionTone(attention) ?? statusWithoutAttention(c.status),
-    title: c.title,
-    origem: [c.project, c.branch].filter(Boolean).join(' · ') || '—',
-    linha: row,
-    grade: [
-      ['Modelo', modelName(c.model)],
-      ['Esforço', effort(c.effort)],
-      ['Agentes', String(c.agents?.total ?? 0)],
-      ['Custo', cost(c.cost?.usd)],
-    ],
-    agents: c.agents ?? { active: 0, total: 0 },
-    plan: { done: plan.done, total: plan.total, label: `Plano ${plan.done}/${plan.total}`, current: c.plan?.current ?? null },
-    context: { pct, label: pct === null ? 'contexto —' : `contexto ${pct}%`, high: pct !== null && pct >= HIGH_CONTEXT },
+    ...v,
+    ask: clean(c.activity?.text) || v.state.label,
+    actionLabel: failed ? 'Abrir para retomar' : 'Responder no Claude',
+    plan: plan ? { ...plan, label: `Passo ${plan.step} de ${plan.total}` } : null,
+    usage: pct !== null && (failed || pct > HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%` } : null,
+  };
+}
+
+/** What a row shows, without DOM: the phrase, the slice of the state and "X de Y" when there is a plan. */
+export function rowContent(c) {
+  const v = base(c);
+  const plan = planOf(c);
+  return {
+    ...v,
+    phrase: c.status === 'completed' ? 'Terminou sem erro' : clean(c.activity?.text),
+    fraction: plan ? plan.done / plan.total : 0,
+    ratio: plan ? `${plan.done} de ${plan.total}` : null,
+    idle: isIdle(c.attention),
+    since: c.since,
   };
 }
 
@@ -147,62 +137,71 @@ function useStyle() {
   document.head.append(el('link', { rel: 'stylesheet', href: STYLE }));
 }
 
-/** The pill: the attention (Precisa de você, Ociosa, Com erro) or the status. */
-function badge(v) {
-  if (v.attention) return attentionPill(v.attention, { extraClass: 'wall-pill' });
-  const st = statusWithoutAttention(v.status);
-  return el('span', { class: `wall-badge wall-pill wall-b-${st}` }, el('span', { class: 'p' }), STATUS_LABEL[st] ?? '');
-}
-
-function cardRow(l) {
-  if (l.tipo === 'pede') return el('div', { class: 'wall-row' }, reasonChip(l.attention), el('span', { class: 'wall-trunc wall-muted' }, l.texto));
-  if (l.tipo === 'erro') return el('div', { class: 'wall-row wall-error' }, icon('error'), el('span', { class: 'wall-trunc' }, l.texto));
-  if (l.tipo === 'concluida') return el('div', { class: 'wall-row wall-completed' }, icon('wall-check'), el('span', { class: 'wall-trunc' }, l.texto));
-  if (l.tipo === 'parada') return el('div', { class: 'wall-row wall-muted' }, el('span', { class: 'wall-trunc' }, l.texto));
-  return el('div', { class: 'wall-row wall-muted' }, icon('wall-loader'), el('span', { class: 'wall-trunc' }, l.texto));
-}
-
-/** A barra: `<progress>` estilizado, a largura vem do `value`. */
 function bar({ valor: value, max, rotulo: label, alto: high = false, tipo: type }) {
   return el('progress', { class: `wall-bar${high ? ' wall-high' : ''}`, 'data-bar': type, max: max > 0 ? max : 1, value: max > 0 ? Math.min(value, max) : 0, 'aria-label': label });
 }
 
-/**
- * A card: the title is the link to the Detail and stretches over the whole card (`wall-link`), so the
- * card stays clickable without wrapping the foot's button in an `<a>` (C71, issue 285).
- * Returns the card and its link (the one the keyboard focus goes back to).
- */
-function card(c, write, nest) {
+/** The monogram, the name and since when, with the state on the right (ADR-0028). */
+function who(tag, since) {
+  return el('div', { class: 'wall-who' }, agentMonogram(AGENT), el('b', { class: 'wall-name' }, AGENT), el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
+}
+
+const machineOf = (c, known) => (known || isRemote(c) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
+
+function titleLine(link, parentTitle) {
+  return el('div', { class: 'wall-titleline' }, link, parentTitle ? el('span', { class: 'wall-from', title: `Aberta por ${parentTitle}` }, `filha de ${parentTitle}`) : null);
+}
+
+function tree(c, summary, opened, nest) {
+  return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids' }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
+}
+
+function card(c, write, nest, known) {
   const v = cardContent(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
-  const link = el('a', { class: 'wall-tt wall-trunc wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
-  // C46: a remote card's tag shares the project line; the project truncates, never the tag.
-  const tag = machineTag(v);
+  const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel });
   const node = el(
     'div',
-    { class: `card wall-card wall-st-${v.tone}${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
-    el('div', { class: 'wall-l1' }, link, badge(v)),
-    tag ? el('div', { class: 'wall-prj mf-with-tag' }, el('span', { class: 'mf-shrink' }, v.origem), tag) : el('div', { class: 'wall-prj wall-trunc' }, v.origem, parentTitle ? el('span', { class: 'wall-from', title: `Aberta por ${parentTitle}` }, `filha de ${parentTitle}`) : null),
-    cardRow(v.linha),
+    { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
+    who(stateTag({ kind: v.state.kind, label: v.state.label }), c.since),
+    el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
+    action ? el('div', { class: 'wall-act' }, action) : null,
+    ...tree(c, summary, opened, nest),
+    foot(v, machineOf(c, known)),
+  );
+  return { node, link };
+}
+
+function row(c, write, nest, known) {
+  const v = rowContent(c);
+  const summary = treeSummary(c.tree);
+  const opened = Boolean(summary) && nest.isOpen(c.id);
+  const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
+  const working = v.state.kind === 'working';
+  const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null });
+  const node = el(
+    'div',
+    { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
     el(
       'div',
-      { class: 'wall-gr' },
-      ...v.grade.map(([label, value]) =>
-        el('div', label === 'Agentes' ? { title: `${v.agents.active} ativos de ${v.agents.total}` } : label === 'Custo' ? { title: value === '—' ? 'Sem preço para o modelo' : `US$ ${value.slice(1)}, estimado` } : {}, label, el('b', { class: 'wall-trunc' }, value)),
+      { class: 'wall-main' },
+      agentMonogram(AGENT),
+      el('div', { class: 'wall-text' }, titleLine(link, parentTitle), v.phrase ? el('span', { class: 'wall-phrase', title: v.phrase }, v.phrase) : null),
+      el(
+        'div',
+        { class: 'wall-side' },
+        stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }),
+        v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
+        v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
+        machineOf(c, known),
+        action ? el('span', { class: 'wall-act' }, action) : null,
       ),
     ),
-    el('div', { class: 'wall-planrow' }, el('span', { title: v.plan.current ?? null }, v.plan.label), el('span', {}, v.context.label)),
-    el(
-      'div',
-      { class: 'wall-bars' },
-      bar({ tipo: 'plan', valor: v.plan.done, max: v.plan.total, rotulo: `Plano: ${v.plan.done} de ${v.plan.total}` }),
-      bar({ tipo: 'context', valor: v.context.pct ?? 0, max: 100, alto: v.context.high, rotulo: v.context.pct === null ? 'Contexto: sem leitura' : `Contexto: ${v.context.pct}%` }),
-    ),
-    summary ? treeLine(c, summary, opened, nest) : null,
-    opened ? el('div', { class: 'wall-kids' }, ...kidRows(c.children ?? [], 0, c, nest)) : null,
-    foot(v, write),
+    ...tree(c, summary, opened, nest),
   );
   return { node, link };
 }
@@ -223,7 +222,7 @@ function kidRows(nodes, depth, leader, nest) {
     const k = childContent(node);
     const hasKids = k.children.length > 0;
     const opened = hasKids && nest.isOpen(k.id);
-    const pill = k.attention ? attentionPill(k.attention, { extraClass: 'wall-pill' }) : el('span', { class: `wall-badge wall-pill wall-b-${statusWithoutAttention(k.status)}` }, el('span', { class: 'p' }), STATUS_LABEL[statusWithoutAttention(k.status)] ?? '');
+    const pill = stateTag(stateOfSession({ attention: k.attention, status: k.status }));
     const row = el(
       'div',
       { class: `wall-kid wall-depth-${Math.min(depth, 6)}${k.parked ? ' wall-kid-parked' : ''}`, 'data-child': k.id },
@@ -252,28 +251,32 @@ function parkedBand(parked, opened, { toggle, more }) {
   const rows = !opened
     ? []
     : parked.items.map((c) => {
-        const v = cardContent(c);
+        const href = itemHref(c);
         return el(
           'div',
-          { class: 'wall-kid', 'data-parked-row': v.id },
-          el('a', { class: 'wall-trunc wall-kid-title', href: v.href, title: v.title }, v.title),
-          el('span', { class: 'wall-prj wall-trunc' }, v.origem),
-          el('span', { class: 'wall-chip' }, v.linha.texto || (v.attention ? 'Sua vez' : '—')),
+          { class: 'wall-kid', 'data-parked-row': c.id },
+          el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title),
+          el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
+          el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? 'Sua vez' : '—')),
           el('span', { class: 'wall-muted wall-kid-age' }, sinceText(c.since)),
-          el('a', { class: 'btn', href: v.href }, 'Abrir'),
+          el('a', { class: 'btn outline', href }, 'Abrir'),
         );
       });
-  const moreButton = opened && p.more > 0 ? el('button', { type: 'button', class: 'btn', 'data-parked': 'more', onClick: more }, `Mostrar mais ${p.more}`) : null;
+  const moreButton = opened && p.more > 0 ? el('button', { type: 'button', class: 'btn outline', 'data-parked': 'more', onClick: more }, `Mostrar mais ${p.more}`) : null;
   return el('div', { class: 'card wall-parked' }, head, ...(opened ? [el('div', { class: 'wall-parked-list' }, ...rows, moreButton)] : []));
 }
 
-/**
- * The foot (C71): the open action with its label and "Detalhe ›". Every card links to the Detail, as
- * it did before issue 285 (the whole card was the link), so a remote one keeps "Detalhe ›" too.
- */
-function foot(v, write) {
-  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null });
-  return el('div', { class: 'wall-foot' }, action, el('a', { class: 'wall-detail', href: v.href, tabindex: '-1' }, 'Detalhe ›'));
+function foot(v, machine) {
+  const failed = v.state.kind === 'error';
+  const step = v.plan && !failed ? v.plan : null;
+  const parts = [
+    step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
+    step ? bar({ tipo: 'plan', valor: step.done, max: step.total, rotulo: `Plano: ${step.done} de ${step.total}` }) : null,
+    v.usage ? el('span', { class: 'wall-num wall-over', 'data-foot': 'usage' }, v.usage.label) : null,
+    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: `Contexto: ${v.usage.pct}%` }) : null,
+    machine,
+  ].filter(Boolean);
+  return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;
 }
 
 // ---------- A tela ----------
@@ -301,7 +304,7 @@ export async function mount(area, ctx) {
       return b;
     }),
   );
-  const refresh = el('button', { type: 'button', class: 'btn', 'data-action': 'refresh', onClick: () => read() }, icon('refresh'), 'Atualizar');
+  const refresh = el('button', { type: 'button', class: 'btn outline', 'data-action': 'refresh', onClick: () => read() }, icon('refresh'), 'Atualizar');
   const head = header({ icon: 'wall', title: 'Mural ao vivo', sub: 'Um card por sessão aberta nesta máquina', actions: [selector, refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
   const sub = head.querySelector?.('.sub') ?? null;
   // Issue 243 (C46): the machine filter on its own row under the header.
@@ -327,12 +330,18 @@ export async function mount(area, ctx) {
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
       titleOf: (id) => (wall.cards ?? []).find((x) => x.id === id)?.title ?? null,
     };
-    const built = cards.map((c) => card(c, ctx.write, nest));
-    const nodes = built.map((b) => b.node);
-    // The keyboard lands on the card's link (the title stretched over the card).
-    const links = built.map((b) => b.link);
+    const known = machines.hasRemotes();
+    const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known));
+    const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known));
+    // ADR-0028: the keyboard lands on the link of the card or the row (the title stretched over it).
+    const links = [...needs, ...rest].map((b) => b.link);
     const body = cards.length
-      ? el('div', { class: 'wall-grid' }, ...nodes)
+      ? el(
+          'div',
+          { class: 'wall-body' },
+          needs.length ? el('section', { class: 'wall-need' }, el('h2', { class: 'wall-h' }, ATTENTION_PLURAL.blocked), el('div', { class: 'wall-grid' }, ...needs.map((b) => b.node))) : null,
+          rest.length ? el('div', { class: 'wall-list' }, ...rest.map((b) => b.node)) : null,
+        )
       : machines.chosenDown()
         ? null
         : empty({ icon: 'wall', title: f.vazio, text: filter === 'all' ? `Abra uma sessão do Claude Code ${machines.hasRemotes() ? whereText(machines.choice, machines.machines(), { form: 'any' }) : 'nesta máquina'} e ela aparece aqui.` : 'Troque o filtro para ver as outras.' });
