@@ -15,6 +15,7 @@ import { createTheme } from './theme.js';
 import { createLiveBlock } from './live-block.js';
 import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
+import { createDrawer } from './drawer.js';
 
 const nav = document.getElementById('nav');
 const area = document.getElementById('content');
@@ -67,9 +68,12 @@ document.addEventListener('click', (ev) => {
 // The theme button and the account menu of the footer (issue 750); Escape closes one layer at a time, the panel first.
 createTheme({ button: document.getElementById('theme-button') });
 const accountMenu = createAccountMenu({ button: document.getElementById('account-button'), menu: document.getElementById('account-menu') });
+// Below 860 px the bar is a drawer; the column (top bar, notice, screen) is the inert background while it is open.
+const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), background: [document.querySelector('.cc-col')] });
 createEscape(document, [
   { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive()) },
   accountMenu,
+  drawer,
 ]);
 
 // ---------- Live ----------
