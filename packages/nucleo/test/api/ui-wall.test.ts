@@ -9,16 +9,35 @@ import { UI_FOLDER } from '../../src/api/ui.ts';
 
 class No {
   filhos: No[] = [];
+  padre: No | null = null;
+  get childNodes() {
+    return this.filhos;
+  }
+  get children() {
+    return this.filhos.filter((f) => f instanceof Elemento);
+  }
   // Como no navegador, `null` não é pulado: viraria o texto "null". Aqui quebra o teste.
   append(...nos: (No | string)[]) {
     for (const n of nos) {
       assert.ok(n !== null && n !== undefined, 'append/replaceChildren com null');
-      this.filhos.push(typeof n === 'string' ? new Texto(n) : n);
+      const no = typeof n === 'string' ? new Texto(n) : n;
+      no.remove();
+      no.padre = this;
+      this.filhos.push(no);
     }
   }
   replaceChildren(...nos: (No | string)[]) {
+    for (const f of this.filhos) f.padre = null;
     this.filhos = [];
     this.append(...nos);
+  }
+  remove() {
+    if (this.padre) this.padre.filhos = this.padre.filhos.filter((f) => f !== this);
+    this.padre = null;
+  }
+  contains(outro: unknown): boolean {
+    for (let n = outro as No | null; n; n = n.padre) if (n === this) return true;
+    return false;
   }
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');

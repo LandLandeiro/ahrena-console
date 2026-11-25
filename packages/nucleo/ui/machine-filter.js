@@ -336,8 +336,11 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
 
   function draw() {
     const remotes = remotesOf(known).length > 0;
+    // ADR-0028: the control is drawn again on every answer; the focus stays on the same machine.
+    const held = row.contains(document.activeElement) ? document.activeElement.getAttribute('data-machine') : null;
     row.replaceChildren(...(remotes ? [machineControl(known, choice, choose)] : []));
     row.hidden = !remotes;
+    if (held !== null) [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === held)?.focus({ preventScroll: true });
     const now = Date.now();
     const down = remotes ? downFor(known, choice) : [];
     notices.replaceChildren(...down.map((m) => downNotice(m, { now })));

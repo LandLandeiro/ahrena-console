@@ -156,6 +156,12 @@ function who(tag, since) {
 
 const machineOf = (c, known) => (known || isRemote(c) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
 
+// ADR-0028: what the keyboard can be on, by session key: the link and the open button; a redraw puts the focus back by it.
+function spotsOf(nest, key, link, action) {
+  nest.spot('link', key, link);
+  if (action) nest.spot('open', key, action.children[0]);
+}
+
 function titleLine(link, parentTitle) {
   return el('div', { class: 'wall-titleline' }, link, parentTitle ? el('span', { class: 'wall-from', title: `Aberta por ${parentTitle}` }, `filha de ${parentTitle}`) : null);
 }
@@ -171,6 +177,7 @@ function card(c, write, nest, known) {
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel });
+  spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
@@ -191,6 +198,7 @@ function row(c, write, nest, known) {
   const working = v.state.kind === 'working';
   const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null });
+  spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
     { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
@@ -231,11 +239,13 @@ function kidRows(nodes, depth, leader, nest) {
     const hasKids = k.children.length > 0;
     const opened = hasKids && nest.isOpen(k.id);
     const pill = stateTag(stateOfSession({ attention: k.attention, status: k.status }));
+    const kidLink = el('a', { class: 'wall-trunc wall-kid-title', href: itemHref({ id: k.id, machine: leader.machine }), title: k.title }, k.title);
+    nest.spot('child', k.id, kidLink);
     const row = el(
       'div',
       { class: `wall-kid wall-depth-${Math.min(depth, 6)}${k.parked ? ' wall-kid-parked' : ''}`, 'data-child': k.id },
       hasKids ? el('button', { type: 'button', class: 'wall-kid-toggle', 'data-toggle': k.id, 'aria-expanded': opened ? 'true' : 'false', 'aria-label': opened ? 'Recolher' : 'Abrir as filhas', onClick: () => nest.toggle(k.id) }, icon(opened ? 'chevron-down' : 'chevron-right')) : el('span', { class: 'wall-kid-toggle' }),
-      el('a', { class: 'wall-trunc wall-kid-title', href: itemHref({ id: k.id, machine: leader.machine }), title: k.title }, k.title),
+      kidLink,
       pill,
       k.parked ? el('span', { class: 'wall-muted' }, 'parada') : null,
       el('span', { class: 'wall-muted wall-kid-age' }, k.since),
@@ -245,7 +255,7 @@ function kidRows(nodes, depth, leader, nest) {
 }
 
 /** The "Paradas" band (C85, C86): recolhida with the counter; opened, the most recent rows and "Mostrar mais". */
-function parkedBand(parked, opened, { toggle, more }) {
+function parkedBand(parked, opened, { toggle, more, spot }) {
   const p = parkedContent(parked);
   if (!p) return null;
   const head = el(
@@ -260,10 +270,12 @@ function parkedBand(parked, opened, { toggle, more }) {
     ? []
     : parked.items.map((c) => {
         const href = itemHref(c);
+        const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title);
+        spot('parked', c.id, link);
         return el(
           'div',
           { class: 'wall-kid', 'data-parked-row': c.id },
-          el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title),
+          link,
           el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
           el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? 'Sua vez' : '—')),
           el('span', { class: 'wall-muted wall-kid-age' }, sinceText(c.since)),
@@ -324,11 +336,48 @@ export async function mount(area, ctx) {
     draw();
   }
 
+  // ADR-0028: the redraw keeps what the person was on: the focus, the scroll and the nodes that did not change.
+  let spots = [];
+
+  function place(nodes) {
+    const current = [...area.childNodes];
+    let kept = 0;
+    while (kept < nodes.length && current[kept] === nodes[kept]) kept++;
+    for (const node of current.slice(kept)) node.remove();
+    area.append(...nodes.slice(kept));
+  }
+
+  const findSpot = (list, kind, id) => list.find((x) => x.kind === kind && x.id === id)?.node ?? null;
+
+  function focusTarget(was, held, fresh) {
+    if (!was) return null;
+    if (area.contains(was)) return was;
+    const spot = spots.find((x) => x.node === was);
+    if (spot) return findSpot(fresh, spot.kind, spot.id) ?? (spot.kind === 'open' ? findSpot(fresh, 'link', spot.id) : null);
+    if (held.toggled) return [...(area.querySelectorAll?.(`[${held.toggled[0]}]`) ?? [])].find((n) => n.getAttribute(held.toggled[0]) === held.toggled[1]) ?? null;
+    return held.key ? findSpot(fresh, 'link', held.key) : null;
+  }
+
   function draw() {
-    if (!wall) {
-      area.replaceChildren(head, ...machines.parts(), failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' }));
-      return;
-    }
+    const doc = globalThis.document;
+    const was = doc?.activeElement && doc.activeElement !== doc.body ? doc.activeElement : null;
+    const top = area.scrollTop ?? 0;
+    // The toggles of the tree and of the band are buttons inside a card: the focus goes back to the one just used.
+    const toggled = was ? ['data-tree', 'data-toggle', 'data-parked'].map((a) => [a, was.getAttribute?.(a)]).find(([, v]) => v) ?? null : null;
+    // Issue 243: by machine + id (`data-key`), since two machines can have the same session id.
+    const holder = was?.closest?.('[data-session]') ?? null;
+    const held = { toggled, key: holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null };
+    const fresh = [];
+    const nodes = build(fresh);
+    place(nodes);
+    if (area.scrollTop !== top) area.scrollTop = top;
+    const target = focusTarget(was, held, fresh);
+    spots = fresh;
+    if (target && doc.activeElement !== target) target.focus({ preventScroll: true });
+  }
+
+  function build(fresh) {
+    if (!wall) return [head, ...machines.parts(), failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' })];
     for (const f of FILTERS) buttons.get(f.id).replaceChildren(filterLabel(f, wall.count));
     const f = FILTERS.find((x) => x.id === filter);
     const cards = (wall.cards ?? []).filter(f.passa);
@@ -337,12 +386,11 @@ export async function mount(area, ctx) {
       isOpen: (id) => opened.has(id),
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
       titleOf: (id) => (wall.cards ?? []).find((x) => x.id === id)?.title ?? null,
+      spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
     const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known));
     const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known));
-    // ADR-0028: the keyboard lands on the link of the card or the row (the title stretched over it).
-    const links = [...needs, ...rest].map((b) => b.link);
     const body = cards.length
       ? el(
           'div',
@@ -353,19 +401,10 @@ export async function mount(area, ctx) {
       : machines.chosenDown()
         ? null
         : empty({ icon: 'wall', title: f.vazio, text: filter === 'all' ? `Abra uma sessão do Claude Code ${machines.hasRemotes() ? whereText(machines.choice, machines.machines(), { form: 'any' }) : 'nesta máquina'} e ela aparece aqui.` : 'Troque o filtro para ver as outras.' });
-    // Redesenhar troca os cards: o foco do teclado volta ao card da mesma sessão.
-    // Issue 243: by machine + id (`data-key`), since two machines can have the same session id.
-    const holder = globalThis.document?.activeElement?.closest?.('[data-session]') ?? null;
-    const focused = holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null;
-    // The toggles of the tree and of the band are buttons inside a card: the focus goes back to the one just used.
-    const active = globalThis.document?.activeElement ?? null;
-    const toggled = active ? ['data-tree', 'data-toggle', 'data-parked'].map((a) => [a, active.getAttribute?.(a)]).find(([, v]) => v) ?? null : null;
     if (sub) sub.textContent = machines.hasRemotes() ? `Um card por sessão aberta, ${whereText(machines.choice, machines.machines())}` : 'Um card por sessão aberta nesta máquina';
     // The band is part of "Todas": the other filters are about the cards.
-    const parked = filter === 'all' ? parkedBand(wall.parked, parkedOpen, { toggle: () => ((parkedOpen = !parkedOpen), draw()), more: () => ((parkedLimit = PARKED_MAX), read()) }) : null;
-    area.replaceChildren(...[head, ...machines.parts(), band, body, parked].filter(Boolean));
-    if (toggled) [...(area.querySelectorAll?.(`[${toggled[0]}]`) ?? [])].find((n) => n.getAttribute(toggled[0]) === toggled[1])?.focus();
-    else if (focused) links.find((n) => n.getAttribute('data-key') === focused)?.focus();
+    const parked = filter === 'all' ? parkedBand(wall.parked, parkedOpen, { toggle: () => ((parkedOpen = !parkedOpen), draw()), more: () => ((parkedLimit = PARKED_MAX), read()), spot: nest.spot }) : null;
+    return [head, ...machines.parts(), band, body, parked].filter(Boolean);
   }
 
   async function read() {
