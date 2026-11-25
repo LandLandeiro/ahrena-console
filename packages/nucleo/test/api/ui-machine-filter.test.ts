@@ -2,7 +2,9 @@
 // part of ui/machine-filter.js, the feed's insertion by `createdAt`, and the screens mounted in the fake
 // DOM against a stubbed core: the filter, the tag, the C48 notice and the remote Detail. Synthetic data.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, test } from 'node:test';
+import { UI_FOLDER } from '../../src/api/ui.ts';
 import { ElementoFalso, documentoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 
 instalarDomFalso();
@@ -31,6 +33,8 @@ Object.assign(globalThis, {
 
 // @ts-expect-error: browser modules, plain JavaScript
 const mf = await import('../../ui/machine-filter.js');
+// @ts-expect-error: idem
+const { ICON_NAMES } = await import('../../ui/dom.js');
 // @ts-expect-error: idem
 const feedState = await import('../../ui/screens/feed-state.js');
 // @ts-expect-error: idem
@@ -196,6 +200,29 @@ describe('machine-filter: the choice, the URL and the routes', () => {
     assert.equal(mf.isMachineUnreachable({ status: 503, body: { error: 'machine-unreachable' } }), true);
     assert.equal(mf.isMachineUnreachable({ status: 503, body: { error: 'other' } }), false);
     assert.equal(mf.readAgeText(6_400), 'há 6 s');
+  });
+});
+
+describe('machine-filter: the machine with its icon (#751)', () => {
+  test('machineLabel: the name and the icon, a laptop for this machine and a server for a remote', () => {
+    assert.deepEqual(mf.machineLabel({ id: 's1' }), { remote: false, icon: 'laptop', text: mf.LOCAL_LABEL });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: { id: 'local', label: 'Esta máquina' } }), { remote: false, icon: 'laptop', text: 'Esta máquina' });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: WS }), { remote: true, icon: 'server', text: 'Workstation' });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: { id: 'ws' } }), { remote: true, icon: 'server', text: 'Máquina remota' });
+  });
+
+  test('machineMark: the icon and the name written, as text', () => {
+    const mark = mf.machineMark({ id: 's1', machine: { id: 'ws', label: '<i>x</i>' } });
+    assert.ok(mark.classList.contains('mf-mach'));
+    assert.equal(mark.querySelectorAll('svg').length, 1);
+    assert.equal(texto(mark), '<i>x</i>');
+    assert.equal(texto(mf.machineMark({ id: 's1' })), 'Esta máquina');
+  });
+
+  test('the laptop icon exists and the sheet draws it at 14px, opacity .8', () => {
+    assert.ok(ICON_NAMES.includes('laptop'));
+    const css = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8');
+    assert.match(css.match(/^\.mf-mach \.icon \{([^}]*)\}/m)![1]!, /width:\s*14px[^}]*height:\s*14px[^}]*opacity:\s*\.8|opacity:\s*\.8[^}]*14px/);
   });
 });
 

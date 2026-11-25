@@ -243,6 +243,19 @@ export function machineTag(item, { iconOnly = false } = {}) {
   return el('span', { class: 'mf-tag' }, icon('server'), el('span', {}, label));
 }
 
+/** What an item's machine is called and drawn as: a laptop for this machine, a server for a remote. */
+export function machineLabel(item) {
+  if (!isRemote(item)) return { remote: false, icon: 'laptop', text: LOCAL_LABEL };
+  const label = typeof item.machine.label === 'string' && item.machine.label ? item.machine.label : 'Máquina remota';
+  return { remote: true, icon: 'server', text: label };
+}
+
+/** The machine of an item with its icon and its name written, for the foot of a card and a row. */
+export function machineMark(item) {
+  const m = machineLabel(item);
+  return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', {}, m.text));
+}
+
 /** The C48 band: neutral, the wifi-off icon, the text and "Ver a <label>" to the machine screen. */
 export function downNotice(machine, { now = Date.now(), title = null } = {}) {
   const t = downText(machine, now);
