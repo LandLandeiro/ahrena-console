@@ -131,7 +131,6 @@ export function createGithubFooter({ node, read }) {
     node.setAttribute('aria-label', said);
     node.setAttribute('title', said);
     node.replaceChildren(
-      icon('github'),
       el('span', { class: 'cc-gh-name' }, 'GitHub'),
       el('span', { class: 'cc-gh-state' }, s.tone === 'pending' ? icon('wall-loader') : null, s.label),
     );

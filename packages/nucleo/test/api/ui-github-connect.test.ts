@@ -113,6 +113,15 @@ describe('github-connect.js: the pure parts', () => {
     assert.equal(texto(node), 'GitHub conectado', 'a failed read keeps what was there');
   });
 
+  test('#750: the line has no github drawing, so the loader of "esperando" is not hidden by a first-child rule', async () => {
+    const node = new ElementoFalso('a');
+    const footer = gc.createGithubFooter({ node, read: async () => ({ github: { state: 'pending' } }) });
+    await footer.refresh();
+    assert.equal(node.children.filter((c) => c.classList.contains('icon')).length, 0, 'no drawing as a direct child of the line');
+    assert.equal(node.querySelectorAll('.cc-gh-state .icon').length, 1, 'the loader is drawn');
+    assert.doesNotMatch(readFileSync(`${UI_FOLDER}shell.css`, 'utf8'), /\.cc-gh \.icon:first-child/);
+  });
+
   test('the shell wires the footer: index.html has the card, app.js refreshes it on start, restart and connections', () => {
     assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="cc-gh" id="github" hidden><\/a>/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
