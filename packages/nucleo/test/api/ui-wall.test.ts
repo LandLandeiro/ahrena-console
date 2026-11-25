@@ -486,12 +486,12 @@ describe('Mural: a tela montada', () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[0]!] }));
     try {
       await ate(() => rowsOf(area).length === 1);
-      const botao = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
+      const segment = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
       assert.equal(comClasse(area, 'wall-calm').length, 1);
-      botao('blocked').click();
+      segment('blocked').click();
       assert.equal(comClasse(area, 'wall-calm').length, 1, 'the filter of the blocked ones says it is calm too');
       assert.equal(comClasse(area, 'state').length, 0, 'and not the empty state');
-      botao('idle').click();
+      segment('idle').click();
       assert.equal(comClasse(area, 'wall-calm').length, 0);
       assert.match(area.textContent, /Nenhuma sessão ociosa/);
     } finally {
@@ -614,24 +614,24 @@ describe('Mural: a tela montada', () => {
     const { area, rotas, ouvintes, sair } = await montarTela(async () => dados);
     try {
       await ate(() => sessionsOf(area).length === 5);
-      const botao = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
-      botao('blocked').click();
+      const segment = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
+      segment('blocked').click();
       assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1'], 'the error needs you too, as in the core count');
-      assert.equal(botao('blocked').getAttribute('aria-pressed'), 'true');
-      assert.equal(botao('all').getAttribute('aria-pressed'), 'false');
-      botao('idle').click();
+      assert.equal(segment('blocked').getAttribute('aria-pressed'), 'true');
+      assert.equal(segment('all').getAttribute('aria-pressed'), 'false');
+      segment('idle').click();
       assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['espera-2']);
-      botao('active').click();
+      segment('active').click();
       assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['ativa-1']);
       assert.deepEqual(rotas, ['/api/wall?machine=all'], 'só a primeira leitura');
 
       dados = soAtivas;
       for (const f of ouvintes.reiniciar) f();
       await ate(() => rotas.length === 2 && sessionsOf(area).length === 1);
-      botao('blocked').click();
+      segment('blocked').click();
       assert.equal(sessionsOf(area).length, 0);
       assert.equal(comClasse(area, 'wall-calm').length, 1, 'other cards exist, so the calm block answers (#752)');
-      botao('idle').click();
+      segment('idle').click();
       assert.match(area.textContent, /Nenhuma sessão ociosa/);
     } finally {
       await sair();
@@ -1320,4 +1320,3 @@ describe('#752: round 3, the sheet and the names measured in the browser', () =>
     }
   });
 });
-
