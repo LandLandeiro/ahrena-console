@@ -16,7 +16,7 @@ const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Releitura depois de uma rajada de mudanças. */
 export const DEBOUNCE_MS = 400;
-/** Contexto acima daqui aparece em vermelho no pé do card. */
+// ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
 const AGENT = 'Claude';
 
@@ -71,7 +71,7 @@ export function cardContent(c) {
     ask: clean(c.activity?.text) || v.state.label,
     actionLabel: failed ? 'Abrir para retomar' : 'Responder no Claude',
     plan: plan ? { ...plan, label: `Passo ${plan.step} de ${plan.total}` } : null,
-    usage: pct !== null && (failed || pct > HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%` } : null,
+    usage: pct !== null && (failed || pct >= HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%`, high: pct >= HIGH_CONTEXT } : null,
   };
 }
 
@@ -297,8 +297,8 @@ function foot(v, machine) {
   const parts = [
     step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
     step ? bar({ tipo: 'plan', valor: step.step, max: step.total, rotulo: step.label }) : null,
-    v.usage ? el('span', { class: 'wall-num wall-over', 'data-foot': 'usage' }, v.usage.label) : null,
-    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: v.usage.label }) : null,
+    v.usage ? el('span', { class: `wall-num${v.usage.high ? ' wall-over' : ''}`, 'data-foot': 'usage' }, v.usage.label) : null,
+    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: v.usage.high, rotulo: v.usage.label }) : null,
     machine,
   ].filter(Boolean);
   return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;
