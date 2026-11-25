@@ -767,6 +767,13 @@ describe('#751: the sheet of the wall', () => {
     assert.match(css('shell.css'), /\.btn:focus-visible[^{]*\{ outline: 2px solid var\(--accent-line\); outline-offset: 2px; \}/);
   });
 
+  test('the New session button and its popover (new-session.css) use the --accent-line ring too (#751)', () => {
+    const ns = css('new-session.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(ns, /\.ns-folder:focus-visible \{ outline: 2px solid var\(--accent-line\); outline-offset: 2px; \}/);
+    assert.match(ns, /\.ns-button:focus-visible, \.ns-target:focus-visible, \.ns-copy:focus-visible \{ outline: 2px solid var\(--accent-line\); outline-offset: 2px; \}/);
+    assert.doesNotMatch(ns, /outline:\s*2px solid var\(--accent\)(?!-)/);
+  });
+
   test('no control is drawn with --border (the divider), the selector uses --border-control', () => {
     assert.match(ruleOf('.wall-seg'), /border:\s*1px solid var\(--border-control\)/);
     for (const r of rules.filter((x) => /button|treeline|toggle|parked-head|\.btn|:focus/.test(x.selector))) assert.doesNotMatch(r.body, /var\(--border\)/, r.selector);
