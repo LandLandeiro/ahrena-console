@@ -329,6 +329,14 @@ function createMenu({ pick, signal, fallbackFocus }) {
     if (!root.contains(ev.target)) close(false);
   };
 
+  // ADR-0028: left aligned when the panel fits in the visible width (minus 16px), else right aligned.
+  function align() {
+    panel.classList.remove('mf-menu-end');
+    const right = panel.getBoundingClientRect?.()?.right;
+    const visible = document.documentElement?.clientWidth;
+    if (typeof right === 'number' && typeof visible === 'number' && right > visible - 16) panel.classList.add('mf-menu-end');
+  }
+
   function close(returnFocus) {
     if (!isOpen()) return;
     panel.hidden = true;
@@ -345,6 +353,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
       button.setAttribute('aria-controls', id);
       // ADR-0028: capturing, because a control inside the page stops the event before it reaches the document.
       document.addEventListener('pointerdown', outside, true);
+      align();
     }
     const list = [...items.values()].map((v) => v.node);
     const target = where === 'last' ? list.at(-1) : where === 'first' ? list[0] : (list.find((n) => n.getAttribute('aria-checked') === 'true') ?? list[0]);
@@ -392,6 +401,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
     if (name.textContent !== text) name.textContent = text;
     if (chosen?.down && !off.parentNode) button.insertBefore(off, button.lastChild);
     else if (!chosen?.down && off.parentNode) off.remove();
+    if (isOpen()) align();
     if (focused === null || !isOpen()) return;
     // ADR-0028: the option under the focus is gone: the next one, else the one before it, else the button.
     const at = order.indexOf(focused);

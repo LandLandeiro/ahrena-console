@@ -344,6 +344,43 @@ describe('#752: the sheet of the menu', () => {
     assert.match(sheet, /\.mf-menu-panel\[hidden\] \{ display: none/);
     assert.match(sheet, /\.mf-menu-panel \{[^}]*max-width:\s*calc\(100vw - 32px\)/);
   });
+  test('#752: the panel is left aligned when it fits and right aligned (mf-menu-end) when it would pass the visible width minus 16px, on open and on a redraw while open', () => {
+    const doc = documentoFalso as unknown as { documentElement?: unknown };
+    const before = doc.documentElement;
+    doc.documentElement = { clientWidth: 1000 };
+    try {
+      const m = make();
+      m.answer([LOCAL, WS], cards('local'));
+      const rect = { right: 1100 };
+      (m.panel() as unknown as { getBoundingClientRect: () => unknown }).getBoundingClientRect = () => rect;
+      m.button().click();
+      assert.equal(m.panel().classList.contains('mf-menu-end'), true, 'it would end at 1100 of 984 visible');
+      rect.right = 700;
+      m.answer([LOCAL, WS], cards('local', 'ws'));
+      assert.equal(m.panel().classList.contains('mf-menu-end'), false, 'it fits again: measured without the class, aligned left');
+      rect.right = 984;
+      m.answer([LOCAL, WS], cards('local'));
+      assert.equal(m.panel().classList.contains('mf-menu-end'), false, 'exactly the limit still fits');
+      rect.right = 985;
+      m.answer([LOCAL, WS], cards('local'));
+      assert.equal(m.panel().classList.contains('mf-menu-end'), true);
+      assert.equal(m.panel().getAttribute('style'), null, 'no inline style');
+    } finally {
+      doc.documentElement = before;
+    }
+  });
+
+  test('#752: a document with no way to measure leaves the panel left aligned and does not throw', () => {
+    const m = make();
+    m.answer([LOCAL, WS], cards('local'));
+    m.button().click();
+    assert.equal(m.panel().classList.contains('mf-menu-end'), false);
+  });
+
+  test('#752: the end alignment is a rule of the sheet: left auto, right 0', () => {
+    assert.match(sheet, /\.mf-menu-panel\.mf-menu-end \{[^}]*left:\s*auto;[^}]*right:\s*0/);
+  });
+
   test('the checked option shows a mark besides the background, so the choice is not by colour alone', () => {
     assert.match(sheet, /\.mf-menu-item\[aria-checked="true"\] \.mf-menu-check \{ visibility: visible/);
   });

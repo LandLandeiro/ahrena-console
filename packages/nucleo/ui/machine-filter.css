@@ -39,6 +39,7 @@
 .mf-menu-off { flex: none; color: var(--status-abandoned-text); white-space: nowrap; }
 .mf-menu-panel { position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; min-width: 240px; max-width: calc(100vw - 32px); padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); }
 .mf-menu-panel[hidden] { display: none; }
+.mf-menu-panel.mf-menu-end { left: auto; right: 0; }
 .mf-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; }
 .mf-menu-item:hover, .mf-menu-item[aria-checked="true"] { background: var(--raised); }
 .mf-menu-item:focus-visible, .mf-menu-button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -2px; }
