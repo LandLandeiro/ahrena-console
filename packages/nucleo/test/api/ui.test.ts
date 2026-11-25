@@ -378,17 +378,17 @@ describe('screen registry', () => {
   test('sidebar breathing: items keep their height and only the item list scrolls on a short window', () => {
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     const rule = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.#]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
-    // The wireframe item is about 34 px tall; it never shrinks to fit the window.
-    assert.match(rule('.cc-nav'), /min-height: 34px/);
+    // The item is 31 px at least (issue 750); it never shrinks to fit the window.
+    assert.match(rule('.cc-nav'), /min-height: 31px/);
     assert.match(rule('.cc-nav'), /flex: none/);
-    assert.match(rule('.cc-nav-title'), /padding: 18px 12px 8px/);
+    assert.match(rule('.cc-nav-title'), /padding: 18px 10px 6px/);
     // The list scrolls; the brand and the footer stay put.
     assert.match(rule('#nav'), /overflow-y: auto/);
     assert.match(rule('#nav'), /min-height: 0/);
     assert.match(rule('.cc-side'), /overflow: hidden/);
     assert.match(rule('.cc-brand'), /flex: none/);
     assert.match(rule('.cc-foot'), /flex: none/);
-    assert.match(rule('.cc-foot'), /padding-top: 16px/);
+    assert.match(rule('.cc-foot'), /padding-top: 12px/);
     // The lit item is brought into view when the list scrolls.
     assert.match(readFileSync(`${UI_FOLDER}nav.js`, 'utf8'), /scrollIntoView\?\.\(\{ block: 'nearest' \}\)/);
   });
