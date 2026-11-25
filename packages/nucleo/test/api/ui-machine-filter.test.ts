@@ -248,6 +248,27 @@ describe('machine-filter: the tag, the notice and the control', () => {
     assert.equal(one(n, 'a')!.getAttribute('href'), '/ui/machines/ws');
   });
 
+  test('#751: a redraw keeps the focus on the link of a notice, and on the machine segment when the notice is gone; a screen with no focus there is untouched', () => {
+    setUrl('/ui');
+    mf.resetMachineChoice();
+    const filter = mf.createMachineFilter({ read: async () => ({}), onChange: () => {}, signal: new AbortController().signal }, { periodic: false, watchChanges: false });
+    const host = new ElementoFalso('main');
+    host.append(filter.row, filter.notices);
+    filter.update({ machines: machinesDown });
+    const link = one(filter.notices, '.mf-notice[data-machine="ws"] .mf-notice-link')!;
+    link.focus();
+    filter.update({ machines: machinesDown });
+    const now = one(filter.notices, '.mf-notice[data-machine="ws"] .mf-notice-link')!;
+    assert.notEqual(now, link);
+    assert.equal(documentoFalso.activeElement, now);
+    filter.update({ machines: machinesUp });
+    assert.equal(one(filter.notices, '.mf-notice'), null);
+    assert.equal(documentoFalso.activeElement, one(filter.row, '[data-machine="ws"]'));
+    documentoFalso.activeElement = null;
+    filter.update({ machines: machinesDown });
+    assert.equal(documentoFalso.activeElement, null, 'nothing is focused by a redraw that had no focus in the filter');
+  });
+
   test('the control: Todas, Esta máquina and one segment per remote, by its label; a remote that is down is grey', () => {
     const c = mf.machineControl(machinesDown, 'all', () => {});
     assert.equal(texto(one(c, '.mf-label')), 'Máquina');

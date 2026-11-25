@@ -315,6 +315,8 @@ export async function mount(area, ctx) {
   const opened = new Set();
   let parkedOpen = false;
   let parkedLimit = PARKED_PAGE;
+  // ADR-0028: the parked keys on screen when "Mostrar mais" was pressed; the first row beyond them gets the focus.
+  let moreFrom = null;
 
   // The selector with the core's `count` on "Precisam de você" and "Ociosas" (C2, issue 245).
   const buttons = new Map();
@@ -350,16 +352,49 @@ export async function mount(area, ctx) {
     area.append(...nodes.slice(kept));
   }
 
+  // ADR-0028: the retry of the full-screen error and of the band is one spot, so the focus follows it through the redraw.
+  const keepRetry = (shown, fresh) => {
+    const again = failure ? shown?.querySelector?.('button') : null;
+    if (again) fresh.push({ kind: 'retry', id: 'wall', node: again });
+  };
+
   const findSpot = (list, kind, id) => list.find((x) => x.kind === kind && x.id === id)?.node ?? null;
 
-  // ADR-0028: the node is gone; its session may be a card or a row now (the link), else the focus is not invented.
-  const sameSession = (fresh, spot) => (spot.kind === 'open' ? findSpot(fresh, 'link', spot.id) : spot.kind === 'link' ? null : findSpot(fresh, 'parked', spot.id) ?? findSpot(fresh, 'link', spot.id));
+  // ADR-0028: the key of the leader whose tree holds the session, read from the data: the tree may be closed.
+  function leaderKeyOf(key) {
+    const inside = (nodes, leader) => nodes.some((n) => itemKey({ id: n.id, machine: leader.machine }) === key || inside(n.children ?? [], leader));
+    const leader = (wall?.cards ?? []).find((c) => inside(c.children ?? [], c));
+    return leader ? itemKey(leader) : null;
+  }
+
+  // ADR-0028: the node is gone; its session may be a card, a row, a nested child or a parked row now, else the link of its leader.
+  function sameSession(fresh, spot) {
+    const now = ['link', 'child', 'parked'].map((kind) => findSpot(fresh, kind, spot.id)).find(Boolean);
+    const leader = leaderKeyOf(spot.id);
+    return now ?? (leader ? findSpot(fresh, 'link', leader) : null);
+  }
 
   function focusTarget(was, held, fresh) {
     if (!was) return null;
     if (area.contains(was)) return was;
     const spot = spots.find((x) => x.node === was);
-    if (spot) return findSpot(fresh, spot.kind, spot.id) ?? (spot.kind === 'child' ? findSpot(fresh, 'link', spot.id) ?? (held.key ? findSpot(fresh, 'link', held.key) : null) : sameSession(fresh, spot));
+    if (spot) {
+      const lost = spot.kind === 'retry' ? refresh : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
+      return findSpot(fresh, spot.kind, spot.id) ?? lost;
+    }
+    // ADR-0028: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
+    if (held.popover && held.key) {
+      const open = findSpot(fresh, 'open', held.key);
+      return open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;
+    }
+    // ADR-0028: after "Mostrar mais" the focus goes to the first row that was not there before.
+    if (held.toggled?.[1] === 'more' && moreFrom) {
+      const added = fresh.find((x) => x.kind === 'parked' && !moreFrom.has(x.id));
+      if (added) {
+        moreFrom = null;
+        return added.node;
+      }
+    }
     if (held.toggled) return [...(area.querySelectorAll?.(`[${held.toggled[0]}]`) ?? [])].find((n) => n.getAttribute(held.toggled[0]) === held.toggled[1]) ?? null;
     return held.key ? findSpot(fresh, 'link', held.key) : null;
   }
@@ -372,7 +407,8 @@ export async function mount(area, ctx) {
     const toggled = was ? ['data-tree', 'data-toggle', 'data-parked'].map((a) => [a, was.getAttribute?.(a)]).find(([, v]) => v) ?? null : null;
     // ADR-0028: by machine + id (`data-key`), since two machines can have the same session id.
     const holder = was?.closest?.('[data-session]') ?? null;
-    const held = { toggled, key: holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null };
+    const popover = ['open-copy', 'open-close'].find((c) => (was?.getAttribute?.('class') ?? '').split(/\s+/).includes(c)) ?? null;
+    const held = { toggled, popover, key: holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null };
     const fresh = [];
     const nodes = build(fresh);
     place(nodes);
@@ -383,11 +419,16 @@ export async function mount(area, ctx) {
   }
 
   function build(fresh) {
-    if (!wall) return [head, ...machines.parts(), failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' })];
+    if (!wall) {
+      const shown = failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' });
+      keepRetry(shown, fresh);
+      return [head, ...machines.parts(), shown];
+    }
     for (const f of FILTERS) buttons.get(f.id).replaceChildren(filterLabel(f, wall.count));
     const f = FILTERS.find((x) => x.id === filter);
     const cards = (wall.cards ?? []).filter(f.passa);
     const band = failure ? errorBand({ title: 'O mural não atualizou.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } }) : null;
+    keepRetry(band, fresh);
     const nest = {
       isOpen: (id) => opened.has(id),
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
@@ -409,7 +450,7 @@ export async function mount(area, ctx) {
         : empty({ icon: 'wall', title: f.vazio, text: filter === 'all' ? `Abra uma sessão do Claude Code ${machines.hasRemotes() ? whereText(machines.choice, machines.machines(), { form: 'any' }) : 'nesta máquina'} e ela aparece aqui.` : 'Troque o filtro para ver as outras.' });
     if (sub) sub.textContent = machines.hasRemotes() ? `Um card por sessão aberta, ${whereText(machines.choice, machines.machines())}` : 'Um card por sessão aberta nesta máquina';
     // The band is part of "Todas": the other filters are about the cards.
-    const parked = filter === 'all' ? parkedBand(wall.parked, parkedOpen, { toggle: () => ((parkedOpen = !parkedOpen), draw()), more: () => ((parkedLimit = PARKED_MAX), read()), spot: nest.spot }) : null;
+    const parked = filter === 'all' ? parkedBand(wall.parked, parkedOpen, { toggle: () => ((parkedOpen = !parkedOpen), draw()), more: () => ((moreFrom = new Set(spots.filter((x) => x.kind === 'parked').map((x) => x.id))), (parkedLimit = PARKED_MAX), read()), spot: nest.spot }) : null;
     return [head, ...machines.parts(), band, body, parked].filter(Boolean);
   }
 
