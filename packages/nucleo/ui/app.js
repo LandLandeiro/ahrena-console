@@ -161,6 +161,8 @@ function navigate(route, state = null) {
 }
 
 async function open() {
+  // A navigation (a link, the back button, navigate()) closes the drawer and gives the focus back to its button (issue 750).
+  drawer.close();
   leaving?.abort();
   const leave = new AbortController();
   leaving = leave;

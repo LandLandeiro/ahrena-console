@@ -1,6 +1,6 @@
 // The drawer (issue 750): below 860 px the bar leaves the frame and comes on top when the menu button asks.
 // Open: the background is inert, the scrim shows and the focus goes to the first item. Closed: the bar is inert,
-// so it is out of the tab. Crossing 860 px clears the state and takes no focus.
+// so it is out of the tab. Any link of the bar closes it, and so does a route change of the shell (app.js). Crossing 860 px clears the state and takes no focus.
 
 export const DRAWER_QUERY = '(max-width: 859px)';
 
@@ -35,7 +35,7 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
   button.addEventListener('click', () => (opened ? close() : open()));
   scrim.addEventListener('click', () => close());
   side.addEventListener('click', (ev) => {
-    if (ev.target instanceof Element && ev.target.closest('#nav a[href]')) close();
+    if (ev.target instanceof Element && ev.target.closest('a[href]')) close();
   });
   media.addEventListener?.('change', () => {
     opened = false;

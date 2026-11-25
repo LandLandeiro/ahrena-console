@@ -103,6 +103,44 @@ describe('issue 750: the drawer', () => {
     }
   });
 
+  test('any link of the bar closes it, not only the items: the brand, the account menu and the GitHub link', () => {
+    for (const where of ['brand', 'menu', 'github'] as const) {
+      const { button, side, drawer } = rig(true);
+      const link = new ElementoFalso('a');
+      link.setAttribute('href', where === 'brand' ? '/ui' : '/ui/connections');
+      const holder = new ElementoFalso('div');
+      holder.append(link);
+      side.append(holder);
+      button.click();
+      assert.equal(drawer.isOpen(), true, where);
+      link.click();
+      assert.equal(drawer.isOpen(), false, where);
+      assert.equal(documentoFalso.activeElement, button, where);
+    }
+  });
+
+  test('a button of the bar (theme, version, menu) does not close it', () => {
+    const { button, side, drawer } = rig(true);
+    const theme = new ElementoFalso('button');
+    side.append(theme);
+    button.click();
+    theme.click();
+    assert.equal(drawer.isOpen(), true);
+  });
+
+  test('a route change of the shell closes it: open() (navigate and popstate) closes the drawer', () => {
+    const body = /async function open\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '';
+    assert.match(body, /drawer\.close\(\)/);
+    assert.match(app, /addEventListener\('popstate', open\)/);
+  });
+
+  test('close() with the drawer already closed takes no focus (the first open() of the page, a navigation on a wide window)', () => {
+    const { drawer, second } = rig(true);
+    second.focus();
+    drawer.close();
+    assert.equal(documentoFalso.activeElement, second);
+  });
+
   test('a click on the bar itself, not on an item, keeps it open', () => {
     const { button, side, drawer } = rig(true);
     button.click();
