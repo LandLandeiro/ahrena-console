@@ -9,7 +9,7 @@ import { UI_FOLDER } from '../../src/api/ui.ts';
 
 class No {
   filhos: No[] = [];
-  padre: No | null = null;
+  parent: No | null = null;
   get childNodes() {
     return this.filhos;
   }
@@ -22,21 +22,21 @@ class No {
       assert.ok(n !== null && n !== undefined, 'append/replaceChildren com null');
       const no = typeof n === 'string' ? new Texto(n) : n;
       no.remove();
-      no.padre = this;
+      no.parent = this;
       this.filhos.push(no);
     }
   }
   replaceChildren(...nos: (No | string)[]) {
-    for (const f of this.filhos) f.padre = null;
+    for (const f of this.filhos) f.parent = null;
     this.filhos = [];
     this.append(...nos);
   }
   remove() {
-    if (this.padre) this.padre.filhos = this.padre.filhos.filter((f) => f !== this);
-    this.padre = null;
+    if (this.parent) this.parent.filhos = this.parent.filhos.filter((f) => f !== this);
+    this.parent = null;
   }
   contains(outro: unknown): boolean {
-    for (let n = outro as No | null; n; n = n.padre) if (n === this) return true;
+    for (let n = outro as No | null; n; n = n.parent) if (n === this) return true;
     return false;
   }
   get textContent(): string {
@@ -122,9 +122,9 @@ const { mount, cardContent, rowContent } = tela;
 
 const comClasse = (raiz: No, c: string) => raiz.todos((e) => e.classes.includes(c));
 // #751: a blocked session is a card, the others are rows of one list; both carry data-session.
-const sessoes = (raiz: No) => raiz.todos((e) => e.classes.includes('wall-card') || e.classes.includes('wall-row'));
-const cardsDe = (raiz: No) => comClasse(raiz, 'wall-card');
-const linhasDe = (raiz: No) => comClasse(raiz, 'wall-row');
+const sessionsOf = (raiz: No) => raiz.todos((e) => e.classes.includes('wall-card') || e.classes.includes('wall-row'));
+const cardsOf = (raiz: No) => comClasse(raiz, 'wall-card');
+const rowsOf = (raiz: No) => comClasse(raiz, 'wall-row');
 const css = (arquivo: string) => readFileSync(`${UI_FOLDER}${arquivo}`, 'utf8');
 const ate = async (cond: () => boolean, ms = 3000) => {
   const fim = Date.now() + ms;
@@ -276,11 +276,11 @@ describe('#751: the phrase of an idle row says the reason first', () => {
   test('the idle row shows it on screen, in the phrase and in its title', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => linhasDe(area).length > 0);
-      const linha = linhasDe(area).find((r) => r.getAttribute('data-session') === 'espera-2')!;
-      const frase = comClasse(linha, 'wall-phrase')[0]!;
-      assert.equal(frase.textContent, 'Sua vez · Rodo os testes?');
-      assert.equal(frase.getAttribute('title'), 'Sua vez · Rodo os testes?');
+      await ate(() => rowsOf(area).length > 0);
+      const rowEl = rowsOf(area).find((r) => r.getAttribute('data-session') === 'espera-2')!;
+      const phraseNode = comClasse(rowEl, 'wall-phrase')[0]!;
+      assert.equal(phraseNode.textContent, 'Sua vez · Rodo os testes?');
+      assert.equal(phraseNode.getAttribute('title'), 'Sua vez · Rodo os testes?');
     } finally {
       await sair();
     }
@@ -293,60 +293,60 @@ describe('Mural: a tela montada', () => {
   test('header, the selector with the blocked and idle counts, the blocked ones as cards under "Precisam de você" and the rest as one list (#751)', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => sessoes(area).length > 0);
+      await ate(() => sessionsOf(area).length > 0);
       assert.match(area.textContent, /Mural ao vivo.*Um card por sessão aberta nesta máquina/);
       const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
       assert.deepEqual(filtros.map((f) => f.textContent), ['Todas', 'Precisam de você · 2', 'Ociosas · 1', 'Ativas']);
       assert.equal(filtros[0]!.getAttribute('aria-pressed'), 'true');
       assert.ok(area.todos((e) => e.getAttribute('data-action') === 'refresh').length === 1, 'o Atualizar do wireframe');
 
-      const secao = comClasse(area, 'wall-need');
-      assert.equal(secao.length, 1);
-      assert.equal(secao[0]!.tag, 'section');
-      assert.equal(secao[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent).join(), 'Precisam de você');
-      const cards = cardsDe(area);
+      const needSection = comClasse(area, 'wall-need');
+      assert.equal(needSection.length, 1);
+      assert.equal(needSection[0]!.tag, 'section');
+      assert.equal(needSection[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent).join(), 'Precisam de você');
+      const cards = cardsOf(area);
       assert.deepEqual(cards.map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1'], 'the blocked ones, in the core order, the error included');
-      assert.ok(cards.every((c) => c.tag === 'div' && secao[0]!.todos((e) => e === c).length === 1));
-      const lista = comClasse(area, 'wall-list');
-      assert.equal(lista.length, 1, 'one list, no title: grouping is #752');
-      assert.deepEqual(linhasDe(lista[0]!).map((c) => c.getAttribute('data-session')), ['ativa-1', 'espera-2', 'feita-1'], 'the core order, ungrouped');
+      assert.ok(cards.every((c) => c.tag === 'div' && needSection[0]!.todos((e) => e === c).length === 1));
+      const listBox = comClasse(area, 'wall-list');
+      assert.equal(listBox.length, 1, 'one list, no title: grouping is #752');
+      assert.deepEqual(rowsOf(listBox[0]!).map((c) => c.getAttribute('data-session')), ['ativa-1', 'espera-2', 'feita-1'], 'the core order, ungrouped');
       assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você']);
       assert.deepEqual(
-        sessoes(area).map((c) => comClasse(c, 'wall-link')[0]!.getAttribute('href')),
+        sessionsOf(area).map((c) => comClasse(c, 'wall-link')[0]!.getAttribute('href')),
         ['/ui/sessions/espera-1', '/ui/sessions/erro-1', '/ui/sessions/ativa-1', '/ui/sessions/espera-2', '/ui/sessions/feita-1'],
       );
       assert.doesNotMatch(area.textContent, /Esperando/);
       assert.equal(comClasse(area, 'wall-badge').length + comClasse(area, 'attention-pill').length + comClasse(area, 'attention-chip').length, 0, 'the wall draws state tags, not pills');
 
-      const [permissao, erro] = cards;
-      const quem = comClasse(permissao!, 'wall-who')[0]!;
-      assert.match(quem.textContent, /^CClaudehá \d+ (min|h|d)Pede permissão$/, 'monogram, name, since, state');
-      assert.equal(comClasse(quem, 'agent-monogram').length, 1);
-      assert.equal(comClasse(quem, 'state-tag')[0]!.getAttribute('data-state-kind'), 'permission');
-      assert.equal(comClasse(permissao!, 'wall-tt')[0]!.textContent, 'Sessão espera-1');
-      assert.equal(comClasse(permissao!, 'wall-ask')[0]!.textContent, 'Bash: npm run migrate');
-      assert.equal(comClasse(permissao!, 'wall-ask')[0]!.getAttribute('title'), 'Bash: npm run migrate');
-      assert.equal(comClasse(permissao!, 'open-button').length, 0, 'target none: no button, the title link still opens the Detail');
-      assert.equal(comClasse(permissao!, 'wall-foot').length, 0, 'no plan, no usage and no machine: no foot');
+      const [permissionCard, errorCard] = cards;
+      const whoBox = comClasse(permissionCard!, 'wall-who')[0]!;
+      assert.match(whoBox.textContent, /^CClaudehá \d+ (min|h|d)Pede permissão$/, 'monogram, name, since, state');
+      assert.equal(comClasse(whoBox, 'agent-monogram').length, 1);
+      assert.equal(comClasse(whoBox, 'state-tag')[0]!.getAttribute('data-state-kind'), 'permission');
+      assert.equal(comClasse(permissionCard!, 'wall-tt')[0]!.textContent, 'Sessão espera-1');
+      assert.equal(comClasse(permissionCard!, 'wall-ask')[0]!.textContent, 'Bash: npm run migrate');
+      assert.equal(comClasse(permissionCard!, 'wall-ask')[0]!.getAttribute('title'), 'Bash: npm run migrate');
+      assert.equal(comClasse(permissionCard!, 'open-button').length, 0, 'target none: no button, the title link still opens the Detail');
+      assert.equal(comClasse(permissionCard!, 'wall-foot').length, 0, 'no plan, no usage and no machine: no foot');
 
-      assert.equal(comClasse(erro!, 'state-tag')[0]!.getAttribute('data-state-kind'), 'error');
-      assert.match(comClasse(erro!, 'wall-foot')[0]!.textContent, /^Uso da conversa 96%$/);
-      assert.ok(comClasse(erro!, 'wall-bar')[0]!.classes.includes('wall-high'));
-      assert.deepEqual([comClasse(erro!, 'wall-bar')[0]!.getAttribute('value'), comClasse(erro!, 'wall-bar')[0]!.getAttribute('max')], ['96', '100']);
+      assert.equal(comClasse(errorCard!, 'state-tag')[0]!.getAttribute('data-state-kind'), 'error');
+      assert.match(comClasse(errorCard!, 'wall-foot')[0]!.textContent, /^Uso da conversa 96%$/);
+      assert.ok(comClasse(errorCard!, 'wall-bar')[0]!.classes.includes('wall-high'));
+      assert.deepEqual([comClasse(errorCard!, 'wall-bar')[0]!.getAttribute('value'), comClasse(errorCard!, 'wall-bar')[0]!.getAttribute('max')], ['96', '100']);
 
-      const ativa = linhasDe(area)[0]!;
-      assert.equal(comClasse(ativa, 'wall-link')[0]!.textContent, 'Sessão ativa-1');
-      assert.equal(comClasse(ativa, 'wall-phrase')[0]!.textContent, 'Rodar a bateria');
-      assert.equal(comClasse(ativa, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
-      assert.equal(comClasse(ativa, 'state-tag')[0]!.textContent, 'Ativa');
-      assert.equal(comClasse(ativa, 'wall-ratio')[0]!.textContent, '4 de 5');
-      assert.ok(comClasse(ativa, 'wall-rt-work').length === 1, 'working title is the medium weight one');
-      assert.equal(comClasse(linhasDe(area)[1]!, 'wall-rt-work').length, 0);
-      const ociosa = linhasDe(area)[1]!;
-      assert.equal(comClasse(ociosa, 'state-tag')[0]!.textContent, 'Ociosa');
-      assert.equal(comClasse(ociosa, 'state-tag')[0]!.getAttribute('data-state-kind'), 'paused');
-      assert.match(comClasse(ociosa, 'wall-since')[0]!.textContent, /^há \d+ (min|h|d)$/);
-      assert.equal(comClasse(linhasDe(area)[2]!, 'wall-phrase')[0]!.textContent, 'Terminou sem erro');
+      const workingRow = rowsOf(area)[0]!;
+      assert.equal(comClasse(workingRow, 'wall-link')[0]!.textContent, 'Sessão ativa-1');
+      assert.equal(comClasse(workingRow, 'wall-phrase')[0]!.textContent, 'Rodar a bateria');
+      assert.equal(comClasse(workingRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
+      assert.equal(comClasse(workingRow, 'state-tag')[0]!.textContent, 'Ativa');
+      assert.equal(comClasse(workingRow, 'wall-ratio')[0]!.textContent, '4 de 5');
+      assert.ok(comClasse(workingRow, 'wall-rt-work').length === 1, 'working title is the medium weight one');
+      assert.equal(comClasse(rowsOf(area)[1]!, 'wall-rt-work').length, 0);
+      const idleRow = rowsOf(area)[1]!;
+      assert.equal(comClasse(idleRow, 'state-tag')[0]!.textContent, 'Ociosa');
+      assert.equal(comClasse(idleRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'paused');
+      assert.match(comClasse(idleRow, 'wall-since')[0]!.textContent, /^há \d+ (min|h|d)$/);
+      assert.equal(comClasse(rowsOf(area)[2]!, 'wall-phrase')[0]!.textContent, 'Terminou sem erro');
       assert.ok(head.todos((e) => e.getAttribute('href') === '/ui/wall.css').length === 1, 'a tela carrega o próprio CSS');
     } finally {
       await sair();
@@ -354,11 +354,11 @@ describe('Mural: a tela montada', () => {
   });
 
   test('a question card: the ask is the 18px one, the state says "Pergunta" with the needs shape, and the step and the bar are neutral', async () => {
-    const pergunta = cardDeExemplo('p1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, activity: { type: 'question', text: 'Posso apagar a pasta dist?' }, open: { target: 'desktop', command: null } });
-    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [pergunta] }));
+    const questionCard = cardDeExemplo('p1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, activity: { type: 'question', text: 'Posso apagar a pasta dist?' }, open: { target: 'desktop', command: null } });
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [questionCard] }));
     try {
-      await ate(() => cardsDe(area).length === 1);
-      const card = cardsDe(area)[0]!;
+      await ate(() => cardsOf(area).length === 1);
+      const card = cardsOf(area)[0]!;
       const tag = comClasse(card, 'state-tag')[0]!;
       assert.equal(tag.getAttribute('data-state-kind'), 'needs');
       assert.equal(tag.textContent, 'Pergunta', 'the state in words, never only in colour');
@@ -366,15 +366,15 @@ describe('Mural: a tela montada', () => {
       assert.ok(comClasse(card, 'wall-ask')[0]!.classes.includes('wall-ask'));
       assert.match(css('wall.css'), /\.wall-ask \{[^}]*font-size:\s*18px[^}]*font-weight:\s*500/);
       assert.equal(comClasse(card, 'wall-num')[0]!.textContent, 'Passo 4 de 5', 'the current step makes it 4');
-      const barra = comClasse(card, 'wall-bar')[0]!;
-      assert.equal(barra.tag, 'progress');
-      assert.deepEqual([barra.getAttribute('value'), barra.getAttribute('max'), barra.getAttribute('aria-label')], ['4', '5', 'Passo 4 de 5'], 'the bar says the same step as the number');
-      assert.ok(!barra.classes.includes('wall-high'), 'the plan bar is neutral');
+      const barEl = comClasse(card, 'wall-bar')[0]!;
+      assert.equal(barEl.tag, 'progress');
+      assert.deepEqual([barEl.getAttribute('value'), barEl.getAttribute('max'), barEl.getAttribute('aria-label')], ['4', '5', 'Passo 4 de 5'], 'the bar says the same step as the number');
+      assert.ok(!barEl.classes.includes('wall-high'), 'the plan bar is neutral');
       assert.equal(comClasse(card, 'wall-over').length, 0);
-      const botoes = comClasse(card, 'open-button');
-      assert.equal(botoes.length, 1);
-      assert.equal(botoes[0]!.textContent, 'Responder no Claude');
-      assert.ok(botoes[0]!.classes.includes('primary'));
+      const buttons = comClasse(card, 'open-button');
+      assert.equal(buttons.length, 1);
+      assert.equal(buttons[0]!.textContent, 'Responder no Claude');
+      assert.ok(buttons[0]!.classes.includes('primary'));
       assert.equal(card.todos((e) => e.classes.includes('primary')).length, 1, 'one primary per card');
     } finally {
       await sair();
@@ -384,8 +384,8 @@ describe('Mural: a tela montada', () => {
   test('an error card says "Uso da conversa 96%" and offers "Abrir para retomar"; the step does not show in an error', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('e1', { ...MURAL.cards[3]!, open: { target: 'terminal', command: null } })] }));
     try {
-      await ate(() => cardsDe(area).length === 1);
-      const card = cardsDe(area)[0]!;
+      await ate(() => cardsOf(area).length === 1);
+      const card = cardsOf(area)[0]!;
       assert.match(card.textContent, /Uso da conversa 96%/);
       assert.equal(comClasse(card, 'wall-over')[0]!.textContent, 'Uso da conversa 96%');
       assert.equal(comClasse(card, 'open-button')[0]!.textContent, 'Abrir para retomar');
@@ -400,19 +400,19 @@ describe('Mural: a tela montada', () => {
   test('a permission card offers "Responder no Claude"', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [{ ...MURAL.cards[1]!, open: { target: 'desktop', command: null } }] }));
     try {
-      await ate(() => cardsDe(area).length === 1);
-      assert.equal(comClasse(cardsDe(area)[0]!, 'open-button')[0]!.textContent, 'Responder no Claude');
+      await ate(() => cardsOf(area).length === 1);
+      assert.equal(comClasse(cardsOf(area)[0]!, 'open-button')[0]!.textContent, 'Responder no Claude');
     } finally {
       await sair();
     }
   });
 
   test('past 90% of the usage shows in red in the foot of any card, and the step stays', async () => {
-    const cheia = cardDeExemplo('q1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 93, used: 1, limit: 2, label: '' } });
-    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cheia, cardDeExemplo('q2', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 90, used: 1, limit: 2, label: '' } })] }));
+    const fullCard = cardDeExemplo('q1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 93, used: 1, limit: 2, label: '' } });
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [fullCard, cardDeExemplo('q2', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 90, used: 1, limit: 2, label: '' } })] }));
     try {
-      await ate(() => cardsDe(area).length === 2);
-      const [a, b] = cardsDe(area);
+      await ate(() => cardsOf(area).length === 2);
+      const [a, b] = cardsOf(area);
       assert.equal(comClasse(a!, 'wall-over')[0]!.textContent, 'Uso da conversa 93%');
       assert.match(comClasse(a!, 'wall-foot')[0]!.textContent, /Passo 4 de 5.*Uso da conversa 93%/);
       assert.equal(comClasse(b!, 'wall-over').length, 0, '90% is not above 90');
@@ -422,11 +422,11 @@ describe('Mural: a tela montada', () => {
   });
 
   test('a card without a plan shows no step; the ask falls back to the reason when the core sends no text', async () => {
-    const sem = cardDeExemplo('s1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'decision' }, plan: null, context: null, activity: { type: 'decision', text: '' } });
-    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [sem] }));
+    const bareCard = cardDeExemplo('s1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'decision' }, plan: null, context: null, activity: { type: 'decision', text: '' } });
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [bareCard] }));
     try {
-      await ate(() => cardsDe(area).length === 1);
-      const card = cardsDe(area)[0]!;
+      await ate(() => cardsOf(area).length === 1);
+      const card = cardsOf(area)[0]!;
       assert.equal(comClasse(card, 'wall-num').length, 0);
       assert.equal(comClasse(card, 'wall-bar').length, 0);
       assert.equal(comClasse(card, 'wall-ask')[0]!.textContent, 'Decisão pedida');
@@ -438,7 +438,7 @@ describe('Mural: a tela montada', () => {
   test('with nothing blocked there is no section and no empty title, only the list', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[0]!, MURAL.cards[2]!] }));
     try {
-      await ate(() => linhasDe(area).length === 2);
+      await ate(() => rowsOf(area).length === 2);
       assert.equal(comClasse(area, 'wall-need').length, 0);
       assert.equal(area.todos((e) => e.tag === 'h2').length, 0);
       assert.doesNotMatch(area.textContent, /Precisam de você(?! ·)/);
@@ -450,7 +450,7 @@ describe('Mural: a tela montada', () => {
   test('only blocked sessions: the section and no list', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [MURAL.cards[1]!] }));
     try {
-      await ate(() => cardsDe(area).length === 1);
+      await ate(() => cardsOf(area).length === 1);
       assert.equal(comClasse(area, 'wall-list').length, 0);
     } finally {
       await sair();
@@ -459,7 +459,7 @@ describe('Mural: a tela montada', () => {
 
   test('the machine: a remote one always with its name written; this one only when the core knows remotes', async () => {
     const WS = { id: 'ws', label: 'Workstation', state: 'connected' };
-    const duas = (machines: unknown[]) => ({
+    const twoMachines = (machines: unknown[]) => ({
       ...MURAL,
       machines,
       cards: [
@@ -469,15 +469,15 @@ describe('Mural: a tela montada', () => {
         cardDeExemplo('rem-r', { machine: WS }),
       ],
     });
-    const marca = (raiz: No, id: string) => comClasse(sessoes(raiz).find((c) => c.getAttribute('data-session') === id)!, 'mf-mach').map((m) => [m.getAttribute('data-machine-kind'), m.textContent]);
-    for (const [maquinas, esperado] of [
+    const marksOf = (raiz: No, id: string) => comClasse(sessionsOf(raiz).find((c) => c.getAttribute('data-session') === id)!, 'mf-mach').map((m) => [m.getAttribute('data-machine-kind'), m.textContent]);
+    for (const [machineSet, expectedMarks] of [
       [[{ id: 'local', label: 'Esta máquina', state: 'connected' }], [[], [['remote', 'Workstation']], [], [['remote', 'Workstation']]]],
       [[{ id: 'local', label: 'Esta máquina', state: 'connected' }, WS], [[['local', 'Esta máquina']], [['remote', 'Workstation']], [['local', 'Esta máquina']], [['remote', 'Workstation']]]],
     ] as const) {
-      const { area, sair } = await montarTela(async () => duas([...maquinas]));
+      const { area, sair } = await montarTela(async () => twoMachines([...machineSet]));
       try {
-        await ate(() => sessoes(area).length === 4);
-        assert.deepEqual(['loc-c', 'rem-c', 'loc-r', 'rem-r'].map((id) => marca(area, id)), esperado);
+        await ate(() => sessionsOf(area).length === 4);
+        assert.deepEqual(['loc-c', 'rem-c', 'loc-r', 'rem-r'].map((id) => marksOf(area, id)), expectedMarks);
       } finally {
         await sair();
       }
@@ -488,12 +488,12 @@ describe('Mural: a tela montada', () => {
     const UUID = '4d2a9c35-1b7e-4c11-9d0a-2f6c8e1a7b30';
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo(UUID, { open: { target: 'desktop', command: null } })] }));
     try {
-      await ate(() => linhasDe(area).length === 1);
-      const linha = linhasDe(area)[0]!;
-      const link = comClasse(linha, 'wall-link')[0]!;
+      await ate(() => rowsOf(area).length === 1);
+      const rowEl = rowsOf(area)[0]!;
+      const link = comClasse(rowEl, 'wall-link')[0]!;
       assert.equal(link.tag, 'a');
       assert.equal(link.getAttribute('href'), `/ui/sessions/${UUID}`);
-      assert.equal(comClasse(linha, 'open-icon').length, 1, 'the open action stays reachable');
+      assert.equal(comClasse(rowEl, 'open-icon').length, 1, 'the open action stays reachable');
       for (const a of area.todos((e) => e.tag === 'a')) assert.equal(a.todos((e) => e.tag === 'button').length, 0, 'no button inside a link');
       const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
       assert.match(small, /\.wall-mach[^{]*\{[^}]*display:\s*none/);
@@ -507,8 +507,8 @@ describe('Mural: a tela montada', () => {
     const idleWithPlan = cardDeExemplo('i1', { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } });
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [idleWithPlan, cardDeExemplo('w1')] }));
     try {
-      await ate(() => linhasDe(area).length === 2);
-      const [idle, working] = linhasDe(area);
+      await ate(() => rowsOf(area).length === 2);
+      const [idle, working] = rowsOf(area);
       assert.equal(comClasse(idle!, 'wall-ratio').length, 0);
       assert.match(comClasse(idle!, 'wall-since')[0]!.textContent, /^há /);
       assert.equal(comClasse(working!, 'wall-ratio')[0]!.textContent, '4 de 5');
@@ -521,12 +521,12 @@ describe('Mural: a tela montada', () => {
     const semMotivo = cardDeExemplo('espera-3', { status: 'waiting', state: 'delegating', reason: null, attention: null, activity: { type: 'tool', text: 'Delegando ao subagente' } });
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [semMotivo] }));
     try {
-      await ate(() => sessoes(area).length === 1);
-      const linha = linhasDe(area)[0]!;
-      assert.equal(cardsDe(area).length, 0);
-      assert.equal(comClasse(linha, 'state-tag')[0]!.textContent, 'Ativa');
-      assert.equal(comClasse(linha, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
-      assert.equal(comClasse(linha, 'wall-phrase')[0]!.textContent, 'Delegando ao subagente');
+      await ate(() => sessionsOf(area).length === 1);
+      const rowEl = rowsOf(area)[0]!;
+      assert.equal(cardsOf(area).length, 0);
+      assert.equal(comClasse(rowEl, 'state-tag')[0]!.textContent, 'Ativa');
+      assert.equal(comClasse(rowEl, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
+      assert.equal(comClasse(rowEl, 'wall-phrase')[0]!.textContent, 'Delegando ao subagente');
     } finally {
       await sair();
     }
@@ -545,8 +545,8 @@ describe('Mural: a tela montada', () => {
   test('o título do núcleo entra como texto: <b> não vira HTML', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => sessoes(area).length > 0);
-      const feita = sessoes(area)[4]!;
+      await ate(() => sessionsOf(area).length > 0);
+      const feita = sessionsOf(area)[4]!;
       const titulo = comClasse(feita, 'wall-link')[0]!;
       assert.equal(titulo.textContent, '<b>negrito</b>');
       assert.equal(titulo.todos(() => true).length, 0, 'nenhum elemento dentro do título');
@@ -561,23 +561,23 @@ describe('Mural: a tela montada', () => {
     let dados: unknown = MURAL;
     const { area, rotas, sair } = await montarTela(async () => dados);
     try {
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       const botao = (id: string) => area.todos((e) => e.getAttribute('data-filter') === id)[0]!;
       botao('blocked').click();
-      assert.deepEqual(sessoes(area).map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1'], 'the error needs you too, as in the core count');
+      assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1'], 'the error needs you too, as in the core count');
       assert.equal(botao('blocked').getAttribute('aria-pressed'), 'true');
       assert.equal(botao('all').getAttribute('aria-pressed'), 'false');
       botao('idle').click();
-      assert.deepEqual(sessoes(area).map((c) => c.getAttribute('data-session')), ['espera-2']);
+      assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['espera-2']);
       botao('active').click();
-      assert.deepEqual(sessoes(area).map((c) => c.getAttribute('data-session')), ['ativa-1']);
+      assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['ativa-1']);
       assert.deepEqual(rotas, ['/api/wall?machine=all'], 'só a primeira leitura');
 
       dados = soAtivas;
       area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
-      await ate(() => rotas.length === 2 && sessoes(area).length === 1);
+      await ate(() => rotas.length === 2 && sessionsOf(area).length === 1);
       botao('blocked').click();
-      assert.equal(sessoes(area).length, 0);
+      assert.equal(sessionsOf(area).length, 0);
       assert.match(area.textContent, /Ninguém precisa de você agora/);
     } finally {
       await sair();
@@ -594,7 +594,7 @@ describe('Mural: a tela montada', () => {
       await pronta;
       assert.equal(comClasse(area, 'loading').length, 0);
       assert.match(area.textContent, /Nenhuma sessão aberta/);
-      assert.equal(sessoes(area).length, 0);
+      assert.equal(sessionsOf(area).length, 0);
     } finally {
       await sair();
     }
@@ -609,18 +609,18 @@ describe('Mural: a tela montada', () => {
     try {
       await ate(() => /Sem conexão com o núcleo/.test(area.textContent));
       assert.match(area.textContent, /não respondeu.*Tentar de novo/);
-      assert.equal(sessoes(area).length, 0);
+      assert.equal(sessionsOf(area).length, 0);
 
       falhar = false;
       area.todos((e) => e.tag === 'button' && /Tentar de novo/.test(e.textContent))[0]!.click();
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       assert.equal(rotas.length, 2);
 
       falhar = true;
       area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
       await ate(() => comClasse(area, 'error-band').length === 1);
       assert.match(comClasse(area, 'error-band')[0]!.textContent, /O mural não atualizou/);
-      assert.equal(sessoes(area).length, 5, 'os cards de antes continuam');
+      assert.equal(sessionsOf(area).length, 5, 'os cards de antes continuam');
     } finally {
       await sair();
     }
@@ -630,17 +630,17 @@ describe('Mural: a tela montada', () => {
     let dados: typeof MURAL = MURAL;
     const { area, rotas, ouvintes, sair } = await montarTela(async () => dados);
     try {
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       dados = { ...MURAL, cards: [cardDeExemplo('nova-1', { title: 'Sessão nova' }), ...MURAL.cards] };
       for (const f of ouvintes.mudar) f([{ type: 'session', key: 'nova-1' }]);
       for (const f of ouvintes.mudar) f([{ type: 'plan', key: 'nova-1' }]);
-      await ate(() => sessoes(area).length === 6);
+      await ate(() => sessionsOf(area).length === 6);
       assert.equal(rotas.length, 2, 'a rajada vira uma leitura só');
-      assert.equal(comClasse(sessoes(area).find((c) => c.getAttribute('data-session') === 'nova-1')!, 'wall-link')[0]!.getAttribute('href'), '/ui/sessions/nova-1');
+      assert.equal(comClasse(sessionsOf(area).find((c) => c.getAttribute('data-session') === 'nova-1')!, 'wall-link')[0]!.getAttribute('href'), '/ui/sessions/nova-1');
 
       dados = MURAL;
       for (const f of ouvintes.reiniciar) f();
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       assert.equal(rotas.length, 3);
     } finally {
       await sair();
@@ -652,7 +652,7 @@ describe('Mural: ao vivo com atividade contínua', () => {
   test('mudanças a cada 100 ms não adiam a releitura para sempre', async () => {
     const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       const fim = Date.now() + 1_500;
       while (Date.now() < fim) {
         for (const f of ouvintes.mudar) f([{ type: 'session', key: 'ativa-1' }]);
@@ -666,14 +666,14 @@ describe('Mural: ao vivo com atividade contínua', () => {
 
   test('issue 285: the card has the open action as its primary button, never inside a link, and the click does not navigate (#751)', async () => {
     const UUID = '4d2a9c35-1b7e-4c11-9d0a-2f6c8e1a7b30';
-    const pede = (id: string, open: unknown) => cardDeExemplo(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, open });
+    const asking = (id: string, open: unknown) => cardDeExemplo(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, open });
     const withOpen = {
       ...MURAL,
       cards: [
-        pede(UUID, { target: 'desktop', command: null }),
-        pede('ao-vivo-1', { target: 'terminal-live', command: 'x' }),
-        pede('remota-1', { target: 'remote', command: null }),
-        pede('sem-1', { target: 'none', command: null }),
+        asking(UUID, { target: 'desktop', command: null }),
+        asking('ao-vivo-1', { target: 'terminal-live', command: 'x' }),
+        asking('remota-1', { target: 'remote', command: null }),
+        asking('sem-1', { target: 'none', command: null }),
         cardDeExemplo('linha-1', { open: { target: 'desktop', command: null } }),
       ],
     };
@@ -694,8 +694,8 @@ describe('Mural: ao vivo com atividade contínua', () => {
       liveState: () => 'live',
     });
     try {
-      await ate(() => sessoes(area).length === 5);
-      const cards = cardsDe(area);
+      await ate(() => sessionsOf(area).length === 5);
+      const cards = cardsOf(area);
       assert.deepEqual(
         cards.map((c) => comClasse(c, 'open-button').map((b) => b.textContent)),
         [['Responder no Claude'], ['Responder no Claude'], ['Roda em outra máquina'], []],
@@ -722,11 +722,11 @@ describe('Mural: ao vivo com atividade contínua', () => {
   test('o foco do teclado volta ao card da mesma sessão depois de redesenhar', async () => {
     const { area, rotas, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => sessoes(area).length === 5);
-      const antes = sessoes(area).find((c) => c.getAttribute('data-session') === 'espera-2')!;
+      await ate(() => sessionsOf(area).length === 5);
+      const antes = sessionsOf(area).find((c) => c.getAttribute('data-session') === 'espera-2')!;
       antes.focus();
       area.todos((e) => e.getAttribute('data-action') === 'refresh')[0]!.click();
-      await ate(() => rotas.length === 2 && sessoes(area)[0] !== undefined && !sessoes(area).includes(antes));
+      await ate(() => rotas.length === 2 && sessionsOf(area)[0] !== undefined && !sessionsOf(area).includes(antes));
       const doc = (globalThis as unknown as { document: { activeElement: Elemento } }).document;
       assert.notEqual(doc.activeElement, antes);
       assert.equal(doc.activeElement.getAttribute('data-session'), 'espera-2');
@@ -858,8 +858,8 @@ describe('#751: the sheet of the wall', () => {
   test('the working row marks its phrase, the others do not', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => linhasDe(area).length > 0);
-      const phrase = (id: string) => comClasse(linhasDe(area).find((r) => r.getAttribute('data-session') === id)!, 'wall-phrase')[0]!;
+      await ate(() => rowsOf(area).length > 0);
+      const phrase = (id: string) => comClasse(rowsOf(area).find((r) => r.getAttribute('data-session') === id)!, 'wall-phrase')[0]!;
       assert.ok(phrase('ativa-1').classes.includes('wall-phrase-work'));
       assert.ok(!phrase('espera-2').classes.includes('wall-phrase-work'));
       assert.ok(!phrase('feita-1').classes.includes('wall-phrase-work'));
@@ -1026,7 +1026,7 @@ describe('Wall: nested children and Paradas (#333)', () => {
   test('a leader comes with its summary closed; opening shows the children, and each level opens closed inside its mother', async () => {
     const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
     try {
-      await ate(() => sessoes(area).length === 2);
+      await ate(() => sessionsOf(area).length === 2);
       const treeLine = area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!;
       assert.match(treeLine.textContent, /4 filhas.*1 precisa de você.*2 ativas.*1 parada/);
       assert.equal(treeLine.getAttribute('aria-expanded'), 'false');
@@ -1047,7 +1047,7 @@ describe('Wall: nested children and Paradas (#333)', () => {
   test('the child that needs you is a card of its own and says whose it is', async () => {
     const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
     try {
-      await ate(() => sessoes(area).length === 2);
+      await ate(() => sessionsOf(area).length === 2);
       const kid = area.todos((e) => e.getAttribute('data-session') === 'pede' && e.classes.includes('wall-card'))[0]!;
       assert.match(comClasse(kid, 'wall-from')[0]!.textContent, /filha de Sessão lider/);
     } finally {
@@ -1059,7 +1059,7 @@ describe('Wall: nested children and Paradas (#333)', () => {
     const routes: string[] = [];
     const { area, sair, rotas: r } = await montarTela(async (rota) => (routes.push(rota), WALL_WITH_CHILDREN));
     try {
-      await ate(() => sessoes(area).length === 2);
+      await ate(() => sessionsOf(area).length === 2);
       const bandHead = () => area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!;
       assert.match(bandHead().textContent, /Paradas \(9\)/);
       assert.match(bandHead().textContent, /Recolhida/);
@@ -1080,7 +1080,7 @@ describe('Wall: nested children and Paradas (#333)', () => {
   test('an older core without children or Paradas shows the wall as before', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
-      await ate(() => sessoes(area).length === 5);
+      await ate(() => sessionsOf(area).length === 5);
       assert.equal(area.todos((e) => e.getAttribute('data-tree') !== null).length, 0);
       assert.equal(area.todos((e) => e.getAttribute('data-parked') !== null).length, 0);
     } finally {
