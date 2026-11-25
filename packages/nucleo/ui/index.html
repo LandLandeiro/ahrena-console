@@ -26,12 +26,22 @@
       </a>
       <nav id="nav" aria-label="Telas"></nav>
       <div class="cc-foot">
-        <div class="card" id="live" data-state="connecting" aria-live="polite"></div>
-        <div class="card" title="O núcleo que serve esta página">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
-          <span class="mono" id="port"></span>
+        <div class="cc-live" id="live" data-state="connecting"></div>
+        <div class="cc-me">
+          <span class="cc-avatar" aria-hidden="true">VC</span>
+          <div class="cc-me-text">
+            <b>Você</b>
+            <a class="cc-gh" id="github" hidden></a>
+          </div>
+          <button type="button" class="cc-ibtn" id="theme-button"></button>
+          <button type="button" class="cc-ibtn" id="account-button" aria-label="Opções da conta" aria-haspopup="true" aria-expanded="false" aria-controls="account-menu">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+          <div class="cc-menu" id="account-menu" hidden>
+            <a class="cc-menu-item" href="/ui/connections">Conexões</a>
+            <div class="cc-menu-core" title="O núcleo que serve esta página">Núcleo <span class="mono" id="port"></span></div>
+          </div>
         </div>
-        <a class="card cc-gh" id="github" hidden></a>
       </div>
     </aside>
     <div class="cc-col">

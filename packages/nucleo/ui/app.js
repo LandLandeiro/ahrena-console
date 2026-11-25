@@ -3,7 +3,7 @@
 
 import { write, read } from './api.js';
 import { startLive } from './live.js';
-import { header, el, icon } from './dom.js';
+import { header, el } from './dom.js';
 import { error, empty } from './states.js';
 import { findScreen, litItem } from './screens.js';
 import { createNav } from './nav.js';
@@ -11,19 +11,34 @@ import { createCounts } from './counts.js';
 import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
+import { createTheme } from './theme.js';
+import { createLiveBlock } from './live-block.js';
+import { createAccountMenu } from './account-menu.js';
+import { createEscape } from './escape.js';
 
 const nav = document.getElementById('nav');
 const area = document.getElementById('content');
 const liveCard = document.getElementById('live');
+const live = createLiveBlock({ node: liveCard });
 const port = document.getElementById('port');
 
 port.textContent = location.host;
 
 // ---------- Sidebar ----------
 
+// How many machines there are, this one and the remotes (`/api/machines`), for the footer's note (issue 750).
+let machineCount = null;
+
 // One block per section (C1, C24): the everyday screens, then Delivery, Decisions, Machines and Control. The remote
 // machines (issue 178) come from `GET /api/machines` and are added by nav.js (`createNav`).
-const { readMachines, readConnectors, highlight, counter, tag } = createNav({ nav, read });
+const { readMachines, readConnectors, highlight, counter, tag } = createNav({
+  nav,
+  read,
+  onMachines(n) {
+    machineCount = n;
+    drawLive();
+  },
+});
 // The yellow tag of the Mural and the orange number of Quadro do trabalho (issue 750): read now, on the changes that move them and when the core comes back.
 const counts = createCounts({ read, nav: { tag } });
 counts.refresh();
@@ -48,7 +63,14 @@ document.addEventListener('click', (ev) => {
   appUpdate.close();
   drawLive();
 });
-document.addEventListener('keydown', (ev) => ev.key === 'Escape' && appUpdate.isOpen && (appUpdate.close(), drawLive()));
+
+// The theme button and the account menu of the footer (issue 750); Escape closes one layer at a time, the panel first.
+createTheme({ button: document.getElementById('theme-button') });
+const accountMenu = createAccountMenu({ button: document.getElementById('account-button'), menu: document.getElementById('account-menu') });
+createEscape(document, [
+  { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive()) },
+  accountMenu,
+]);
 
 // ---------- Live ----------
 
@@ -82,7 +104,7 @@ const LABELS = { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conex�
 
 // The version in the footer is a button (issue 330): it opens the version panel, and has a dot while a newer one waits.
 function versionButton() {
-  if (!version) return el('span', { class: 'version mono' }, '');
+  if (!version) return null;
   const fresh = hasUpdate(appUpdate.view);
   const button = el('button', { type: 'button', class: 'version up-version mono', 'aria-haspopup': 'dialog', 'aria-expanded': String(appUpdate.isOpen), title: fresh ? 'Há uma versão nova do app' : 'Versão do app', 'data-new': fresh || undefined, onClick: () => (appUpdate.toggle(), drawLive()) }, fresh ? el('span', { class: 'up-dot', role: 'img', 'aria-label': 'versão nova' }) : null, `v${version}`);
   return button;
@@ -91,13 +113,8 @@ function versionButton() {
 function drawLive() {
   const { state, error: e, nextAttempt } = liveState;
   const seconds = nextAttempt ? Math.max(1, Math.round((nextAttempt - Date.now()) / 1000)) : null;
-  liveCard.dataset.state = state;
   liveCard.title = state === 'offline' ? `${e?.message ?? 'O núcleo não respondeu'}. Tentando de novo${seconds ? ` em ${seconds} s` : ''}.` : '';
-  liveCard.replaceChildren(
-    icon(state === 'offline' ? 'offline' : 'live'),
-    el('b', {}, LABELS[state]),
-    versionButton(),
-  );
+  live.draw({ state, machines: machineCount, versionKey: `${version}|${hasUpdate(appUpdate.view)}|${appUpdate.isOpen}`, makeVersion: versionButton });
   for (const p of document.querySelectorAll('[data-live]')) {
     p.dataset.state = state;
     p.textContent = LABELS[state];

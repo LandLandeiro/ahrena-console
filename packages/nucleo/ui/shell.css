@@ -66,12 +66,17 @@ button { font: inherit; cursor: pointer; }
 .cc-live[data-state="live"] .cc-live-line b { color: var(--status-completed-text); }
 .cc-live[data-state="offline"] .cc-live-line { color: var(--status-error-text); }
 .cc-live[data-state="connecting"] .cc-live-line b { color: var(--muted); }
-.cc-me { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.cc-me { position: relative; display: flex; align-items: center; gap: 8px; padding: 2px 0; }
 .cc-avatar { width: 28px; height: 28px; flex: none; border-radius: var(--radius-full); background: var(--avatar); color: var(--text); display: grid; place-items: center; font-size: 11px; font-weight: var(--weight-semibold); }
 .cc-me-text { min-width: 0; flex: 1; display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.25; color: var(--text); }
 .cc-me-text b { font-weight: var(--weight-medium); }
 .cc-ibtn { width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--muted); display: grid; place-items: center; font-size: 17px; }
 .cc-ibtn:hover, .cc-ibtn[aria-expanded="true"] { background: var(--raised); color: var(--text); }
+.cc-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 5; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-float); display: flex; flex-direction: column; gap: 2px; }
+.cc-menu-item { display: flex; align-items: center; min-height: 31px; padding: 0 10px; border-radius: var(--radius-control); font-size: 13px; color: var(--text); }
+.cc-menu-item:hover { background: var(--raised); }
+.cc-menu-item:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -2px; }
+.cc-menu-core { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
 /* The GitHub connection (ghFooter, C39 to C42, issue 241): "GitHub · conectar", "esperando", "<login> · conectado". */
 .cc-gh { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 11.5px; color: var(--subtle); }
 .cc-gh .icon { font-size: 12px; }

@@ -168,7 +168,7 @@ describe('/ui in the core', () => {
       }
     }
     const page = readFileSync(`${UI_FOLDER}index.html`, 'utf8');
-    for (const [, ref] of page.matchAll(/(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
+    for (const [, ref] of page.matchAll(/<(?:link|script)\b[^>]*\b(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
   });
 
   test('read(route) reads the API over HTTP and only the local core API', async () => {
@@ -437,7 +437,7 @@ describe('screen registry', () => {
   // The drawing itself (nav.js) is tested on the fake DOM in ui-machines.test.ts; here, the wiring.
   test('#178 criterion 1: the shell draws the sidebar through nav.js and re-reads the machines on an alert', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createNav\(\{ nav, read \}\)/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read,/);
     assert.match(app, /highlight\(litItem\(screen, params\)\)/);
     assert.match(app, /changes\.some\(\(c\) => c\.type === 'alert'\)\) readMachines\(\)/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');

@@ -106,7 +106,7 @@ describe('github-connect.js: the pure parts', () => {
   });
 
   test('the shell wires the footer: index.html has the card, app.js refreshes it on start, restart and connections', () => {
-    assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="card cc-gh" id="github" hidden><\/a>/);
+    assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="cc-gh" id="github" hidden><\/a>/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read \}\)/);
     assert.match(app, /if \(connectionChanged\(changes\)\) githubFooter\.refresh\(\);/);
