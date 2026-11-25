@@ -414,7 +414,7 @@ test('#700/AC-2: no generated or hand-written consumer references a green token'
   assert.deepEqual(found, [], 'a consumer still references the retired green')
 })
 
-// #749: the /ui CSS paints no error text on its own background, its direct parent's or any color-mix of a --status-error-* token under 4.5:1.
+// #749: error text on the background set in its own rule or in its parent selector's rule, and on every background written as a color-mix of an error token, stays at 4.5:1 or more.
 const UI_DIR = new URL('../packages/nucleo/ui/', import.meta.url)
 
 function uiCssFiles(dir = UI_DIR) {
@@ -460,7 +460,7 @@ function paint(value, theme) {
   if (v === 'transparent') return { rgb: [0, 0, 0], a: 0 }
   const variable = v.match(/^var\(--([a-z0-9-]+)\)$/)
   if (variable) return { rgb: rgb(themeHex(variable[1], theme)), a: 1 }
-  const mix = v.match(/^color-mix\(in srgb,(.*)\)$/s)
+  const mix = v.match(/^color-mix\(\s*in\s+srgb\s*,(.*)\)$/s)
   if (!mix) throw new Error(`cannot read the colour "${v}"`)
   const [first, second] = splitTop(mix[1]).map((part) => {
     const pct = part.match(/\s(\d+(?:\.\d+)?)%$/)
@@ -486,11 +486,11 @@ const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0'))
 
 const ERROR_TEXT = /^var\(--status-error-text\)$/
 const ERROR_MIX = /^color-mix\(.*--status-error-/s
-const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/)?.[1])
+const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/s)?.[1])
 // #749: the one mix of an error token that holds no text: the recording meter bar.
 const ERROR_MIX_WITHOUT_TEXT = new Set(['screens/session-message.css .sm-level i'])
 
-// #749: the pairs measured: a rule that sets the error text with its own background or, for a descendant, the rule of its direct parent selector; and every rule whose background is a mix of an error token, against the error text.
+// #749: the pairs measured: a rule that sets the error text and a background in the same rule or, for a descendant, the first rule of its parent selector; and every rule whose background is written as a color-mix of an error token, against the error text, except the one in ERROR_MIX_WITHOUT_TEXT.
 function errorPairs() {
   const labels = []
   const mixes = []
@@ -512,7 +512,7 @@ function errorPairs() {
   return { labels, mixes }
 }
 
-test('#749: error text reaches 4.5:1 on its own background, its direct parent and every mix of an error token, on bg, surface and raised, in both themes', () => {
+test('#749: error text reaches 4.5:1 on the background set in its own rule or in its parent selector\'s rule, and on every background written as a color-mix of an error token, on bg, surface and raised, in both themes', () => {
   const { labels, mixes } = errorPairs()
   const found = new Set(labels.map((l) => `${l.file} ${l.selector}`))
   const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'wall-b-error', 'kb-b-error', 'sd-s-error', 'wb-pill-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
