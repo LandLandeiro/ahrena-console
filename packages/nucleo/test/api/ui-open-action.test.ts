@@ -215,6 +215,42 @@ describe('open action: the click', () => {
     assert.equal(byClass(root, 'open-close').length, 0, 'only the icon popover has Fechar');
   });
 
+  test('with `reveal` the notice scrolls itself into view when it changes after the action is on the page, never on a build and never without the option (#751)', async () => {
+    const seen: unknown[] = [];
+    const attach = (root: ElementoFalso, on = true) => {
+      const status = root.querySelector('.open-status') as ElementoFalso & { isConnected?: boolean; scrollIntoView?: (o: unknown) => void };
+      status.isConnected = on;
+      status.scrollIntoView = (o) => seen.push(o);
+    };
+    const failing = () => stubWriter(writeError('Nenhum terminal respondeu', 502, { error: 'Nenhum terminal respondeu', command: COMMAND }));
+    const session = { id: UUID, open: { target: 'terminal-live', command: COMMAND } };
+    for (const size of ['small', 'icon']) {
+      seen.length = 0;
+      resetOpenStates();
+      const w = failing();
+      w.release();
+      const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+      attach(root);
+      root.querySelector('button')!.click();
+      await settle();
+      assert.ok(seen.length >= 1, `${size}: the notice scrolls into view`);
+      assert.deepEqual(seen[0], { block: 'nearest' }, `${size}: the least scroll that shows it`);
+      const quiet = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+      const before = seen.length;
+      attach(quiet, false);
+      assert.equal(seen.length, before, `${size}: a redraw that only builds the action does not scroll`);
+    }
+    seen.length = 0;
+    resetOpenStates();
+    const w = failing();
+    w.release();
+    const plain = openAction(session, { size: 'icon', write: w.write }) as ElementoFalso;
+    attach(plain);
+    plain.querySelector('button')!.click();
+    await settle();
+    assert.equal(seen.length, 0, 'the other screens never scroll');
+  });
+
   test('the state survives a redraw: a second action for the same id shows the busy, refuses the click, then shows the failure with its copy', async () => {
     const w = stubWriter(writeError('Nenhum terminal respondeu', 409, { error: 'Nenhum terminal respondeu', command: COMMAND }));
     const session = { id: UUID, open: { target: 'terminal-live', command: COMMAND } };
@@ -339,6 +375,18 @@ describe('open action: the click', () => {
     assert.equal(w.calls.length, 1);
     w.release();
   });
+});
+
+test('open-action.css: the card notice opens below the button, over the card, and the icon notice stays below too (#751)', () => {
+  const css = readFileSync(`${UI_FOLDER}open-action.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (selector: string) => css.match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+  const small = rule('.open-size-small .open-status');
+  assert.match(small, /top:\s*calc\(100% \+ 6px\)/, 'below the button');
+  assert.doesNotMatch(small, /(^|[;\s])bottom:/, 'never above it, where the title of the card is');
+  assert.match(small, /max-width:\s*min\([^)]*,\s*100%\)/, 'wide as the card at most');
+  assert.match(rule('.open-size-small'), /display:\s*flex/);
+  assert.match(rule('.open-size-small'), /width:\s*100%/, 'the action spans the act area, so the notice is not as narrow as the button');
+  assert.match(rule('.open-size-icon .open-status'), /top:\s*calc\(100% \+ 6px\)/);
 });
 
 test('open-action.css: only open- classes, no colour by hand, loaded once by index.html', () => {
