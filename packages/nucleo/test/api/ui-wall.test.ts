@@ -890,6 +890,7 @@ describe('#751: the sheet of the wall', () => {
     assert.match(rule('open-action.css', '.open-size-small .open-button'), /max-width:\s*100%/);
     assert.match(rule('open-action.css', '.open-size-small'), /max-width:\s*100%/);
     assert.match(rule('open-action.css', '.open-label'), /overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
+    assert.match(rule('open-action.css', '.open-label'), /line-height:\s*1\.3/, 'overflow hidden under the button line-height of 1 cut the descenders');
     assert.match(rule('machine-filter.css', '.mf-mach'), /max-width:\s*100%/);
     assert.match(rule('machine-filter.css', '.mf-mach > span'), /overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
     assert.match(declared('.wall-mach', 'max-width') ?? '', /100%/);
