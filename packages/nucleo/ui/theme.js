@@ -1,4 +1,4 @@
-// The theme button (#750, ADR-0028): light, dark, or the system's until the person chooses.
+// The theme button (issue 750, ADR-0028): light, dark, or the system's until the person chooses.
 // The choice is kept in localStorage and put on <html> as `data-theme`; theme-init.js does the same before the first paint.
 
 import { icon } from './dom.js';
