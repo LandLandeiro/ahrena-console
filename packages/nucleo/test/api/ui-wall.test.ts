@@ -241,6 +241,9 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.deepEqual([noCurrent.fraction, noCurrent.ratio], [0.6, '3 de 5']);
     assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 5, total: 5, current: 'x' } })).ratio, '5 de 5', 'never above the total');
     assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.replace('Passo ', ''));
+    const idleWithPlan = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } }));
+    assert.equal(idleWithPlan.ratio, null, 'an idle row is the icon, the written label and the time: no "X de Y" (#751)');
+    assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } })).ratio, '4 de 5', 'only the idle row drops it');
     const bare = rowContent(cardDeExemplo('r', { plan: null }));
     assert.equal(bare.fraction, 0);
     assert.equal(bare.ratio, null);
@@ -495,6 +498,20 @@ describe('Mural: a tela montada', () => {
       const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
       assert.match(small, /\.wall-mach[^{]*\{[^}]*display:\s*none/);
       assert.match(small, /\.wall-grid \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('an idle row with a plan draws no ratio; the working one still does (#751)', async () => {
+    const idleWithPlan = cardDeExemplo('i1', { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } });
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [idleWithPlan, cardDeExemplo('w1')] }));
+    try {
+      await ate(() => linhasDe(area).length === 2);
+      const [idle, working] = linhasDe(area);
+      assert.equal(comClasse(idle!, 'wall-ratio').length, 0);
+      assert.match(comClasse(idle!, 'wall-since')[0]!.textContent, /^há /);
+      assert.equal(comClasse(working!, 'wall-ratio')[0]!.textContent, '4 de 5');
     } finally {
       await sair();
     }
@@ -855,6 +872,31 @@ describe('#751: the sheet of the wall', () => {
     assert.equal(declared('.wall-rt', 'line-height'), '1.5');
     assert.equal(declared('.wall-phrase', 'line-height'), '1.5');
     assert.equal(declared('.wall-row', 'padding'), '12px 16px');
+  });
+
+  test('below 600px the side of a row goes under the text, in the second line of the grid, and wraps (#751)', () => {
+    const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
+    assert.match(small, /\.wall-main \{[^}]*grid-template-columns:\s*28px minmax\(0, 1fr\)\s*;/);
+    const side = small.match(/\.wall-side \{([^}]*)\}/)?.[1] ?? '';
+    assert.match(side, /grid-column:\s*2/);
+    assert.match(side, /flex-wrap:\s*wrap/);
+    assert.match(small, /\.wall-row \.wall-mach \{[^}]*display:\s*none/);
+    assert.doesNotMatch(sheet, /wall-row \.wall-bar/, 'the row has no bar, so no rule for it');
+  });
+
+  test('a long machine name or state label never pushes a card or a row sideways: everything on the line shrinks and cuts with an ellipsis (#751)', () => {
+    const rule = (file: string, selector: string) => css(file).replace(/\/\*[\s\S]*?\*\//g, '').match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+    assert.match(rule('open-action.css', '.open-size-small .open-button'), /max-width:\s*100%/);
+    assert.match(rule('open-action.css', '.open-size-small'), /max-width:\s*100%/);
+    assert.match(rule('open-action.css', '.open-label'), /overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
+    assert.match(rule('machine-filter.css', '.mf-mach'), /max-width:\s*100%/);
+    assert.match(rule('machine-filter.css', '.mf-mach > span'), /overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
+    assert.match(declared('.wall-mach', 'max-width') ?? '', /100%/);
+    assert.match(declared('.wall-state', 'max-width') ?? '', /100%/);
+    assert.match(rule('state-icon.css', '.state-tag'), /min-width:\s*0[^}]*max-width:\s*100%/);
+    assert.match(declared('.wall-who', 'flex-wrap') ?? '', /wrap/);
+    assert.match(declared('.wall-main', 'grid-template-columns') ?? '', /minmax\(0, auto\)$/);
+    assert.equal(declared('.wall-side', 'min-width'), '0');
   });
 
   test('the screen never sets the height of a button: the card action gets its size from openAction', () => {
