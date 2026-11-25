@@ -144,6 +144,14 @@ describe('#751: stateTag: the icon and the written label, no background', () => 
     assert.doesNotMatch(stateCss.match(/^\.state-tag \{([^}]*)\}/m)![1]!, /background|border/);
   });
 
+  test('the label carries the whole text in its title, and nothing is added for the reader (#751)', () => {
+    const tag = stateTag({ kind: 'needs', label: 'Pergunta' });
+    assert.equal(tag.children[1]!.getAttribute('title'), 'Pergunta');
+    assert.equal(tag.getAttribute('aria-label'), null);
+    assert.equal(tag.children[1]!.getAttribute('aria-label'), null);
+    assert.equal(stateTag({ kind: 'working' }).children[1]!.getAttribute('title'), 'Ativa', 'the label a kind says by itself too');
+  });
+
   test('the label is data: it goes in as text, never as markup', () => {
     const tag = stateTag({ kind: 'error', label: '<b>x</b>' });
     assert.equal(tag.children[1]!.textContent, '<b>x</b>');
