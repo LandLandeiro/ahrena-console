@@ -145,6 +145,10 @@ O motivo do "Esperando você" aparece num chip ao lado do status: **Pede permiss
 
 No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700, amarelo, vermelho 700, cinza 300 e, na Concluída, cinza 500), para passar o contraste. O ponto do "Esperando você" é `#a87e00` e o rótulo é o amarelo 900, `#664e04`. A pílula é a cor canônica a 12% sobre o cartão.
 
+### Barra lateral e moldura
+
+Decisão [0028](decisoes/0028-console-visual-redesign.md), issue 750. A barra tem 248 px e usa `sidebar`; o item atual fica em `surface` com borda `border` e peso 500; o item tem no mínimo 31 px, uma linha só (reticências se faltar espaço) e o nome inteiro no rótulo acessível. Só a navegação rola: o topo e o rodapé ficam fixos, e a janela de 1100 por 700 mostra o rodapé inteiro. As contagens são número simples em mono e `subtle`; quem espera é a etiqueta amarela "N esperam" no Mural, e a fila do Quadro do trabalho é a etiqueta laranja com o número. As etiquetas usam o par gerado do status (texto sobre o próprio fundo opaco, mais de 4,5:1 nos dois temas), nunca `accentText`, que no claro não passa sobre `sidebar`. O foco da moldura é `accentLine` de 2 px com afastamento de 2 px. O tema segue o sistema até a pessoa escolher; a escolha fica em `localStorage` e vira `data-theme` no `<html>`. Abaixo de 860 px a barra é uma gaveta com barra superior e escudo.
+
 ### Tipografia
 
 A fonte é a **do sistema**. Não se baixa nada: a política de conteúdo do núcleo não tem `font-src` e a `/ui` não serve arquivo de fonte, então Poppins e JetBrains Mono, que a marca pedia até a decisão [0028](decisoes/0028-console-visual-redesign.md), nunca carregavam.

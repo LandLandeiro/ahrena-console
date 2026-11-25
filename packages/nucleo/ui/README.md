@@ -4,7 +4,7 @@ A moldura do console ([#26](https://github.com/ahrenatechnology/ahrena-console/i
 
 | Arquivo | O quê |
 | --- | --- |
-| `index.html` | A página: barra lateral, logo, "Ao vivo" e porta. Toda rota `/ui/...` devolve esta página |
+| `index.html` | A página: a barra lateral (marca, navegação, rodapé com "Ao vivo", a linha da pessoa e o menu da conta), a barra superior e o escudo da gaveta. Toda rota `/ui/...` devolve esta página |
 | `app.js` | A moldura: monta a barra, roteia no cliente, liga o "Ao vivo" e abre a tela da rota |
 | `screens.js` | **O registro das telas** (`route`, `item`, `file`) |
 | `api.js` | A camada de leitura, `read(route)`, e de escrita: `write(route, body)` (POST JSON na `/api/`; PATCH com `{ method: 'PATCH' }`; DELETE com `{ method: 'DELETE' }`, que vai sem corpo a não ser com `jsonBody: true`). Por HTTP na janela; o artefato troca o transporte com `useReader()` e `useWriter()` |
@@ -17,7 +17,11 @@ A moldura do console ([#26](https://github.com/ahrenatechnology/ahrena-console/i
 | `live.js` | SSE `GET /api/stream` como caminho principal, com queda para o long polling de `GET /api/changes?since=<cursor>&wait=25` |
 | `states.js` | Os três estados de toda tela (C19): `loading`, `empty`, `error`, e a `errorBand` |
 | `dom.js` | `el()`, `icon()` e `header()` |
-| `shell.css` | O estilo da moldura. Toda cor é variável da marca |
+| `shell.css` | O estilo da moldura e da barra (248 px, `--sidebar`, itens de 31 px). Toda cor é variável da marca |
+| `drawer.css`, `drawer.js` | Abaixo de 860 px a barra vira gaveta (issue 750): barra superior, escudo, fundo `inert` enquanto aberta, a gaveta fechada `inert` e invisível, foco no primeiro item ao abrir e de volta no botão ao fechar. Cruzar 860 px limpa o estado |
+| `theme-init.js`, `theme.js` | O tema (issue 750): o script clássico do `<head>` aplica `data-theme` de `localStorage` (`ahrena-console-theme`) antes da primeira pintura; `createTheme` liga o botão do rodapé. Sem escolha, segue o sistema |
+| `counts.js` | As contagens da barra (issue 750): lê `GET /api/attention` (a etiqueta "N esperam" do Mural) e `GET /api/work?level=item` (o número da fila do Quadro do trabalho) na partida, ao religar e nas mudanças que lhes dizem respeito, com debounce e descartando resposta atrasada. Nunca força a leitura; some com zero ou erro |
+| `live-block.js`, `account-menu.js`, `escape.js` | O bloco "Ao vivo" com "N máquinas · versão X", o menu de "Opções da conta" (Conexões e a porta do núcleo) e o Escape que fecha uma camada por vez: painel de versão, menu, gaveta |
 | `github-connect.js` | A conexão com o GitHub em toda tela (issue 241): o vazio "Conectar ao GitHub" (C42, `connectEmptyFor(tela, ctx.navigate)`), que toda tela que lê o GitHub mostra quando a rota responde 409 `{ error: "github-not-connected" }` e cujo botão abre `/ui/connections?start=1` (Conexões já pedindo o código); o pé da barra (`createGithubFooter`: "GitHub · conectar", "esperando", "<login> · conectado"); `connectionChanged(changes)`, a mudança `connections` de `/api/changes` que faz as telas relerem; e as frases em pt-BR dos códigos da conexão. As classes `ghc-*` e `cc-gh*` ficam no `shell.css` |
 | `app-update.js` | O aviso de versão nova do app (issue 330, C77 a C80): o card no topo de toda tela (`drawNotice`: disponível, baixando, instalando, erro, atualizado), o painel da versão que o pé da barra abre (`drawPanel`: Buscar agora e a cadência) e `createAppUpdate`, que lê `GET /api/app-update` e manda os cliques (`POST /api/app-update/actions/...`). Na janela do app (`window.__AHRENA_APP__`) vale tudo; num navegador, Atualizar fica desligado; sem escrita (o artefato), os botões ficam desligados. As classes `up-*` ficam no `app-update.css` |
 | `attention.js` | O vocabulário da atenção (#245), o mesmo em toda tela: "Precisa de você" (`attention.level` `blocked`, amarelo, com o motivo em chip forte: Pede permissão, Pergunta, Plano para aprovar, Decisão pedida; a de erro mantém a pílula vermelha "Com erro") e "Ociosa" (`idle`, neutra, ponto vazado, motivo em chip leve: Sua vez, Interrompida, No prompt). As classes `attention-*` ficam no `shell.css` |
@@ -164,7 +168,7 @@ Sessões, Mural ao vivo, Kanban (as duas visões), Feed, Histórico e Dashboard 
 | `onChange(f)` | `f(changes)` a cada novidade do long polling (`{ type, key, sessionId, accountId, seq }`) |
 | `onRestart(f)` | `f()` quando a tela tem de reler tudo: núcleo reiniciado, cursor velho ou a conexão voltou |
 | `liveState()` | `'connecting'`, `'live'` ou `'offline'` |
-| `counter(id, n)` | O número no item da barra (o "4" do Dashboard); `0` esconde |
+| `counter(id, n)` | O número simples (mono, `--subtle`) no item da barra; `0` esconde. O Dashboard não o usa mais (issue 750): quem espera aparece como etiqueta no Mural, que o próprio `app.js` lê |
 | `title(text)` | O título da janela (`Ahrena Console · <text>`) |
 | `navigate(route)` | Troca de tela sem recarregar; a rota pode levar query (`/ui/agent-config?tab=skills`). Links `<a href="/ui/...">` já fazem isso sozinhos, com a query |
 
