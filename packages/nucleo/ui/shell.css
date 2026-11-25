@@ -75,7 +75,7 @@ button { font: inherit; cursor: pointer; }
 .cc-me-text b { font-weight: var(--weight-medium); }
 .cc-ibtn { width: 28px; height: 28px; flex: none; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--muted); display: grid; place-items: center; font-size: 17px; }
 .cc-ibtn:hover, .cc-ibtn[aria-expanded="true"] { background: var(--raised); color: var(--text); }
-.cc-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 5; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-float); display: flex; flex-direction: column; gap: 2px; }
+.cc-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 5; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-float); display: flex; flex-direction: column; gap: 4px; }
 .cc-menu-item { display: flex; align-items: center; min-height: 31px; padding: 0 10px; border-radius: var(--radius-control); font-size: 13px; color: var(--text); }
 .cc-menu-item:hover { background: var(--raised); }
 .cc-menu-item:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
