@@ -12,7 +12,7 @@ const ATTENTION_ROUTE = '/api/attention';
 /** The board the screen opens on (`apiPath({ level: 'item' })` of the work board), read without `refresh`: the core answers from its cache. */
 export const WORK_ROUTE = '/api/work?level=item';
 
-/** The changes that move who waits for the person (the same ones the Dashboard and the Kanban re-read on). */
+/** The changes that move who waits for the person. */
 export const ATTENTION_CHANGES = new Set(['needs-you', 'session', 'state', 'permission']);
 /** The changes that move the board: the repositories of the project and the GitHub connection. */
 export const WORK_CHANGES = new Set(['repos', 'connections']);
@@ -48,20 +48,25 @@ const queuedTag = (n) => (n > 0 ? { tone: 'active', text: String(n), note: 'na f
 export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout, now = Date.now }) {
   // What is on the bar now, per item: the number of the last answer that was kept (0 when the tag is away).
   const shown = { wall: 0, work: 0 };
+  // Whether the last number read of the board was above zero; an error leaves it as it was (#750), so the window still reads.
+  let hadQueue = false;
   function reader(route, id, tagOf, count) {
     let latest = 0;
     return async function load() {
       const mine = ++latest;
       let tag = null;
       let n = 0;
+      let answered = false;
       try {
         n = count(await read(route));
         tag = tagOf(n);
+        answered = true;
       } catch {
         // A failure (409, 502, 503, offline) is no number: the tag goes away.
       }
       if (mine !== latest) return;
       shown[id] = tag ? n : 0;
+      if (id === 'work' && answered) hadQueue = n > 0;
       nav.tag(id, tag);
     };
   }
@@ -79,7 +84,7 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
   // The tail read: only while the number is still above zero, and never on top of a read that is already pending.
   function readTail() {
     tail = undefined;
-    if (shown.work <= 0 || timers.has('work')) return;
+    if (!hadQueue || timers.has('work')) return;
     queueReadAt = now();
     loadWork();
   }
@@ -92,7 +97,7 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
       if ([...types].some((t) => ATTENTION_CHANGES.has(t))) later('attention', loadAttention);
       if ([...types].some((t) => WORK_CHANGES.has(t))) later('work', loadWork);
       // The queue moves by itself when the core opens a session: while the number is above zero, a session change reads it, once per window.
-      if (types.has('session') && shown.work > 0) {
+      if (types.has('session') && hadQueue) {
         if (now() - queueReadAt >= QUEUE_REREAD_MS) {
           queueReadAt = now();
           later('work', loadWork);

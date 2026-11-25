@@ -442,6 +442,37 @@ describe('#750 the orange number does not go stale', () => {
     assert.equal(total(reads, '/api/work') - before, 2, 'with zero nothing is read at the end');
   });
 
+  test('a passing error of /api/work clears the number but remembers there was a queue: the window still reads again', async () => {
+    let fail = false;
+    const { counts, reads, time, last } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => (fail ? Promise.reject(new Error('503')) : work(2)) });
+    await counts.refresh();
+    assert.deepEqual(last('work'), { tone: 'active', text: '2', note: 'na fila' });
+    const before = total(reads, '/api/work');
+    fail = true;
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    assert.equal(last('work'), null, 'the error took the number away');
+    fail = false;
+    counts.changed([{ type: 'session' }]);
+    await time.advance(30_000);
+    assert.equal(total(reads, '/api/work') - before, 2, 'the read at the end of the window happened');
+    assert.deepEqual(last('work'), { tone: 'active', text: '2', note: 'na fila' });
+  });
+
+  test('an error with no queue before it, and a read of zero, keep the tail away', async () => {
+    let fail = true;
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => (fail ? Promise.reject(new Error('503')) : work(0)) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    fail = false;
+    await counts.refresh();
+    counts.changed([{ type: 'session' }]);
+    await time.advance(60_000);
+    assert.equal(total(reads, '/api/work') - before, 1, 'only the explicit refresh read');
+  });
+
   test('with the number at zero a session change schedules no timer at all', async () => {
     const { counts, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(0) });
     await counts.refresh();
