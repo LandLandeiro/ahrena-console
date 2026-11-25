@@ -240,7 +240,7 @@ function kidRows(nodes, depth, leader, nest) {
     const opened = hasKids && nest.isOpen(k.id);
     const pill = stateTag(stateOfSession({ attention: k.attention, status: k.status }));
     const kidLink = el('a', { class: 'wall-trunc wall-kid-title', href: itemHref({ id: k.id, machine: leader.machine }), title: k.title }, k.title);
-    nest.spot('child', k.id, kidLink);
+    nest.spot('child', itemKey({ id: k.id, machine: leader.machine }), kidLink);
     const row = el(
       'div',
       { class: `wall-kid wall-depth-${Math.min(depth, 6)}${k.parked ? ' wall-kid-parked' : ''}`, 'data-child': k.id },
@@ -271,7 +271,10 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
     : parked.items.map((c) => {
         const href = itemHref(c);
         const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title);
-        spot('parked', c.id, link);
+        const key = itemKey(c);
+        const openLink = el('a', { class: 'btn outline', href }, 'Abrir');
+        spot('parked', key, link);
+        spot('parked-open', key, openLink);
         return el(
           'div',
           { class: 'wall-kid', 'data-parked-row': c.id },
@@ -279,7 +282,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
           el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
           el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? 'Sua vez' : '—')),
           el('span', { class: 'wall-muted wall-kid-age' }, sinceText(c.since)),
-          el('a', { class: 'btn outline', href }, 'Abrir'),
+          openLink,
         );
       });
   const moreButton = opened && p.more > 0 ? el('button', { type: 'button', class: 'btn outline', 'data-parked': 'more', onClick: more }, `Mostrar mais ${p.more}`) : null;
@@ -349,11 +352,14 @@ export async function mount(area, ctx) {
 
   const findSpot = (list, kind, id) => list.find((x) => x.kind === kind && x.id === id)?.node ?? null;
 
+  // ADR-0028: the node is gone; its session may be a card or a row now (the link), else the focus is not invented.
+  const sameSession = (fresh, spot) => (spot.kind === 'open' ? findSpot(fresh, 'link', spot.id) : spot.kind === 'link' ? null : findSpot(fresh, 'parked', spot.id) ?? findSpot(fresh, 'link', spot.id));
+
   function focusTarget(was, held, fresh) {
     if (!was) return null;
     if (area.contains(was)) return was;
     const spot = spots.find((x) => x.node === was);
-    if (spot) return findSpot(fresh, spot.kind, spot.id) ?? (spot.kind === 'open' ? findSpot(fresh, 'link', spot.id) : null);
+    if (spot) return findSpot(fresh, spot.kind, spot.id) ?? (spot.kind === 'child' ? findSpot(fresh, 'link', spot.id) ?? (held.key ? findSpot(fresh, 'link', held.key) : null) : sameSession(fresh, spot));
     if (held.toggled) return [...(area.querySelectorAll?.(`[${held.toggled[0]}]`) ?? [])].find((n) => n.getAttribute(held.toggled[0]) === held.toggled[1]) ?? null;
     return held.key ? findSpot(fresh, 'link', held.key) : null;
   }

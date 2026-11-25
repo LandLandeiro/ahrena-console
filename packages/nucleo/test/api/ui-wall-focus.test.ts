@@ -273,3 +273,79 @@ describe('#751: the redraw of the wall keeps the focus', () => {
     assert.equal(active(), s.area.querySelector('[data-key="local:r1"] .open-icon'));
   });
 });
+
+describe('#751: where the focus goes when the node it was on is gone', () => {
+  const tree = { total: 1, blocked: 0, active: 1, parked: 0 };
+  const ws = { id: 'ws', label: 'Workstation' };
+
+  test('a child that became a card: the focus goes to its card link, not to the body', async () => {
+    const leader = blocked('lider', { tree, children: [kid('k1')] });
+    const s = await mountWith(wallOf([leader]));
+    one(s.area, '[data-tree="lider"]').click();
+    s.area.querySelector('[data-child="k1"] a')!.focus();
+    s.state.wall = wallOf([{ ...leader, children: [], tree: null }, blocked('k1')]);
+    await s.refresh();
+    assert.equal(active(), s.area.querySelector('[data-key="local:k1"] a.wall-link'));
+  });
+
+  test('a child that is gone from the tree and from the wall: the focus goes to the link of its leader', async () => {
+    const leader = blocked('lider', { tree, children: [kid('k1')] });
+    const s = await mountWith(wallOf([leader]));
+    one(s.area, '[data-tree="lider"]').click();
+    s.area.querySelector('[data-child="k1"] a')!.focus();
+    s.state.wall = wallOf([{ ...leader, children: [], tree: null }]);
+    await s.refresh();
+    assert.equal(active(), s.area.querySelector('[data-key="local:lider"] a.wall-link'));
+  });
+
+  test('a parked row whose session came back to the wall: the focus goes to its row link', async () => {
+    const s = await mountWith(wallOf([blocked('c1')], { parked: { total: 1, items: [parkedItem('p1')] } }));
+    one(s.area, '[data-parked="toggle"]').click();
+    s.area.querySelector('[data-parked-row="p1"] a')!.focus();
+    s.state.wall = wallOf([blocked('c1'), session('p1')]);
+    await s.refresh();
+    assert.equal(active(), s.area.querySelector('[data-key="local:p1"] a.wall-link'));
+  });
+
+  test('the open button of a row of Paradas keeps the focus through the redraw', async () => {
+    const s = await mountWith(wallOf([blocked('c1')], { parked: { total: 1, items: [parkedItem('p1')] } }));
+    one(s.area, '[data-parked="toggle"]').click();
+    const button = s.area.querySelector('[data-parked-row="p1"] .btn')!;
+    button.focus();
+    await s.refresh();
+    const now = s.area.querySelector('[data-parked-row="p1"] .btn')!;
+    assert.notEqual(now, button);
+    assert.equal(active(), now);
+  });
+
+  test('a session that left the wall: no focus is invented for its open button', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), blocked('c2')]));
+    s.area.querySelector('[data-key="local:c2"] .open-button')!.focus();
+    s.state.wall = wallOf([blocked('c1')]);
+    await s.refresh();
+    assert.equal(s.area.querySelector('[data-key="local:c2"]'), null);
+    assert.notEqual(active()?.getAttribute?.('data-key'), 'local:c2');
+  });
+
+  test('two machines with the same child id: the focus stays on the child of its own machine', async () => {
+    const local = blocked('lider', { tree, children: [kid('x')] });
+    const remote = blocked('lider2', { tree, machine: ws, children: [kid('x')] });
+    const s = await mountWith(wallOf([local, remote]));
+    one(s.area, '[data-tree="lider"]').click();
+    one(s.area, '[data-tree="lider2"]').click();
+    const mine = s.area.querySelector('[data-key="ws:lider2"] [data-child="x"] a')!;
+    mine.focus();
+    await s.refresh();
+    assert.equal(active(), s.area.querySelector('[data-key="ws:lider2"] [data-child="x"] a'));
+  });
+
+  test('two machines with the same parked id: the focus stays on the row of its own machine', async () => {
+    const s = await mountWith(wallOf([blocked('c1')], { parked: { total: 2, items: [parkedItem('p1'), { ...parkedItem('p1'), machine: ws }] } }));
+    one(s.area, '[data-parked="toggle"]').click();
+    const rows = s.area.querySelectorAll('[data-parked-row="p1"]');
+    assert.equal(rows.length, 2);
+    rows[1]!.querySelector('a')!.focus();
+    await s.refresh();
+    assert.equal(active(), s.area.querySelectorAll('[data-parked-row="p1"]')[1]!.querySelector('a'));
+  });
+});
