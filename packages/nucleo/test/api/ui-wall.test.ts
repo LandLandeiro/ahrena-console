@@ -213,20 +213,26 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.equal(cardContent(blocked()).actionLabel, 'Responder no Claude');
     assert.equal(cardContent(blocked({ attention: { level: 'blocked', reason: 'error' }, status: 'error' })).actionLabel, 'Abrir para retomar');
   });
-  test('the usage shows in an error with a reading, and in any session past 90%', () => {
+  test('the usage shows in an error with a reading, and in any session from 90%; it is high only from 90% (#751)', () => {
     const usage = (extra: Card) => cardContent(blocked(extra)).usage;
-    assert.deepEqual(usage({ attention: { level: 'blocked', reason: 'error' }, status: 'error', context: { pct: 40 } }), { pct: 40, label: 'Uso da conversa 40%' });
-    assert.equal(usage({ attention: { level: 'blocked', reason: 'error' }, status: 'error', context: null }), null);
-    assert.equal(usage({ context: { pct: 90 } }), null);
-    assert.deepEqual(usage({ context: { pct: 91 } }), { pct: 91, label: 'Uso da conversa 91%' });
+    const failed = { attention: { level: 'blocked', reason: 'error' }, status: 'error' };
+    assert.deepEqual(usage({ ...failed, context: { pct: 40 } }), { pct: 40, label: 'Uso da conversa 40%', high: false });
+    assert.equal(usage({ ...failed, context: null }), null);
+    assert.equal(usage({ context: { pct: 89 } }), null);
+    assert.deepEqual(usage({ context: { pct: 90 } }), { pct: 90, label: 'Uso da conversa 90%', high: true });
+    assert.deepEqual(usage({ context: { pct: 91 } }), { pct: 91, label: 'Uso da conversa 91%', high: true });
+    assert.equal(usage({ context: { pct: 89.6 } })?.high, true, 'the rounded number that is shown is the one compared');
+    assert.equal(usage({ context: { pct: 89.4 } }), null);
     assert.equal(usage({ context: { pct: 140 } })?.pct, 100);
+    assert.equal(usage({ ...failed, context: { pct: 89 } })?.high, false);
+    assert.equal(usage({ ...failed, context: { pct: 90 } })?.high, true);
   });
   test('a context without a finite pct shows no usage: never "NaN%" or an invented 0% (#751)', () => {
     const failed = { attention: { level: 'blocked', reason: 'error' }, status: 'error' };
     for (const context of [{}, { pct: null }, { pct: undefined }, { pct: NaN }, { pct: Infinity }, { pct: 'x' }, { used: 1, limit: 2 }]) {
       assert.equal(cardContent(blocked({ ...failed, context })).usage, null, JSON.stringify(context));
     }
-    assert.deepEqual(cardContent(blocked({ ...failed, context: { pct: 0 } })).usage, { pct: 0, label: 'Uso da conversa 0%' }, 'a real 0 stays');
+    assert.deepEqual(cardContent(blocked({ ...failed, context: { pct: 0 } })).usage, { pct: 0, label: 'Uso da conversa 0%', high: false }, 'a real 0 stays');
   });
   test('the state is the one of the session, with today\'s words', () => {
     assert.deepEqual(cardContent(blocked()).state, { kind: 'needs', label: 'Pergunta' });
@@ -407,15 +413,35 @@ describe('Mural: a tela montada', () => {
     }
   });
 
-  test('past 90% of the usage shows in red in the foot of any card, and the step stays', async () => {
-    const fullCard = cardDeExemplo('q1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 93, used: 1, limit: 2, label: '' } });
-    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [fullCard, cardDeExemplo('q2', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 90, used: 1, limit: 2, label: '' } })] }));
+  test('from 90% of the usage shows in red in the foot and its bar, below it in the normal colour, with and without an error (#751)', async () => {
+    const mk = (id: string, pct: number, failed: boolean, plan: unknown = null) =>
+      cardDeExemplo(id, failed ? { status: 'error', state: 'error', attention: { level: 'blocked', reason: 'error' }, plan, context: { pct, used: 1, limit: 2, label: '' } } : { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, plan, context: { pct, used: 1, limit: 2, label: '' } });
+    const cards = [mk('a89', 89, false), mk('a90', 90, false), mk('a91', 91, false), mk('e89', 89, true), mk('e90', 90, true), mk('e91', 91, true), mk('p93', 93, false, { done: 3, total: 5, current: 'x' })];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
     try {
-      await ate(() => cardsOf(area).length === 2);
-      const [a, b] = cardsOf(area);
-      assert.equal(comClasse(a!, 'wall-over')[0]!.textContent, 'Uso da conversa 93%');
-      assert.match(comClasse(a!, 'wall-foot')[0]!.textContent, /Passo 4 de 5.*Uso da conversa 93%/);
-      assert.equal(comClasse(b!, 'wall-over').length, 0, '90% is not above 90');
+      await ate(() => cardsOf(area).length === cards.length);
+      const by = (id: string) => cardsOf(area).find((c) => c.getAttribute('data-session') === id)!;
+      const state = (id: string) => ({ text: comClasse(by(id), 'wall-num').filter((n) => n.getAttribute('data-foot') === 'usage').map((n) => n.textContent), over: comClasse(by(id), 'wall-over').length, high: comClasse(by(id), 'wall-high').length, bar: comClasse(by(id), 'wall-bar').length });
+      assert.deepEqual(state('a89'), { text: [], over: 0, high: 0, bar: 0 }, '89 in a healthy card shows nothing');
+      assert.deepEqual(state('a90'), { text: ['Uso da conversa 90%'], over: 1, high: 1, bar: 1 }, '90 is red');
+      assert.deepEqual(state('a91'), { text: ['Uso da conversa 91%'], over: 1, high: 1, bar: 1 });
+      assert.deepEqual(state('e89'), { text: ['Uso da conversa 89%'], over: 0, high: 0, bar: 1 }, 'an error below 90 shows the text, in the normal colour');
+      assert.deepEqual(state('e90'), { text: ['Uso da conversa 90%'], over: 1, high: 1, bar: 1 });
+      assert.deepEqual(state('e91'), { text: ['Uso da conversa 91%'], over: 1, high: 1, bar: 1 });
+      assert.match(comClasse(by('p93'), 'wall-foot')[0]!.textContent, /Passo 4 de 5.*Uso da conversa 93%/, 'the step stays');
+      assert.equal(comClasse(by('p93'), 'wall-over').length, 1);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a row shows no usage of the conversation, whatever the percentage (#751)', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('r90', { context: { pct: 95, used: 1, limit: 2, label: '' } })] }));
+    try {
+      await ate(() => rowsOf(area).length === 1);
+      const row = rowsOf(area)[0]!;
+      assert.equal(comClasse(row, 'wall-over').length + comClasse(row, 'wall-high').length, 0);
+      assert.doesNotMatch(row.textContent, /Uso da conversa/);
     } finally {
       await sair();
     }
