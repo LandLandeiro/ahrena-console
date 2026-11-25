@@ -1140,3 +1140,146 @@ describe('Wall: nested children and Paradas (#333)', () => {
     }
   });
 });
+
+// ---------- #752: the sentence, the lists, the calm block and the sheet ----------
+
+describe('#752: the sentence of the header is one live region, written only when it changes', () => {
+  const writes: No[] = [];
+  const desc = Object.getOwnPropertyDescriptor(No.prototype, 'textContent')!;
+  const spy = () => Object.defineProperty(No.prototype, 'textContent', { ...desc, set(this: No, v: string) { writes.push(this); desc.set!.call(this, v); } });
+  const unspy = () => Object.defineProperty(No.prototype, 'textContent', desc);
+  const inSummary = (n: No) => (n.parent as Elemento | null)?.classes.includes('wall-summary') ?? false;
+
+  test('first paint writes the sentence once; N redraws with the same sentence write nothing', async () => {
+    writes.length = 0;
+    spy();
+    const { area, ouvintes, rotas, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      const summary = comClasse(area, 'wall-summary')[0]!;
+      const mine = () => writes.filter(inSummary);
+      assert.equal(mine().filter((n) => n === summary.filhos[0]).length <= 2, true, 'the loading sentence, then the real one');
+      assert.equal(mine().filter((n) => n === summary.filhos[0]).length, 1, 'the lead is written once with the data');
+      const before = mine().length;
+      for (let i = 0; i < 5; i++) {
+        for (const f of ouvintes.mudar) f([{ type: 'session', key: 'x' }]);
+        await ate(() => rotas.length === 2 + i);
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      assert.equal(mine().length, before, 'no write into the live region while the sentence stays');
+      assert.equal(summary.getAttribute('aria-live'), 'polite');
+    } finally {
+      unspy();
+      await sair();
+    }
+  });
+
+  test('nothing else on the screen is a live region: the calm block, the band and the loading do not repeat the sentence', async () => {
+    const onlyActive = { ...MURAL, count: { all: 1, waiting: 0, active: 1, blocked: 0, idle: 0 }, cards: [MURAL.cards[0]] };
+    const { area, sair } = await montarTela(async () => onlyActive);
+    try {
+      await ate(() => sessionsOf(area).length === 1);
+      assert.equal(comClasse(area, 'wall-calm').length, 1);
+      assert.deepEqual(area.todos((e) => e.getAttribute('aria-live') !== null).map((e) => e.classes.join(' ')), ['wall-summary']);
+      assert.equal(area.todos((e) => ['status', 'alert'].includes(e.getAttribute('role') ?? '') && e.classes.includes('wall-calm')).length, 0);
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('#752: no refresh button; the live stream and "Tentar de novo" read again', () => {
+  test('the wall has no "Atualizar" and no refresh action, in the wall and in the error', async () => {
+    const { area, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      assert.equal(area.todos((e) => e.getAttribute('data-action') === 'refresh').length, 0);
+      assert.doesNotMatch(area.textContent, /Atualizar/);
+    } finally {
+      await sair();
+    }
+    const failed = await montarTela(async () => {
+      throw Object.assign(new Error('O núcleo não respondeu'), { status: 0 });
+    });
+    try {
+      await ate(() => /Sem conexão/.test(failed.area.textContent));
+      assert.doesNotMatch(failed.area.textContent, /Atualizar/);
+      assert.equal(failed.area.todos((e) => e.tag === 'button' && /Tentar de novo/.test(e.textContent)).length, 1);
+    } finally {
+      await failed.sair();
+    }
+  });
+});
+
+describe('#752: list semantics of the sections, the nested children and Paradas', () => {
+  test('every list has a name and holds only list items or aria-hidden fillers; the children and Paradas lists are named', async () => {
+    const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      comClasse(area, 'wall-treeline')[0]!.click();
+      area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!.click();
+      const lists = area.todos((e) => e.getAttribute('role') === 'list');
+      assert.ok(lists.length >= 3, 'sections, the children and Paradas');
+      for (const list of lists) {
+        const named = list.getAttribute('aria-label') || list.getAttribute('aria-labelledby');
+        assert.ok(named, `a list with no name: ${list.classes.join(' ')}`);
+        for (const kid of list.children) assert.ok(kid.getAttribute('role') === 'listitem' || kid.getAttribute('aria-hidden') === 'true', `a child of a list that is no item: ${kid.classes.join(' ')}`);
+      }
+      assert.match(comClasse(area, 'wall-kids')[0]!.getAttribute('aria-label')!, /^Filhas de /);
+      const band = comClasse(area, 'wall-parked-list')[0]!;
+      assert.equal(area.todos((e) => e.getAttribute('id') === band.getAttribute('aria-labelledby')).length, 1, 'Paradas is named by its heading');
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('#752: the sheet of the sections', () => {
+  const sheet = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules = [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
+  const declared = (selector: string, prop: string) => rules.find((r) => r.selector === selector)?.body.match(new RegExp(`(?:^|[;\\s])${prop}:\\s*([^;]+)`))?.[1]?.trim();
+
+  test('the sentence is 17px with the lead at weight 600 and line-height 1.5; the title keeps --text-title', () => {
+    assert.equal(declared('.wall-summary', 'font-size'), '17px');
+    assert.equal(declared('.wall-summary', 'line-height'), '1.5');
+    assert.equal(declared('.wall-summary b', 'font-weight'), 'var(--weight-semibold)');
+    assert.match(css('shell.css') + sheet, /--text-title/);
+    assert.equal(declared('.wall-title', 'font-size') ?? 'var(--text-title)', 'var(--text-title)');
+  });
+
+  test('28px between the header, the segments, the sections and Paradas, and 12px from a heading to its list', () => {
+    assert.equal(declared('.wall-top', 'margin-bottom'), '12px', 'the main gap of 16px plus 12px');
+    assert.equal(declared('.wall-segs', 'margin-bottom'), '12px');
+    assert.equal(declared('.wall-parked', 'margin-top'), '12px');
+    assert.match(css('shell.css'), /\.cc-main \{[^}]*gap:\s*16px/);
+    const head = rules.find((r) => /^\.wall-h\b/.test(r.selector) && /margin/.test(r.body));
+    assert.ok(head, 'a heading rule with a margin');
+    assert.match(head!.body, /margin[^;]*12px/);
+  });
+
+  test('the segment track is --border-control, the pending number is --status-waiting-text only above zero, and no dead rule is left', () => {
+    assert.match(declared('.wall-seg', 'border') ?? '', /var\(--border-control\)/);
+    assert.match(sheet, /--status-waiting-text/);
+    assert.doesNotMatch(sheet, /\.wall-need\b/);
+    assert.equal(declared('.wall-side', 'gap'), '12px');
+    assert.match(declared('.wall-calm', 'padding') ?? '', /24px 28px/);
+  });
+
+  test('the yellow number of "Precisam de você" shows only above zero', async () => {
+    assert.equal(declared('.wall-seg-need', 'color'), 'var(--status-waiting-text)');
+    const none = await montarTela(async () => ({ ...MURAL, count: { all: 1, waiting: 0, active: 1, blocked: 0, idle: 0 }, cards: [MURAL.cards[0]] }));
+    try {
+      await ate(() => sessionsOf(none.area).length === 1);
+      assert.equal(none.area.todos((e) => e.classes.includes('wall-seg-need')).length, 0);
+    } finally {
+      await none.sair();
+    }
+    const some = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(some.area).length === 5);
+      assert.equal(some.area.todos((e) => e.classes.includes('wall-seg-need')).length, 1);
+    } finally {
+      await some.sair();
+    }
+  });
+});

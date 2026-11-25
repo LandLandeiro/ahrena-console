@@ -9,7 +9,7 @@
 .wall-top-act { flex: none; }
 .wall-title { margin: 0; font-size: var(--text-title); line-height: 1.15; font-weight: var(--weight-semibold); letter-spacing: var(--tracking-title); color: var(--text); }
 .wall-summary { margin: 6px 0 0; min-height: 1.5em; font-size: 17px; line-height: 1.5; color: var(--subtle); }
-.wall-summary b { font-weight: 600; color: var(--text); }
+.wall-summary b { font-weight: var(--weight-semibold); color: var(--text); }
 .wall-segs { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 12px; min-width: 0; }
 .wall-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; gap: 2px; background: var(--segment); border: 1px solid var(--border-control); border-radius: var(--radius-segment); }
 .wall-seg button { font: inherit; font-size: var(--text-sm); color: var(--muted); background: none; border: 0; padding: 5px 12px; border-radius: var(--radius-segment-item); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
@@ -29,7 +29,7 @@
 .wall-calm-tile { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--avatar); color: var(--muted); }
 .wall-calm-tile .icon { width: 18px; height: 18px; }
 .wall-calm-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--subtle); font-size: var(--text-md); }
-.wall-calm-text b { font-size: 17px; font-weight: 600; color: var(--text); }
+.wall-calm-text b { font-size: 17px; font-weight: var(--weight-semibold); color: var(--text); }
 .wall-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 28px; align-items: start; }
 .wall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
 .wall-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; border-radius: var(--radius-card); min-width: 0; position: relative; }
