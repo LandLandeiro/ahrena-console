@@ -83,7 +83,7 @@ Desde a decisão [0028](decisoes/0028-console-visual-redesign.md), cada tema tem
 | `accentLine` | `#f47720` | `#ab5316` | O laranja como traço (foco, progresso) |
 | `borderControl` | `#72727c` | `#83838b` | Borda de campo, caixa de seleção e botão sem fundo |
 
-`border` continua sendo o **divisor**: separa e não precisa de 3:1. A regra é que nenhum controle use só a `border` como borda; é para isso que existe a `borderControl`. As telas de hoje (`.btn.outline`, campos e seletores) ainda usam `var(--border)` e passam à `borderControl` no #750 e no #751.
+`border` continua sendo o **divisor**: separa e não precisa de 3:1. A regra é que nenhum controle use só a `border` como borda; é para isso que existe a `borderControl`. As telas de hoje já seguem isso: campos, seletores, caixas de seleção e botões sem fundo (`.btn.outline` entre eles) usam `var(--border-control)`, e o teste [test/ui-control-borders.test.mjs](../test/ui-control-borders.test.mjs) falha se um controle voltar à `border`. Divisores, cartões, tabelas, painéis, etiquetas e selos ficam na `border`. Quando um controle é marcado, definido ou recebe foco, a borda passa a `accentLine` (`var(--accent-line)`), não ao laranja puro, que no claro dá só 2,55:1 sobre `bg`.
 
 O ponto do "Esperando você" no claro era `#664e04` e passou a `#a87e00` (3,65:1 sobre o cartão e 3,15:1 sobre `sidebar`), para se parecer com o amarelo da marca.
 

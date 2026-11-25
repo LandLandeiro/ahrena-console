@@ -29,7 +29,7 @@
 .open-size-small .open-status { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(260px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
 
 /* icon (Sessions row, Dashboard inbox): the icon alone; the state opens below it, to the left. */
-.open-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); flex: none; cursor: pointer; font: inherit; }
+.open-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 7px; border: 1px solid var(--border-control); background: var(--surface); color: var(--muted); flex: none; cursor: pointer; font: inherit; }
 .open-icon:hover:not([aria-disabled="true"]) { color: var(--text); background: var(--raised); }
 .open-icon:focus-visible, .open-copy:focus-visible, .open-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .open-icon[aria-busy="true"] { color: var(--accent-text); }

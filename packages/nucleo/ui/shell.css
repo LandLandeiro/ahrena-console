@@ -103,10 +103,10 @@ button { font: inherit; cursor: pointer; }
 .btn.sm { --btn-h: 28px; padding: 0 10px; gap: 6px; font-size: 12px; }
 .btn.lg { --btn-h: 40px; padding: 0 18px; gap: 8px; font-size: 14px; }
 .btn.icon-only { width: var(--btn-h); padding: 0; }
-.btn.outline { border-color: var(--border); background: var(--surface); }
+.btn.outline { border-color: var(--border-control); background: var(--surface); }
 .btn.filled { background: var(--accent); color: var(--on-accent); font-weight: var(--weight-semibold); }
 .btn.ghost { color: var(--muted); }
-.btn.danger { color: var(--status-error-text); border-color: color-mix(in srgb, var(--status-error-dot) 45%, var(--border)); background: var(--surface); }
+.btn.danger { color: var(--status-error-text); border-color: color-mix(in srgb, var(--status-error-dot) 45%, var(--border-control)); background: var(--surface); }
 .btn.danger.filled { background: var(--status-error-dot); border-color: transparent; color: var(--on-accent); }
 .btn.outline:hover:not(:disabled):not([aria-disabled="true"]), .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--raised); }
 .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { color: var(--text); }

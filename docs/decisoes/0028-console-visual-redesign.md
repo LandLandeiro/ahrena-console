@@ -67,7 +67,7 @@ Três fatos pesaram:
 - **Tokens** (`docs/brand/tokens.json`):
   - raios em `radius` (`card`, `control`, `tag`, `segment`, `segmentItem`, `full`) e cores de agente em `agent` (`violet`, `blue`, `teal`, `indigo`, cada uma com texto e fundo por tema);
   - nos dois temas, os papéis novos `subtle`, `sidebar`, `segment`, `track`, `avatar`, `primary`, `onPrimary`, `accentLine` e `borderControl`; `text`, `muted` e `border` mudam de valor;
-  - `borderControl` é a borda de campo, caixa de seleção e botão sem fundo, para que o controle nunca dependa da `border`, que é só divisor. É a regra daqui em diante: as telas de hoje (`.btn.outline`, campos e seletores em `packages/nucleo/ui`) ainda usam `var(--border)` e passam a `borderControl` no [#750](https://github.com/ahrenatechnology/ahrena-console/issues/750) e no [#751](https://github.com/ahrenatechnology/ahrena-console/issues/751);
+  - `borderControl` é a borda de campo, caixa de seleção e botão sem fundo, para que o controle nunca dependa da `border`, que é só divisor. As telas de `packages/nucleo/ui` já seguem a regra desde o #749: campos, seletores, caixas de seleção e botões sem fundo (`.btn.outline` entre eles) usam `var(--border-control)`; divisores, cartões, tabelas, painéis, etiquetas e selos ficam na `border`. `test/ui-control-borders.test.mjs` falha se um controle voltar à `border`. O estado marcado, definido ou em foco desses controles usa `accentLine` (`var(--accent-line)`), que passa 3:1 nos dois temas; o laranja puro não passa sobre o claro. Aplicar o redesign às telas fica no #750 e no #751;
   - `shadow.<tema>.float`, a sombra do que flutua, em grupo próprio para que `themes.*` continue todo em hex;
   - `status.active` e `status.waiting` ganham `border`, a borda decorativa da etiqueta do estado; os outros três não têm;
   - o ponto de "Precisa de você" no claro passa de `#664e04` a `#a87e00`;
@@ -76,7 +76,7 @@ Três fatos pesaram:
 - **Contraste, critério revisto** (vale nos dois temas):
   - texto passa 4,5:1 sobre as superfícies onde é usado;
   - ícone, traço e `borderControl` passam 3:1;
-  - `border` é divisor e não é medido contra 3:1; a regra é que nenhum controle use só ela como borda (as telas atuais ainda usam, até o #750 e o #751);
+  - `border` é divisor e não é medido contra 3:1; nenhum controle usa só ela como borda, e o teste `test/ui-control-borders.test.mjs` confere isso nas telas;
   - a borda das etiquetas de estado é decorativa e fica fora da medida.
 - **Duas exceções registradas** em `docs/design.md`, cada uma com o teste da troca:
   - `#ab5316` (o laranja como traço no claro) não é texto sobre `sidebar` nem `segment` (4,47:1 e 4,24:1); como traço passa;
