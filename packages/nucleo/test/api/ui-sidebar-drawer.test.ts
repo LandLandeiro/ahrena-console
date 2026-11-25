@@ -192,7 +192,7 @@ describe('issue 750: the markup and the rules of the drawer', () => {
     assert.match(rule(narrow, '.cc-side'), /visibility: hidden/);
     assert.match(rule(narrow, '.cc-side[data-open]'), /visibility: visible/);
     assert.match(rule(narrow, '.cc-scrim'), /z-index: 39/);
-    assert.match(rule(narrow, '.cc-scrim'), /background: color-mix\(in srgb, var\(--mono-black\)/);
+    assert.match(rule(narrow, '.cc-scrim'), /background: color-mix\(in srgb, var\(--mono-black\) 30%, transparent\)/);
     assert.match(rule(narrow, '.cc'), /grid-template-columns: minmax\(0, 1fr\)/);
     assert.match(drawerCss, /@media \(prefers-reduced-motion: reduce\)/);
     assert.match(rule(narrow, '.cc-top'), /border-bottom: 1px solid var\(--border\)/);

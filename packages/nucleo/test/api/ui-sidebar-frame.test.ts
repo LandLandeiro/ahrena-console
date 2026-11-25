@@ -80,6 +80,74 @@ describe('issue 750: the bar', () => {
     assert.match(rule(shell, '.cc-gh:focus-visible'), /outline: 2px solid var\(--accent-line\)/);
   });
 
+  test('the measures of the kit: brand 16/12 without a line under it, titles with margin 11px 0 3px, hover at 60% surface, 1 px between items', () => {
+    assert.match(rule(shell, '.cc-brand b'), /font-size: 16px/);
+    assert.match(rule(shell, '.cc-brand small'), /font-size: 12px/);
+    assert.doesNotMatch(rule(shell, '.cc-brand'), /border-bottom/);
+    const title = rule(shell, '.cc-nav-title');
+    assert.match(title, /margin: 11px 0 3px/);
+    assert.match(title, /padding: 0 10px/);
+    assert.match(rule(shell, '.cc-nav:hover'), /background: color-mix\(in srgb, var\(--surface\) 60%, transparent\)/);
+    assert.match(rule(shell, '#nav'), /gap: 1px/);
+    assert.match(rule(shell, '.cc-nav-section'), /gap: 1px/);
+  });
+
+  test('the footer line runs from edge to edge of the bar: the bar has no side padding, the footer carries it', () => {
+    assert.match(rule(shell, '.cc-side'), /padding: 0[;\s]/);
+    const foot = rule(shell, '.cc-foot');
+    assert.match(foot, /border-top: 1px solid var\(--border\)/);
+    assert.match(foot, /padding: 10px 8px/);
+    assert.doesNotMatch(rule(shell, '#nav'), /margin: 0 -4px/);
+  });
+
+  test('the count tag is positioned, so the screen-reader text inside it does not scroll the page', () => {
+    assert.match(rule(shell, '.cc-nav-tag'), /position: relative/);
+  });
+
+  test('the live block: 8 px dot, 14 px text at weight 500, padding 9px 12px, card radius, note 12.5 px --subtle', () => {
+    const live = rule(shell, '.cc-live');
+    assert.match(live, /padding: 9px 12px/);
+    assert.match(live, /border-radius: var\(--radius-card\)/);
+    assert.match(live, /border: 1px solid var\(--border\)/);
+    assert.match(rule(shell, '.cc-live-dot'), /width: 8px/);
+    assert.match(rule(shell, '.cc-live-dot'), /height: 8px/);
+    assert.match(rule(shell, '.cc-live-dot'), /border-radius: 50%/);
+    assert.match(rule(shell, '.cc-live-line b'), /font-size: 14px/);
+    assert.match(rule(shell, '.cc-live-line b'), /font-weight: var\(--weight-medium\)/);
+    assert.match(rule(shell, '.cc-live-note'), /font-size: 12\.5px/);
+    assert.match(rule(shell, '.cc-live-note'), /color: var\(--subtle\)/);
+  });
+
+  test('offline is not told by color alone: the word and a hollow dot; the pulse stops under reduced motion', () => {
+    const off = rule(shell, '.cc-live[data-state="offline"] .cc-live-dot');
+    assert.match(off, /background: transparent/);
+    assert.match(off, /border: 2px solid var\(--status-error-dot\)/);
+    assert.match(rule(shell, '.cc-live[data-state="live"] .cc-live-dot'), /animation: cc-pulse/);
+    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.cc-live-dot \{ animation: none; \}/);
+    assert.match(shell, /@keyframes cc-pulse/);
+  });
+
+  test('the person: a 32 px avatar', () => {
+    assert.match(rule(shell, '.cc-avatar'), /width: 32px/);
+    assert.match(rule(shell, '.cc-avatar'), /height: 32px/);
+  });
+
+  test('the version is text in the note: no border and no fill at rest, underlined on hover, a visible focus', () => {
+    const update = readFileSync(`${UI_FOLDER}app-update.css`, 'utf8');
+    const base = rule(update, '.up-version');
+    assert.match(base, /border: 0/);
+    assert.match(base, /background: transparent/);
+    assert.match(base, /padding: 0/);
+    assert.match(base, /font-size: inherit/);
+    assert.match(base, /color: inherit/);
+    assert.doesNotMatch(base, /height: 20px|border-radius|--border-control/);
+    assert.match(rule(update, '.up-version:hover'), /text-decoration: underline/);
+    assert.doesNotMatch(rule(update, '.up-version:hover'), /background/);
+    assert.match(rule(update, '.up-version:focus-visible'), /outline: 2px solid var\(--accent-line\)/);
+    assert.doesNotMatch(update, /\.up-version\[data-new\] \{[^}]*accent-text/);
+    assert.match(rule(update, '.up-dot'), /background: var\(--accent\)/);
+  });
+
   test('the footer: the live block, the person row and two 28 px buttons without a border', () => {
     assert.match(rule(shell, '.cc-ibtn'), /width: 28px/);
     assert.match(rule(shell, '.cc-ibtn'), /height: 28px/);

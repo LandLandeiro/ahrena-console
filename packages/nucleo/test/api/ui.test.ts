@@ -381,14 +381,14 @@ describe('screen registry', () => {
     // The item is 31 px at least (issue 750); it never shrinks to fit the window.
     assert.match(rule('.cc-nav'), /min-height: 31px/);
     assert.match(rule('.cc-nav'), /flex: none/);
-    assert.match(rule('.cc-nav-title'), /padding: 18px 10px 6px/);
+    assert.match(rule('.cc-nav-title'), /margin: 11px 0 3px/);
     // The list scrolls; the brand and the footer stay put.
     assert.match(rule('#nav'), /overflow-y: auto/);
     assert.match(rule('#nav'), /min-height: 0/);
     assert.match(rule('.cc-side'), /overflow: hidden/);
     assert.match(rule('.cc-brand'), /flex: none/);
     assert.match(rule('.cc-foot'), /flex: none/);
-    assert.match(rule('.cc-foot'), /padding-top: 12px/);
+    assert.match(rule('.cc-foot'), /border-top: 1px solid var\(--border\)/);
     // The lit item is brought into view when the list scrolls.
     assert.match(readFileSync(`${UI_FOLDER}nav.js`, 'utf8'), /scrollIntoView\?\.\(\{ block: 'nearest' \}\)/);
   });

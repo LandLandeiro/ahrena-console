@@ -41,6 +41,20 @@ describe('issue 750: contrast of what the bar writes', () => {
     });
   }
 
+  for (const theme of ['dark', 'light'] as const) {
+    test(`${theme}: the live dot is at least 3:1 on its card, in the two states it draws`, () => {
+      const t = tokens.themes[theme];
+      for (const status of ['completed', 'error']) {
+        const dot = tokens.status[status][theme].dot;
+        assert.ok(ratio(dot, t.surface) >= 3, `${theme} ${status} dot on surface is ${ratio(dot, t.surface).toFixed(2)}`);
+      }
+    });
+    test(`${theme}: the note and the version button (--subtle) are at least 4.5:1 on the live card (--surface)`, () => {
+      const t = tokens.themes[theme];
+      assert.ok(ratio(t.subtle, t.surface) >= 4.5);
+    });
+  }
+
   test('the tag does not use accent-text, which fails on the bar in the light theme', () => {
     const light = tokens.themes.light;
     assert.ok(ratio(light.accentText, light.sidebar) < 4.5, 'the reason: accentText is under 4.5:1 on the light bar');
