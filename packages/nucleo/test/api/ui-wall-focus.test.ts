@@ -97,12 +97,16 @@ function start(initial: Card) {
     area,
     state,
     mounted: wall.mount(area, ctx) as Promise<() => void>,
+    removed,
     scrolled: () => scroll,
     scrollTo: (v: number) => (scroll = v),
     resetScrollOnRemove: () => {
       ElementoFalso.prototype.remove = function (this: ElementoFalso) {
         if (this.parentNode === area) scroll = 0;
         removed.push(this);
+        // #751: like the browser, a node removed with the focus inside drops the focus.
+        const focused = documentoFalso.activeElement;
+        if (focused && this.contains(focused)) documentoFalso.activeElement = null;
         realRemove.call(this);
       };
     },
@@ -123,7 +127,6 @@ function start(initial: Card) {
 
 let cleanup: (() => void) | null = null;
 afterEach(async () => {
-  ElementoFalso.prototype.remove = ElementoFalso.prototype.remove;
   documentoFalso.activeElement = null;
   cleanup?.();
   cleanup = null;
@@ -151,6 +154,7 @@ describe('#751: the redraw of the wall keeps the focus', () => {
       await s.refresh();
       assert.equal(active(), control, `${selector} keeps the focus`);
       assert.equal(s.area.firstChild, head, 'the header is the same node');
+      assert.ok(!s.removed.includes(head), 'the header is never taken out and put back');
     }
     assert.ok(focusLog.every((f) => (f.options as { preventScroll?: boolean } | undefined)?.preventScroll === true), 'every focus of the redraw is preventScroll');
   });

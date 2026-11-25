@@ -138,6 +138,10 @@ describe('open action: label and primary variant (#751)', () => {
     assert.ok(!classes(root).includes('primary'));
     assert.ok(classes(root).includes('outline'));
     assert.ok(classes(root).includes('md') && !classes(root).includes('sm'), 'the "Roda em …" of the card is 32px too, in outline');
+    // #751: the full size has no smaller label to fall back on, so only the disabled check keeps the remote text.
+    const full = openAction(remote, { size: 'full', machine: 'ws-exemplo', label: 'Responder no Claude' }) as ElementoFalso;
+    assert.equal(texto(full), texto(openAction(remote, { size: 'full', machine: 'ws-exemplo' }) as ElementoFalso));
+    assert.ok(!texto(full).includes('Responder no Claude'));
   });
 
   test('without primary the remote one and the icon keep their sizes', () => {
