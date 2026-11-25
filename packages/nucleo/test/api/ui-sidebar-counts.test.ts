@@ -205,7 +205,7 @@ describe('#750 a slow answer never overwrites a newer one', () => {
     waiting[3]!({ blocked: 2 });
     await fourth;
     failing[2]!(new Error('late failure'));
-    await third.catch(() => {});
+    await third;
     assert.deepEqual(last('wall'), { tone: 'waiting', text: '2 esperam' }, 'an older failure does not clear the newer number');
   });
 
