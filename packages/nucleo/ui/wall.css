@@ -84,12 +84,13 @@
 /* The text takes what the side leaves; the side goes under it only when the title and the side do not fit in the row. */
 .wall-main { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-left: 40px; min-width: 0; }
 .wall-main > :first-child { position: absolute; left: 0; top: 7px; }
-.wall-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.wall-text { display: flex; flex-direction: column; flex: 1000 1 auto; min-width: 0; }
 .wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
 .wall-phrase { display: block; contain: inline-size; font-size: 13.5px; line-height: 1.5; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wall-phrase-work { color: var(--muted); }
-.wall-side { display: flex; flex: 0 0 auto; align-items: center; gap: 12px; max-width: 100%; min-width: 0; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
+.wall-side { display: flex; flex: 1 0 auto; align-items: center; gap: 12px; max-width: 100%; min-width: 0; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
+.wall-side .wall-act { margin-left: auto; }
 .wall-since { color: var(--subtle); font-variant-numeric: tabular-nums; }
 .wall-ratio { color: var(--subtle); font-variant-numeric: tabular-nums; }
 .wall-row .wall-mach { margin-left: 0; max-width: 160px; }
@@ -142,5 +143,4 @@
 @media (max-width: 600px) {
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
   .wall-row .wall-mach { display: none; }
-  .wall-side .wall-act { margin-left: auto; }
 }

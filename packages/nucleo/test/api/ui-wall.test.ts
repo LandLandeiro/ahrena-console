@@ -932,7 +932,10 @@ describe('#751: the sheet of the wall', () => {
     const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
     assert.match(declared('.wall-main', 'flex-wrap') ?? '', /wrap/);
     assert.match(small, /\.wall-row \.wall-mach \{[^}]*display:\s*none/);
-    assert.match(small, /\.wall-side \.wall-act \{[^}]*margin-left:\s*auto/, 'the action sits at the right edge, so the failure notice opens inside the screen and not past its left edge');
+    assert.equal(declared('.wall-text', 'flex'), '1000 1 auto', 'the text takes the width first, so the side wraps only when it does not fit');
+    assert.equal(declared('.wall-side', 'flex'), '1 0 auto');
+    assert.equal(declared('.wall-side .wall-act', 'margin-left'), 'auto', 'at any width the action sits at the right edge, so the failure notice opens inside the row (#752)');
+    assert.doesNotMatch(small, /wall-act/, 'the action rule is outside the media query');
     assert.doesNotMatch(sheet, /wall-row \.wall-bar/, 'the row has no bar, so no rule for it');
   });
 
