@@ -477,7 +477,7 @@ export async function mount(area, ctx) {
     const total = all.length;
     numbers.get('all').textContent = String(total);
     for (const id of ['blocked', 'active', 'idle']) numbers.get(id).textContent = String(counts[id]);
-    numbers.get('blocked').className = `wall-seg-n${counts.blocked > 0 ? ' wall-seg-need' : ''}`;
+    numbers.get('blocked').setAttribute('class', `wall-seg-n${counts.blocked > 0 ? ' wall-seg-need' : ''}`);
     const f = FILTERS.find((x) => x.id === filter);
     const cards = all.filter(f.passa);
     const band = failure ? errorBand({ title: 'O mural não atualizou.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } }) : null;
