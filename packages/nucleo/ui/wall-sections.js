@@ -46,3 +46,27 @@ export function clockOf(iso) {
   if (!at || Number.isNaN(at.getTime())) return '';
   return `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
 }
+
+/**
+ * Where each row of the two-column list lands, in the core's order: `left`, `right` or `full` (a row with its tree
+ * open spans both), plus a `filler` where a row would leave a hole. `first` and `last` mark the first and the last
+ * grid row, for the corners and the dividers. `spans[i]` says whether row i spans both columns.
+ */
+export function duoCells(spans) {
+  const cells = [];
+  let col = 0;
+  const fill = () => (cells.push({ i: null, side: 'filler' }), (col = 0));
+  spans.forEach((span, i) => {
+    if (span || spans.length === 1) {
+      if (col === 1) fill();
+      cells.push({ i, side: 'full' });
+    } else {
+      cells.push({ i, side: col === 0 ? 'left' : 'right' });
+      col ^= 1;
+    }
+  });
+  if (col === 1) fill();
+  let row = -1;
+  const rowOf = cells.map((c) => (c.side === 'left' || c.side === 'full' || row < 0 ? ++row : row));
+  return cells.map((c, k) => ({ ...c, first: rowOf[k] === 0, last: rowOf[k] === row }));
+}

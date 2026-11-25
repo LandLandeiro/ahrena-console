@@ -104,3 +104,26 @@ describe('#752: clockOf, the time a completed row shows', () => {
     for (const bad of [undefined, null, '', 'x', '2026-13-45']) assert.equal(clockOf(bad), '');
   });
 });
+
+describe('#752: duoCells, where each row of the two-column list lands', () => {
+  const { duoCells } = sections;
+  const shape = (spans: boolean[]) => duoCells(spans).map((c: { i: number | null; side: string; first: boolean; last: boolean }) => `${c.i ?? '-'}${c.side[0]}${c.first ? '^' : ''}${c.last ? '$' : ''}`);
+  test('an even list is pairs, row-major: the order of the core is the order of the grid', () => {
+    assert.deepEqual(shape([false, false, false, false]), ['0l^', '1r^', '2l$', '3r$']);
+  });
+  test('an odd list ends with a filler, so the last row has no hole', () => {
+    assert.deepEqual(shape([false, false, false]), ['0l^', '1r^', '2l$', '-f$']);
+  });
+  test('a single row is the full width, with no empty right column and no filler', () => {
+    assert.deepEqual(shape([false]), ['0f^$']);
+    assert.deepEqual(shape([true]), ['0f^$']);
+  });
+  test('a row with its tree open spans both columns; a hole it would leave beside the row before is filled', () => {
+    assert.deepEqual(shape([false, false, true, false]), ['0l^', '1r^', '2f', '3l$', '-f$']);
+    assert.deepEqual(shape([false, true, false, false]), ['0l^', '-f^', '1f', '2l$', '3r$']);
+    assert.deepEqual(shape([true, false, false]), ['0f^', '1l$', '2r$']);
+  });
+  test('nothing is nothing', () => {
+    assert.deepEqual(duoCells([]), []);
+  });
+});
