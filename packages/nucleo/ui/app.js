@@ -7,7 +7,7 @@ import { header, el } from './dom.js';
 import { error, empty } from './states.js';
 import { findScreen, litItem } from './screens.js';
 import { createNav } from './nav.js';
-import { createCounts } from './counts.js';
+import { afterWrite, createCounts } from './counts.js';
 import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
@@ -43,6 +43,8 @@ const { readMachines, readConnectors, highlight, counter, tag } = createNav({
 // The yellow tag of the Mural and the orange number of Quadro do trabalho (issue 750): read now, on the changes that move them and when the core comes back.
 const counts = createCounts({ read, nav: { tag } });
 counts.refresh();
+// A write the person makes to the board moves the orange number (issue 750): the screens write through this one.
+const writeCounted = afterWrite(write, counts);
 // A remote's state also changes without an alert (another version over there): re-read now and then.
 setInterval(readMachines, 60_000);
 // The Conexões dot (issue 277): now, on every `connector` change, on restart and every minute (an expiry is no event).
@@ -184,7 +186,7 @@ async function open() {
   const ctx = {
     params,
     read: (route, options) => read(route, { signal: leave.signal, ...options }),
-    write: (route, body, options) => write(route, body, { signal: leave.signal, ...options }),
+    write: (route, body, options) => writeCounted(route, body, { signal: leave.signal, ...options }),
     signal: leave.signal,
     navigate,
     counter,

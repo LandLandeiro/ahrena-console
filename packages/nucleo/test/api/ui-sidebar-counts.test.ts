@@ -11,7 +11,7 @@ import { ElementoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 instalarDomFalso();
 
 // @ts-expect-error: browser modules, plain JavaScript
-import { ATTENTION_CHANGES, createCounts, WORK_CHANGES, WORK_ROUTE } from '../../ui/counts.js';
+import { ATTENTION_CHANGES, afterWrite, createCounts, WORK_CHANGES, WORK_ROUTE } from '../../ui/counts.js';
 // @ts-expect-error: idem
 import { apiPath } from '../../ui/screens/work-board-state.js';
 // @ts-expect-error: idem
@@ -151,7 +151,7 @@ describe('#750 which changes read again', () => {
   });
 
   test('a session that needs you reads /api/attention only, and a burst becomes one read after the debounce', async () => {
-    const { counts, reads, timers } = rig({ '/api/attention': async () => ({ blocked: 2 }), '/api/work': async () => work(1) });
+    const { counts, reads, timers } = rig({ '/api/attention': async () => ({ blocked: 2 }), '/api/work': async () => work(0) });
     await counts.refresh();
     const before = reads.length;
     for (const type of ['needs-you', 'session', 'state', 'permission', 'needs-you']) counts.changed([{ type }, { type: 'activity' }]);
@@ -284,5 +284,125 @@ describe('#750 the sidebar draws the tag and the number', () => {
     assert.match(app, /createCounts\(/);
     assert.match(app, /counts\.changed\(changes\)/);
     assert.doesNotMatch(app, /refresh=1/);
+  });
+});
+
+// Virtual time: timers that fire at their moment, and a clock the counts read.
+function clock() {
+  let now = 0;
+  let next = 0;
+  const pending = new Map<number, { at: number; f: () => void }>();
+  return {
+    now: () => now,
+    setTimer: (f: () => void, ms: number) => (pending.set(++next, { at: now + ms, f }), next),
+    clearTimer: (id: number) => void pending.delete(id),
+    async advance(ms: number) {
+      const end = now + ms;
+      for (;;) {
+        const due = [...pending.entries()].filter(([, t]) => t.at <= end).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!due) break;
+        pending.delete(due[0]);
+        now = due[1].at;
+        due[1].f();
+        await flushPromises();
+      }
+      now = end;
+    },
+  };
+}
+function timedRig(answers: Record<string, () => Promise<unknown>>) {
+  const reads: string[] = [];
+  const shown: Record<string, Tag[]> = { wall: [], work: [] };
+  const time = clock();
+  const read = (route: string) => {
+    reads.push(route);
+    return answers[Object.keys(answers).find((k) => route.startsWith(k))!]!();
+  };
+  const counts = createCounts({ read, nav: { tag: (id: string, tag: Tag) => void shown[id]!.push(tag) }, setTimer: time.setTimer, clearTimer: time.clearTimer, now: time.now });
+  return { counts, reads, time, shown, last: (id: string) => shown[id]!.at(-1) };
+}
+const total = (reads: string[], prefix: string) => reads.filter((r) => r.startsWith(prefix)).length;
+
+describe('#750 a steady stream of changes does not starve the read', () => {
+  test('batches every 500 ms for 5 s read, and never more than once per window', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 2 }), '/api/work': async () => work(0) });
+    await counts.refresh();
+    const before = total(reads, '/api/attention');
+    for (let t = 0; t < 5000; t += 500) {
+      counts.changed([{ type: 'session' }]);
+      await time.advance(500);
+    }
+    await time.advance(1000);
+    const n = total(reads, '/api/attention') - before;
+    assert.ok(n >= 4, `the stream must read (read ${n} times)`);
+    assert.ok(n <= 6, `at most one read per window of 1 s (read ${n} times)`);
+  });
+
+  test('a batch that arrives while the read is pending joins it: one read, at the first batch plus the debounce', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 2 }), '/api/work': async () => work(0) });
+    await counts.refresh();
+    const before = total(reads, '/api/attention');
+    counts.changed([{ type: 'state' }]);
+    await time.advance(900);
+    counts.changed([{ type: 'state' }]);
+    await time.advance(150);
+    assert.equal(total(reads, '/api/attention') - before, 1, 'the second batch did not move the read');
+  });
+});
+
+describe('#750 the orange number does not go stale', () => {
+  test('a successful write to /api/work/... reads the board again, debounced; another route reads nothing', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(1) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.wrote('/api/work/queue');
+    counts.wrote('/api/work/retry');
+    counts.wrote('/api/sessions');
+    counts.wrote('/api/workflows');
+    assert.equal(total(reads, '/api/work') - before, 0, 'not before the debounce');
+    await time.advance(1100);
+    assert.equal(total(reads, '/api/work') - before, 1, 'two writes, one read');
+    assert.equal(total(reads, '/api/attention'), 1);
+  });
+
+  test('afterWrite wraps the shell write: a success asks for the read, a failure does not, and the answer or the error pass through', async () => {
+    const asked: string[] = [];
+    const counts = { wrote: (route: string) => void asked.push(route) };
+    const ok = afterWrite(async (route: string) => ({ route }), counts);
+    assert.deepEqual(await ok('/api/work/queue', { a: 1 }), { route: '/api/work/queue' });
+    assert.deepEqual(asked, ['/api/work/queue']);
+    const boom = new Error('409');
+    const bad = afterWrite(async () => { throw boom; }, counts);
+    await assert.rejects(() => bad('/api/work/queue', {}), (e: unknown) => e === boom);
+    assert.deepEqual(asked, ['/api/work/queue'], 'a failed write does not read again');
+    assert.match(readFileSync(`${UI_FOLDER}app.js`, 'utf8'), /afterWrite\(write, counts\)/);
+  });
+
+  test('while the number shown is above zero a session change reads the board too, at most once every 30 s', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 0 }), '/api/work': async () => work(2) });
+    await counts.refresh();
+    let before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    assert.equal(total(reads, '/api/work') - before, 1);
+    counts.changed([{ type: 'session' }]);
+    await time.advance(10_000);
+    assert.equal(total(reads, '/api/work') - before, 1, 'inside the 30 s window it does not read');
+    await time.advance(25_000);
+    counts.changed([{ type: 'session' }]);
+    await time.advance(1100);
+    assert.equal(total(reads, '/api/work') - before, 2);
+    before = total(reads, '/api/attention');
+    assert.ok(before >= 3, 'the attention reads as before');
+  });
+
+  test('with zero queued a session change keeps reading /api/attention only', async () => {
+    const { counts, reads, time } = timedRig({ '/api/attention': async () => ({ blocked: 1 }), '/api/work': async () => work(0) });
+    await counts.refresh();
+    const before = total(reads, '/api/work');
+    counts.changed([{ type: 'session' }, { type: 'state' }]);
+    await time.advance(2000);
+    assert.equal(total(reads, '/api/work') - before, 0);
+    assert.equal(total(reads, '/api/attention'), 2);
   });
 });

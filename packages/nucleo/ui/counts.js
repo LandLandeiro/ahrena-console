@@ -19,6 +19,8 @@ export const WORK_CHANGES = new Set(['repos', 'connections']);
 
 /** Burst of changes becomes one read. */
 const DEBOUNCE_MS = 1000;
+/** While the orange number is above zero the queue may move by itself (the core opens a session): one read per this window at most. */
+const QUEUE_REREAD_MS = 30_000;
 
 /** How many sessions wait for the person: the `blocked` number of the route, or the blocked items. */
 export function waitingCount(attention) {
@@ -43,28 +45,36 @@ const queuedTag = (n) => (n > 0 ? { tone: 'active', text: String(n), note: 'na f
  * `nav` is the sidebar (`tag(id, tag | null)`), `read` the shell's read layer. `refresh()` reads both now; `changed(changes)`
  * is called with every batch of the live stream and reads only what the batch moves.
  */
-export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout }) {
+export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout, now = Date.now }) {
+  // What is on the bar now, per item: the number of the last answer that was kept (0 when the tag is away).
+  const shown = { wall: 0, work: 0 };
   function reader(route, id, tagOf, count) {
     let latest = 0;
     return async function load() {
       const mine = ++latest;
       let tag = null;
+      let n = 0;
       try {
-        tag = tagOf(count(await read(route)));
+        n = count(await read(route));
+        tag = tagOf(n);
       } catch {
         // A failure (409, 502, 503, offline) is no number: the tag goes away.
       }
-      if (mine === latest) nav.tag(id, tag);
+      if (mine !== latest) return;
+      shown[id] = tag ? n : 0;
+      nav.tag(id, tag);
     };
   }
   const loadAttention = reader(ATTENTION_ROUTE, 'wall', waitingTag, waitingCount);
   const loadWork = reader(WORK_ROUTE, 'work', queuedTag, queuedCount);
 
+  // One pending read per key: a batch that arrives meanwhile joins it, so a steady stream still reads once per window.
   const timers = new Map();
   function later(key, load) {
-    if (timers.has(key)) clearTimer(timers.get(key));
+    if (timers.has(key)) return;
     timers.set(key, setTimer(() => (timers.delete(key), load()), DEBOUNCE_MS));
   }
+  let queueReadAt = -Infinity;
 
   return {
     refresh: () => Promise.all([loadAttention(), loadWork()]).then(() => {}),
@@ -73,6 +83,24 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
       const types = new Set(changes.map((c) => c?.type));
       if ([...types].some((t) => ATTENTION_CHANGES.has(t))) later('attention', loadAttention);
       if ([...types].some((t) => WORK_CHANGES.has(t))) later('work', loadWork);
+      // The queue moves by itself when the core opens a session: while the number is above zero, a session change reads it, once per window.
+      if (types.has('session') && shown.work > 0 && now() - queueReadAt >= QUEUE_REREAD_MS) {
+        queueReadAt = now();
+        later('work', loadWork);
+      }
     },
+    /** A write the person made to the board (queue, dequeue, retry) moves the number and the core emits no change for it. */
+    wrote(route) {
+      if (typeof route === 'string' && (route === '/api/work' || route.startsWith('/api/work/'))) later('work', loadWork);
+    },
+  };
+}
+
+/** The shell's `write` that tells the counts after a write that succeeded; a failure passes through and reads nothing. */
+export function afterWrite(write, counts) {
+  return async (route, body, options) => {
+    const answer = await write(route, body, options);
+    counts.wrote(route);
+    return answer;
   };
 }
