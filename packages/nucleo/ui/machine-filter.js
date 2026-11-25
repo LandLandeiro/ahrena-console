@@ -253,7 +253,7 @@ export function machineLabel(item) {
 /** The machine of an item with its icon and its name written, for the foot of a card and a row. */
 export function machineMark(item) {
   const m = machineLabel(item);
-  return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', {}, m.text));
+  return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', { title: m.text }, m.text));
 }
 
 /** The C48 band: neutral, the wifi-off icon, the text and "Ver a <label>" to the machine screen. */

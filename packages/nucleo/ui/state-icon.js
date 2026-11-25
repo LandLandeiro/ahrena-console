@@ -62,7 +62,7 @@ export function stateIcon(kind, { fraction = 0 } = {}) {
 /** The tag of a state: the icon and the label in words, no fill. Without `label`, the kind says its own. */
 export function stateTag({ kind, label = null, fraction = 0 } = {}) {
   const text = typeof label === 'string' && label ? label : (KIND_LABEL[kind] ?? '');
-  return el('span', { class: 'state-tag', 'data-state-kind': kind }, stateIcon(kind, { fraction }), el('span', { class: 'state-tag-label' }, text));
+  return el('span', { class: 'state-tag', 'data-state-kind': kind }, stateIcon(kind, { fraction }), el('span', { class: 'state-tag-label', title: text }, text));
 }
 
 /** The kind and the label of a session by its attention and its status, with today's words. */
