@@ -411,7 +411,7 @@ export async function mount(area, ctx) {
       const lost = spot.kind === 'retry' ? buttons.get(filter) : (sameSession(fresh, spot) ?? (spot.kind === 'child' && held.key ? findSpot(fresh, 'link', held.key) : null));
       return findSpot(fresh, spot.kind, spot.id) ?? lost;
     }
-    // ADR-0028: a control of a failure popover goes back to the same control of the same popover, else to the open button, never the link.
+    // ADR-0028: a control of a failure popover goes back to the same control of the same popover, else to the open button, else to the link of the session.
     if (held.popover && held.key) {
       const open = findSpot(fresh, 'open', held.key);
       const same = open?.parentNode?.querySelector?.(`.${held.popover}`) ?? open;

@@ -566,6 +566,25 @@ describe('#751: the focus stays inside an open failure popover', () => {
     assert.equal(s.area.querySelector('.open-fail'), null);
     assert.equal(active(), one(s.area, '[data-key="local:c1"] .open-button'));
   });
+
+  test('#752: the session loses only the open action: the focus falls to the link of the session, not to the body', async () => {
+    const none = { target: 'none', command: null };
+    const cases: [string, string, (id: string, extra?: Card) => Card][] = [
+      ['.open-copy', 'row', session],
+      ['.open-close', 'row', session],
+      ['.open-copy', 'card', blocked],
+    ];
+    for (const [where, shape, make] of cases) {
+      const s = await failed(`[data-key="local:m1"] ${shape === 'row' ? '.open-icon' : '.open-button'}`, [make('m1'), session('z1')]);
+      one(s.area, `[data-key="local:m1"] ${where}`).focus();
+      s.state.wall = wallOf([make('m1', { open: none }), session('z1')]);
+      await s.refresh();
+      assert.equal(s.area.querySelector('[data-key="local:m1"] .open-icon, [data-key="local:m1"] .open-button'), null, `${shape} ${where}: the open action is gone`);
+      assert.equal(active(), one(s.area, '[data-key="local:m1"] a.wall-link'), `${shape} ${where}: the focus is on the link of the session`);
+      cleanup?.();
+      cleanup = null;
+    }
+  });
 });
 
 describe('#751: the focus follows a session that became a nested child, a parked row, or the rows "Mostrar mais" adds', () => {
