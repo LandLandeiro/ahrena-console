@@ -64,7 +64,7 @@ function start(initial: Card, failRead = false) {
   resetOpenStates();
   resetMachineChoice();
   const area = new ElementoFalso('main');
-  const state = { wall: initial, reads: 0, attempts: 0, failRead, failOpen: false, failCommand: false };
+  const state = { wall: initial, reads: 0, attempts: 0, failRead, failOpen: false, failCommand: false, gate: null as Promise<void> | null };
   const leave = new AbortController();
   const changes: (() => void)[] = [];
   const ctx = {
@@ -73,6 +73,7 @@ function start(initial: Card, failRead = false) {
     read: async (route: string) => {
       if (route.startsWith('/api/new-session/folders')) return { folders: [{ path: '/x/a', name: 'a' }, { path: '/x/b', name: 'b' }], targets: {} };
       state.attempts++;
+      if (state.gate) await state.gate;
       if (state.failRead) throw new Error('O núcleo não respondeu.');
       state.reads++;
       return structuredClone(state.wall);
@@ -370,7 +371,7 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
   test('the retry of the band: the focus goes to the new button, and to Atualizar when the band is gone', async () => {
     const s = await mountWith(wallOf([blocked('c1')]));
     s.state.failRead = true;
-    await s.refresh().catch(() => {});
+    one(s.area, '[data-action="refresh"]').click();
     await until(() => s.area.querySelector('.error-band') !== null);
     const first = one(s.area, '.error-band button');
     first.focus();
@@ -418,6 +419,83 @@ describe('#751: the retry and the notice link keep the focus through the redraw'
     await s.refresh();
     assert.equal(s.area.querySelector('.mf-notice'), null);
     assert.equal(active(), one(s.area, '.mf-seg [data-machine="ws"]'));
+  });
+});
+
+describe('#751: a redraw does not take a focus nobody had', () => {
+  test('a redraw with the focus on the body leaves it on the body, and Atualizar is not focused', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), session('r1')]));
+    documentoFalso.activeElement = null;
+    await s.refresh();
+    assert.equal(active(), null);
+    assert.equal(focusLog.length, 0, 'no node was focused by the redraw');
+  });
+
+  test('a retry that resolves after the focus went elsewhere leaves the focus where it went', async () => {
+    const s = await mountWith(wallOf([blocked('c1')]));
+    s.state.failRead = true;
+    one(s.area, '[data-action="refresh"]').click();
+    await until(() => s.area.querySelector('.error-band') !== null);
+    one(s.area, '.error-band button').focus();
+    let release = () => {};
+    s.state.gate = new Promise<void>((resolve) => (release = resolve));
+    s.state.failRead = false;
+    const before = s.state.attempts;
+    one(s.area, '.error-band button').click();
+    await until(() => s.state.attempts > before);
+    one(s.area, '[data-key="local:c1"] a.wall-link').focus();
+    focusLog.length = 0;
+    release();
+    await until(() => s.area.querySelector('.error-band') === null);
+    assert.equal(active(), one(s.area, '[data-key="local:c1"] a.wall-link'), 'the focus stayed on the link of the card');
+    s.state.failRead = true;
+    one(s.area, '[data-action="refresh"]').click();
+    await until(() => s.area.querySelector('.error-band') !== null);
+    one(s.area, '.error-band button').focus();
+    s.state.gate = new Promise<void>((resolve) => (release = resolve));
+    s.state.failRead = false;
+    const again = s.state.attempts;
+    one(s.area, '.error-band button').click();
+    await until(() => s.state.attempts > again);
+    one(s.area, '[data-action="refresh"]').focus();
+    release();
+    await until(() => s.area.querySelector('.error-band') === null);
+    assert.equal(active(), one(s.area, '[data-action="refresh"]'), 'the focus stayed on Atualizar');
+  });
+});
+
+describe('#751: the rows "Mostrar mais" adds take the focus only from the button that asked for them', () => {
+  const items = (n: number) => Array.from({ length: n }, (_, i) => parkedItem(`p${i}`));
+  const band = (n: number) => wallOf([blocked('c1')], { parked: { total: 30, items: items(n) } });
+
+  test('a "Mostrar mais" that adds nothing: a row that arrives later does not take the focus from another control', async () => {
+    const s = await mountWith(band(7));
+    one(s.area, '[data-parked="toggle"]').click();
+    one(s.area, '[data-parked="more"]').focus();
+    const before = s.state.reads;
+    one(s.area, '[data-parked="more"]').click();
+    await until(() => s.state.reads > before);
+    await new Promise((r) => setTimeout(r, 20));
+    s.state.wall = band(8);
+    one(s.area, '[data-parked="toggle"]').focus();
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-parked="toggle"]'), 'a new parked row did not take the focus from the band header');
+  });
+
+  test('after the rows were added the focus goes to the first of them once, and the next redraw leaves it on "Mostrar mais"', async () => {
+    const s = await mountWith(band(7));
+    one(s.area, '[data-parked="toggle"]').click();
+    one(s.area, '[data-parked="more"]').focus();
+    s.state.wall = band(12);
+    const before = s.state.reads;
+    one(s.area, '[data-parked="more"]').click();
+    await until(() => s.state.reads > before);
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal(active(), one(s.area, '[data-parked-row="p7"] a'));
+    one(s.area, '[data-parked="more"]').focus();
+    s.state.wall = band(13);
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-parked="more"]'), 'the memory of the first click was cleared');
   });
 });
 
