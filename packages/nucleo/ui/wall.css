@@ -64,9 +64,9 @@
 .wall-row:hover { background: var(--raised); }
 .wall-main { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-width: 0; }
 .wall-text { display: flex; flex-direction: column; min-width: 0; }
-.wall-rt { font-size: 15px; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
-.wall-phrase { display: block; font-size: 13.5px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wall-phrase { display: block; font-size: 13.5px; line-height: 1.5; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wall-phrase-work { color: var(--muted); }
 .wall-side { display: flex; align-items: center; gap: 16px; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
 .wall-since { color: var(--subtle); font-variant-numeric: tabular-nums; }

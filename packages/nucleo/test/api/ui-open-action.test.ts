@@ -115,6 +115,7 @@ describe('open action: label and primary variant (#751)', () => {
     const root = openAction(session, { size: 'small' }) as ElementoFalso;
     assert.ok(classes(root).includes('outline'));
     assert.ok(!classes(root).includes('primary'));
+    assert.ok(classes(root).includes('sm') && !classes(root).includes('md'), 'the other screens keep the 28px button');
     assert.equal(texto(root.querySelector('button')), 'Abrir no Claude Desktop');
   });
 
@@ -124,7 +125,7 @@ describe('open action: label and primary variant (#751)', () => {
     assert.equal(texto(button), 'Responder no Claude');
     assert.ok(classes(root).includes('primary'));
     assert.ok(!classes(root).includes('outline'));
-    assert.ok(classes(root).includes('sm'));
+    assert.ok(classes(root).includes('md') && !classes(root).includes('sm'), 'primary is the 32px button of the kit');
     assert.equal(button.getAttribute('data-open-target'), 'desktop');
     assert.equal(button.getAttribute('title'), 'Abre a conversa no Claude Desktop');
   });
@@ -136,6 +137,14 @@ describe('open action: label and primary variant (#751)', () => {
     assert.equal(texto(root), 'Roda em ws-exemplo');
     assert.ok(!classes(root).includes('primary'));
     assert.ok(classes(root).includes('outline'));
+    assert.ok(classes(root).includes('md') && !classes(root).includes('sm'), 'the "Roda em …" of the card is 32px too, in outline');
+  });
+
+  test('without primary the remote one and the icon keep their sizes', () => {
+    const remote = { id: UUID, open: { target: 'desktop', command: null }, machine: { id: 'ws', label: 'ws-exemplo' } };
+    assert.ok(classes(openAction(remote, { size: 'small', machine: 'ws-exemplo' }) as ElementoFalso).includes('sm'));
+    assert.ok(classes(openAction(session, { size: 'full' }) as ElementoFalso).includes('md'));
+    assert.ok(!classes(openAction(session, { size: 'icon' }) as ElementoFalso).includes('md'));
   });
 
   test('an action that does not exist is still null', () => {

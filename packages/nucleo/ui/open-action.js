@@ -127,7 +127,8 @@ function setState(id, st) {
  * The action for one session (`{ id, open }`), or `null` when there is nothing to open.
  * `size`: 'full' | 'small' | 'icon'. `write` swaps the transport (tests, the screen's `ctx.write`).
  * `label` replaces the text of the button and `primary` draws it with the primary fill (ADR-0028); a
- * session of another machine keeps its own text and its outline, since it never opens from here.
+ * session of another machine keeps its own text and its outline, since it never opens from here. `primary` is also the
+ * 32px button of the kit (`md`) in every size, the remote one included; the screen never sets a button's height.
  */
 export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS, label: customLabel = null, primary = false } = {}) {
   // Issue 243: a session of another machine never POSTs to this core, whatever its `open` says.
@@ -148,7 +149,7 @@ export function openAction(session, { size = 'full', write = defaultWrite, machi
     ? el('button', { type: 'button', class: 'open-icon', title: d.title, 'aria-label': d.disabled ? d.title : d.label, 'data-open-target': d.target }, icon(iconName))
     : el(
         'button',
-        { type: 'button', class: `btn ${filled ? 'primary' : 'outline'} ${size === 'full' ? 'md' : 'sm'} open-button`, title: d.title, 'data-open-target': d.target },
+        { type: 'button', class: `btn ${filled ? 'primary' : 'outline'} ${size === 'full' || primary === true ? 'md' : 'sm'} open-button`, title: d.title, 'data-open-target': d.target },
         icon(iconName),
         label,
         size === 'full' && d.external ? icon('external') : null,

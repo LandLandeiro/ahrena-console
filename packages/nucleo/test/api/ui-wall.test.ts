@@ -817,6 +817,18 @@ describe('#751: the sheet of the wall', () => {
     }
   });
 
+  test('the row is 68px tall: line-height 1.5 on the title and the phrase (#751)', () => {
+    assert.equal(declared('.wall-rt', 'line-height'), '1.5');
+    assert.equal(declared('.wall-phrase', 'line-height'), '1.5');
+    assert.equal(declared('.wall-row', 'padding'), '12px 16px');
+  });
+
+  test('the screen never sets the height of a button: the card action gets its size from openAction', () => {
+    const code = css('screens/wall.js');
+    assert.doesNotMatch(code, /size:\s*'small'[^}]*size:/);
+    assert.doesNotMatch(sheet, /\.open-button|\.btn[^{]*\{[^}]*(height|--btn-h)/);
+  });
+
   test('the dead rules of the old card are gone', () => {
     for (const dead of ['wall-badge', 'wall-b-', 'wall-gr(?![a-z])', 'wall-bars', 'wall-planrow', 'wall-st-', 'wall-prj', 'wall-l1', 'wall-detail', 'wall-pill']) assert.doesNotMatch(sheet, new RegExp(dead), dead);
     const code = css('screens/wall.js');
