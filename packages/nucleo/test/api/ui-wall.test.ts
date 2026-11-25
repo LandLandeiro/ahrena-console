@@ -855,13 +855,18 @@ describe('#751: the sheet of the wall', () => {
     assert.doesNotMatch(sheet, /\.open-button|\.btn[^{]*\{[^}]*(height|--btn-h)/);
   });
 
-  test('390px: the header wraps from 640px (as the base did) and its actions wrap and take the whole row below 600px, so the screen does not scroll sideways', () => {
+  test('the header wraps and its actions take the whole row up to 1000px, so the screen does not scroll sideways at 700 or 900 (#751)', () => {
     const block = (width: number) => css('wall.css').match(new RegExp(`@media \\(max-width: ${width}px\\) \\{([\\s\\S]*?)\\n\\}`))?.[1] ?? '';
-    assert.match(block(640), /\.cc-head:has\(\.wall-seg\) \{[^}]*flex-wrap:\s*wrap/, 'the band 600 to 640 keeps the wrapped header');
-    const actions = block(600).match(/\.cc-head:has\(\.wall-seg\) \.actions \{([^}]*)\}/)?.[1] ?? '';
+    const wide = block(1000);
+    assert.match(wide, /\.cc-head:has\(\.wall-seg\) \{[^}]*flex-wrap:\s*wrap/);
+    const actions = wide.match(/\.cc-head:has\(\.wall-seg\) \.actions \{([^}]*)\}/)?.[1] ?? '';
     assert.match(actions, /flex-wrap:\s*wrap/);
     assert.match(actions, /width:\s*100%/);
     assert.match(actions, /margin-left:\s*0/);
+    assert.match(actions, /justify-content:\s*flex-start/);
+    assert.match(wide, /\.wall-seg \{[^}]*flex-wrap:\s*wrap[^}]*max-width:\s*100%/);
+    for (const narrow of [600, 640]) assert.doesNotMatch(block(narrow), /cc-head|\.wall-seg/, `the ${narrow}px block repeats the header rules`);
+    assert.equal(block(640), '', 'no 640px block is left');
   });
 
   test('the screen has no double blank lines', () => {

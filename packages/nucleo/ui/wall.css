@@ -102,16 +102,16 @@
 .wall-parked-head b { white-space: nowrap; }
 .wall-parked-r { margin-left: auto; font-size: 12px; white-space: nowrap; }
 
+/* ADR-0028: up to 1000px the header wraps and its actions take the whole row. */
+@media (max-width: 1000px) {
+  .cc-head:has(.wall-seg) { flex-wrap: wrap; }
+  .cc-head:has(.wall-seg) .actions { flex-wrap: wrap; width: 100%; margin-left: 0; justify-content: flex-start; }
+  .wall-seg { flex-wrap: wrap; max-width: 100%; }
+}
+
 /* Below 600px the cards go one a row, and the list loses the machine and the bar. */
 @media (max-width: 600px) {
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
   .wall-row .wall-mach, .wall-row .wall-bar { display: none; }
   .wall-side { gap: 10px; }
-  .cc-head:has(.wall-seg) .actions { flex-wrap: wrap; width: 100%; margin-left: 0; justify-content: flex-start; }
-  .wall-seg { flex-wrap: wrap; max-width: 100%; }
-}
-
-/* ADR-0028: the header wraps from 640px, as before the redesign. */
-@media (max-width: 640px) {
-  .cc-head:has(.wall-seg) { flex-wrap: wrap; }
 }
