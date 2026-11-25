@@ -25,6 +25,8 @@ const CONTROLS = [
   // #749: bare `.btn` covers every state and variant of the button (done, failed, hover), not `.btn-note`
   '.btn', '.btn.outline', '.btn.danger', '.pp-chip', '.kb-more', '.wb-done-more',
   '.sm-cmd', '.sm-mic', '.open-icon', '.sd-note-head',
+  // #751: the segmented selectors of the wall and of the machine filter
+  '.wall-seg', '.mf-seg',
 ]
 
 // #749: the visible box of these is drawn by a child or the browser; nothing may give them the divider.

@@ -76,7 +76,7 @@
 .wall-tree { position: relative; z-index: 1; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--border); }
 .wall-card .wall-tree { margin-top: 0; }
 .wall-treeline { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 11px; white-space: nowrap; cursor: pointer; text-align: left; }
-.wall-treeline:focus-visible, .wall-kid-toggle:focus-visible, .wall-parked-head:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.wall-treeline:focus-visible, .wall-kid-toggle:focus-visible, .wall-kid-title:focus-visible, .wall-parked-head:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .wall-tree-total { font-weight: var(--weight-semibold); }
 .wall-tree-blocked { color: var(--status-waiting-text); }
 .wall-tree-active { color: var(--status-active-text); }

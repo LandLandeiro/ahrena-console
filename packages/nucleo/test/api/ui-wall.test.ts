@@ -735,7 +735,7 @@ describe('#751: the sheet of the wall', () => {
   test('every control of the wall has the 2px --accent-line focus ring, offset 2px, the stretched links through :has', () => {
     const focus = rules.filter((r) => /:focus-visible/.test(r.selector) && /outline:\s*2px solid var\(--accent-line\)/.test(r.body));
     const dits = focus.map((r) => r.selector).join(' | ');
-    for (const control of ['.wall-seg button', '.wall-treeline', '.wall-kid-toggle', '.wall-parked-head', '.wall-card:has(.wall-link:focus-visible)', '.wall-row:has(.wall-link:focus-visible)']) {
+    for (const control of ['.wall-seg button', '.wall-treeline', '.wall-kid-toggle', '.wall-kid-title', '.wall-parked-head', '.wall-card:has(.wall-link:focus-visible)', '.wall-row:has(.wall-link:focus-visible)']) {
       assert.ok(dits.includes(control), `${control} has no focus ring: ${dits}`);
     }
     for (const r of focus) assert.match(r.body, /outline-offset:\s*2px/);

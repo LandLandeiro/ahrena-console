@@ -808,3 +808,13 @@ describe('the Detail of a remote session (C49)', () => {
     }
   });
 });
+
+describe('#751: the machine selector is a control: the control border and the --accent-line ring', () => {
+  const sheet = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const body = (selector: string) => [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].find((m) => m[1]!.trim() === selector)?.[2] ?? '';
+  test('the box uses --border-control and the focus is 2px --accent-line, offset 2px', () => {
+    assert.match(body('.mf-seg'), /border:\s*1px solid var\(--border-control\)/);
+    assert.match(body('.mf-seg button:focus-visible'), /outline:\s*2px solid var\(--accent-line\)/);
+    assert.match(body('.mf-seg button:focus-visible'), /outline-offset:\s*2px/);
+  });
+});
