@@ -217,6 +217,15 @@ describe('issue 750: the account menu', () => {
     assert.equal(panel.hidden, true);
   });
 
+  test('#750: Enter on the Conexões link closes the menu and the focus goes back to the button, not to the body', () => {
+    const { button, panel, inside } = menu();
+    button.click();
+    inside.focus();
+    inside.click();
+    assert.equal(panel.hidden, true);
+    assert.equal(documentoFalso.activeElement, button);
+  });
+
   test('close() gives the focus back to the button; closing by a click outside does not steal it', () => {
     const { button, account, outside } = menu();
     account.open();

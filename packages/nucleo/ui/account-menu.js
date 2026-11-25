@@ -42,8 +42,9 @@ export function createAccountMenu({ button, menu, doc = document }) {
   }
   button.addEventListener('focusout', left);
   menu.addEventListener('focusout', left);
+  // A link of the menu closes it and the focus goes back to the button; inside the drawer the drawer closes right after and takes it to its own button (#750).
   menu.addEventListener('click', (ev) => {
-    if (ev.target instanceof Element && ev.target.closest('a[href]')) close({ restoreFocus: false });
+    if (ev.target instanceof Element && ev.target.closest('a[href]')) close();
   });
   return { isOpen, open, close };
 }

@@ -24,12 +24,11 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
     firstItem()?.focus();
   }
 
-  /** `restoreFocus` is false when the window has just become wide: the person's focus stays where it is. */
-  function close({ restoreFocus = true } = {}) {
+  function close() {
     if (!opened) return;
     opened = false;
     paint();
-    if (restoreFocus) button.focus();
+    button.focus();
   }
 
   button.addEventListener('click', () => (opened ? close() : open()));

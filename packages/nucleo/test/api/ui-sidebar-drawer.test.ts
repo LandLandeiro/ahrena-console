@@ -10,6 +10,8 @@ import { documentoFalso, ElementoFalso, instalarDomFalso } from './fake-dom.ts';
 instalarDomFalso();
 
 // @ts-expect-error: browser module, plain JavaScript
+import { createAccountMenu } from '../../ui/account-menu.js';
+// @ts-expect-error: browser module, plain JavaScript
 import { createDrawer, DRAWER_QUERY } from '../../ui/drawer.js';
 // @ts-expect-error: browser module, plain JavaScript
 import { createEscape } from '../../ui/escape.js';
@@ -210,5 +212,25 @@ describe('issue 750: the markup and the rules of the drawer', () => {
     assert.match(app, /createDrawer\(\{/);
     assert.match(app, /background: \[document\.querySelector\('\.cc-col'\)\]/);
     assert.match(app, /createEscape\(document, \[\s*\{ isOpen: \(\) => appUpdate\.isOpen[^\]]*accountMenu,\s*drawer,\s*\]\)/);
+  });
+});
+
+describe('#750: the Conexões link of the account menu inside the drawer', () => {
+  test('the account menu closes and the focus ends on the menu button of the drawer, as the drawer closes', () => {
+    const { button, side, drawer } = rig(true);
+    const accountButton = new ElementoFalso('button');
+    const panel = new ElementoFalso('div');
+    panel.id = 'account-menu';
+    const link = new ElementoFalso('a');
+    link.setAttribute('href', '/ui/connections');
+    panel.append(link);
+    side.append(accountButton, panel);
+    createAccountMenu({ button: accountButton, menu: panel, doc: documentoFalso }).open();
+    drawer.open();
+    link.focus();
+    link.click();
+    assert.equal(panel.hidden, true);
+    assert.equal(drawer.isOpen(), false);
+    assert.equal(documentoFalso.activeElement, button);
   });
 });
