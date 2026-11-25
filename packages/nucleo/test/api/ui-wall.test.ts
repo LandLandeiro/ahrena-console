@@ -222,6 +222,38 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
   });
 });
 
+describe('#751: the phrase of an idle row says the reason first', () => {
+  const idle = (reason: string | null, text: string | undefined) => rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason }, activity: text === undefined ? undefined : { type: 'your-turn', text } })).phrase;
+  test('"Sua vez · <text of the core>", the reason alone without a text, the text alone when it already starts with the reason', () => {
+    assert.equal(idle('turn_ended', 'Rodo os testes?'), 'Sua vez · Rodo os testes?');
+    assert.equal(idle('interrupted', 'Parou no passo 2'), 'Interrompida · Parou no passo 2');
+    assert.equal(idle('first_prompt', 'Aguardando o primeiro pedido'), 'No prompt · Aguardando o primeiro pedido');
+    assert.equal(idle('turn_ended', undefined), 'Sua vez');
+    assert.equal(idle('turn_ended', '   '), 'Sua vez');
+    assert.equal(idle('turn_ended', 'Sua vez: rodo os testes?'), 'Sua vez: rodo os testes?');
+    assert.equal(idle('turn_ended', 'sua vez'), 'sua vez');
+  });
+  test('without a known reason the phrase is the text, as before; a working or completed row does not change', () => {
+    assert.equal(idle(null, 'Rodo os testes?'), 'Rodo os testes?');
+    assert.equal(idle('nao-existe', 'Rodo os testes?'), 'Rodo os testes?');
+    assert.equal(idle('permission', 'Bash: npm run migrate'), 'Bash: npm run migrate');
+    assert.equal(rowContent(cardDeExemplo('r')).phrase, 'Rodar a bateria');
+    assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } })).phrase, 'Terminou sem erro');
+  });
+  test('the idle row shows it on screen, in the phrase and in its title', async () => {
+    const { area, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => linhasDe(area).length > 0);
+      const linha = linhasDe(area).find((r) => r.getAttribute('data-session') === 'espera-2')!;
+      const frase = comClasse(linha, 'wall-phrase')[0]!;
+      assert.equal(frase.textContent, 'Sua vez · Rodo os testes?');
+      assert.equal(frase.getAttribute('title'), 'Sua vez · Rodo os testes?');
+    } finally {
+      await sair();
+    }
+  });
+});
+
 // ---------- A tela ----------
 
 describe('Mural: a tela montada', () => {

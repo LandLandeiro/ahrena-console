@@ -5,7 +5,7 @@
 
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { ATTENTION_PLURAL, attentionOf, isBlocked, isIdle } from '../attention.js';
+import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isBlocked, isIdle } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
 import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
@@ -77,13 +77,23 @@ export function cardContent(c) {
   };
 }
 
+// ADR-0028: an idle row says why it waits ("Sua vez · text"); the text alone when it already starts with the reason.
+function idlePhrase(c) {
+  const a = attentionOf(c.attention);
+  const reason = a?.level === 'idle' && a.reason && ATTENTION_REASONS[a.reason]?.level === 'idle' ? ATTENTION_REASONS[a.reason].label : null;
+  const text = clean(c.activity?.text);
+  if (!reason) return text;
+  if (!text) return reason;
+  return text.toLowerCase().startsWith(reason.toLowerCase()) ? text : `${reason} · ${text}`;
+}
+
 /** What a row shows, without DOM: the phrase, the slice of the state and "X de Y" when there is a plan. */
 export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
   return {
     ...v,
-    phrase: c.status === 'completed' ? 'Terminou sem erro' : clean(c.activity?.text),
+    phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
     fraction: plan ? plan.done / plan.total : 0,
     ratio: plan ? `${plan.done} de ${plan.total}` : null,
     idle: isIdle(c.attention),
