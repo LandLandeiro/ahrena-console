@@ -2,7 +2,7 @@
 // Roda com: node --test test/
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
 const tokens = JSON.parse(readFileSync(new URL('../docs/brand/tokens.json', import.meta.url), 'utf8'))
@@ -412,4 +412,128 @@ test('#700/AC-2: no generated or hand-written consumer references a green token'
     text.split('\n').forEach((line, i) => { if (GREEN_REFERENCE.test(line)) found.push(`${file}:${i + 1}`) })
   }
   assert.deepEqual(found, [], 'a consumer still references the retired green')
+})
+
+// #749: every error label painted by the /ui CSS reaches 4.5:1 on the background really behind it, mixes included.
+const UI_DIR = new URL('../packages/nucleo/ui/', import.meta.url)
+
+function uiCssFiles(dir = UI_DIR) {
+  const out = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), dir)
+    if (entry.isDirectory()) out.push(...uiCssFiles(url))
+    else if (entry.name.endsWith('.css') && entry.name !== 'brand.css') out.push(url)
+  }
+  return out
+}
+
+function cssRules(file) {
+  const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const rules = []
+  for (const m of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const decls = {}
+    for (const d of m[2].split(';')) {
+      const i = d.indexOf(':')
+      if (i > 0) decls[d.slice(0, i).trim()] = d.slice(i + 1).trim()
+    }
+    for (const selector of m[1].split(',').map((s) => s.trim())) rules.push({ selector, decls })
+  }
+  return rules
+}
+
+const splitTop = (s) => {
+  const parts = []
+  let depth = 0
+  let from = 0
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')') depth--
+    else if (s[i] === ',' && depth === 0) { parts.push(s.slice(from, i).trim()); from = i + 1 }
+  }
+  parts.push(s.slice(from).trim())
+  return parts
+}
+
+// #749: a colour is { rgb: 0-255, a: 0-1 }; a mix with transparent keeps the colour and drops the alpha.
+function paint(value, theme) {
+  const v = value.trim()
+  if (v === 'transparent') return { rgb: [0, 0, 0], a: 0 }
+  const variable = v.match(/^var\(--([a-z0-9-]+)\)$/)
+  if (variable) return { rgb: rgb(themeHex(variable[1], theme)), a: 1 }
+  const mix = v.match(/^color-mix\(in srgb,(.*)\)$/s)
+  if (!mix) throw new Error(`cannot read the colour "${v}"`)
+  const [first, second] = splitTop(mix[1]).map((part) => {
+    const pct = part.match(/\s(\d+(?:\.\d+)?)%$/)
+    return { color: paint(pct ? part.slice(0, pct.index) : part, theme), pct: pct ? Number(pct[1]) / 100 : null }
+  })
+  const pa = first.pct ?? (second.pct === null ? 0.5 : 1 - second.pct)
+  const pb = second.pct ?? 1 - pa
+  const a = first.color.a * pa + second.color.a * pb
+  const channel = (i) => (first.color.rgb[i] * first.color.a * pa + second.color.rgb[i] * second.color.a * pb) / a
+  return { rgb: [channel(0), channel(1), channel(2)], a }
+}
+
+function themeHex(name, theme) {
+  const status = name.match(/^status-([a-z]+)-(dot|text|badge)$/)
+  if (status) return tokens.status[status[1]][theme][status[2]]
+  const gray = name.match(/^gray-(\d+)$/)
+  if (gray) return tokens.gray[gray[1]]
+  const key = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+  if (tokens.themes[theme][key]) return tokens.themes[theme][key]
+  throw new Error(`no token behind --${name}`)
+}
+
+const over = (top, below) => top.rgb.map((c, i) => c * top.a + below[i] * (1 - top.a))
+const relLuminance = (c) => {
+  const [r, g, b] = c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const ratio = (a, b) => {
+  const [hi, lo] = [relLuminance(a), relLuminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+const ERROR_TEXT = /^var\(--status-error-text\)$/
+const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/)?.[1])
+
+// #749: the label pairs: a rule that sets the error text, with its own background or, for a descendant, the nearest rule of the same file that paints the ancestor.
+function errorLabels() {
+  const labels = []
+  for (const file of uiCssFiles()) {
+    const rules = cssRules(file)
+    for (const { selector, decls } of rules) {
+      if (!ERROR_TEXT.test(decls.color ?? '')) continue
+      let background = backgroundOf(decls)
+      if (!background) {
+        const ancestor = selector.replace(/\s*(?:>\s*)?[^\s>]+$/, '')
+        background = rules.find((r) => r.selector === ancestor && backgroundOf(r.decls))
+        background = background && backgroundOf(background.decls)
+      }
+      if (background) labels.push({ file: file.pathname.split('/packages/nucleo/ui/')[1], selector, background })
+    }
+  }
+  return labels
+}
+
+test('#749: every error label reaches 4.5:1 on the background really behind it, on bg, surface and raised, in both themes', () => {
+  const labels = errorLabels()
+  const found = new Set(labels.map((l) => l.selector))
+  for (const known of ['.attention-chip-error', '.attention-pill-error', '.b-error', '.wall-b-error', '.kb-b-error', '.sd-s-error', '.wb-pill-error', '.prj-pill.failed', '.wft-pill-error', '.dev-pill-error']) {
+    assert.ok(found.has(known), `the guard does not find ${known}: it would pass with nothing to check`)
+  }
+  assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)
+  const low = []
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    const text = rgb(tokens.status.error[theme].text)
+    for (const label of labels) {
+      const back = paint(label.background, theme)
+      for (const surface of ['bg', 'surface', 'raised']) {
+        const behind = over(back, rgb(t[surface]))
+        const r = ratio(text, behind)
+        if (r < AA_TEXT) low.push(`${label.file} ${label.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${label.background}`)
+      }
+    }
+  }
+  assert.deepEqual(low, [], 'an error label is under 4.5:1: paint it with the opaque pair --status-error-badge')
 })
