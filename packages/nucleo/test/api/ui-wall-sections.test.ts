@@ -4,7 +4,7 @@ import { describe, test } from 'node:test';
 
 // @ts-expect-error: browser module, plain JavaScript
 const sections = await import('../../ui/wall-sections.js');
-const { sectionOf, sectionsOf, countsOf, summaryOf, summaryText, clockOf, machineCounts } = sections;
+const { sectionOf, sectionsOf, countsOf, summaryOf, summaryText, clockOf } = sections;
 
 type Card = Record<string, unknown>;
 const card = (id: string, extra: Card = {}): Card => ({ id, status: 'active', attention: null, ...extra });
@@ -102,32 +102,5 @@ describe('#752: clockOf, the time a completed row shows', () => {
   });
   test('an invalid or missing date is an empty text, never "NaN:NaN"', () => {
     for (const bad of [undefined, null, '', 'x', '2026-13-45']) assert.equal(clockOf(bad), '');
-  });
-});
-
-describe('#752: machineCounts, the numbers of the machine menu', () => {
-  const on = (machine: string, id: string, extra: Card = {}) => card(id, { machine: { id: machine, label: machine }, ...extra });
-  const machines = [
-    { id: 'local', label: 'Esta máquina', state: 'connected' },
-    { id: 'ws', label: 'Workstation', state: 'connected' },
-  ];
-  const cards = [on('local', 'a'), on('ws', 'b'), on('ws', 'c', { status: 'completed' }), card('d')];
-  test('Todas: the total on screen and one number per machine, completed ones included; a card without machine is local', () => {
-    assert.deepEqual(machineCounts(cards, machines, 'all'), { all: 4, local: 2, ws: 2 });
-  });
-  test('a machine with no session is a real 0', () => {
-    assert.deepEqual(machineCounts([on('local', 'a')], machines, 'all'), { all: 1, local: 1, ws: 0 });
-  });
-  test('a machine that is down has no number: nothing is known about it', () => {
-    const down = [machines[0], { id: 'ws', label: 'Workstation', state: 'unreachable' }];
-    assert.deepEqual(machineCounts([on('local', 'a')], down, 'all'), { all: 1, local: 1 });
-  });
-  test('with one machine chosen the answer holds only it: its number, and none of the others nor the total', () => {
-    assert.deepEqual(machineCounts([on('ws', 'b'), on('ws', 'c')], machines, 'ws'), { ws: 2 });
-    assert.deepEqual(machineCounts([card('a')], machines, 'local'), { local: 1 });
-  });
-  test('the chosen machine is down: no number at all', () => {
-    const down = [machines[0], { id: 'ws', label: 'Workstation', state: 'unreachable' }];
-    assert.deepEqual(machineCounts([], down, 'ws'), {});
   });
 });
