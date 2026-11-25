@@ -76,7 +76,7 @@
 .wall-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .wall-row { position: relative; display: flex; flex-direction: column; padding: 12px 16px; border-bottom: 1px solid var(--border); min-width: 0; }
 .wall-list > .wall-row:first-child { border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0; }
-.wall-list > .wall-row:last-child, .wall-list > .wall-row:has(+ .wall-filler:last-child) { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
+.wall-list > .wall-row:last-child { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
 .wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
 .wall-row:hover { background: var(--raised); }
 .wall-row:has(.wall-act [role="status"]:not(:empty)) { z-index: 3; }
@@ -124,6 +124,11 @@
 .wall-parked-head { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .wall-parked-head b { white-space: nowrap; }
 .wall-parked-r { margin-left: auto; font-size: 12px; white-space: nowrap; }
+
+/* ADR-0028: below 1280px the last filler is hidden, so the row before it closes the list. */
+@media (max-width: 1279.98px) {
+  .wall-list > .wall-row:has(+ .wall-filler:last-child) { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
+}
 
 /* ADR-0028: two columns for "Ativas" only from 1280px; a row with its tree open spans both. */
 @media (min-width: 1280px) {

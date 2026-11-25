@@ -869,7 +869,7 @@ describe('#751: the sheet of the wall', () => {
   test('the list clips nothing: the ring and the failure popover of the last row show, the corners come from the first and the last row (#751)', () => {
     assert.doesNotMatch(ruleOf('.wall-list'), /overflow/);
     assert.match(ruleOf('.wall-list > .wall-row:first-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\) 0 0/);
-    assert.match(ruleOf('.wall-list > .wall-row:last-child, .wall-list > .wall-row:has(+ .wall-filler:last-child)'), /border-radius:\s*0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)/);
+    assert.match(ruleOf('.wall-list > .wall-row:last-child'), /border-radius:\s*0 0 calc\(var\(--radius-card\) - 1px\) calc\(var\(--radius-card\) - 1px\)/);
     assert.match(ruleOf('.wall-list > .wall-row:only-child'), /border-radius:\s*calc\(var\(--radius-card\) - 1px\)/);
   });
 
