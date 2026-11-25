@@ -51,6 +51,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     const scrolled = nav.scrollTop;
     const focused = globalThis.document?.activeElement;
     const focusedId = focused && nav.contains(focused) ? focused.closest?.('a[data-screen]')?.getAttribute('data-screen') : null;
+    const keepInView = litInView();
     items.clear();
     const groups = [];
     for (const section of sidebarSections([...screens, ...remoteItems])) {
@@ -74,7 +75,16 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     nav.scrollTop = scrolled;
     paintLit();
     reveal();
-    if (focusedId) items.get(focusedId)?.a.focus();
+    // ADR-0028: whoever saw the lit item keeps seeing it when a row appears above it.
+    if (keepInView) items.get(lit)?.a.scrollIntoView?.({ block: 'nearest' });
+    if (focusedId) items.get(focusedId)?.a.focus({ preventScroll: true });
+  }
+
+  // Measured before a redraw; without boxes (the first draw, a DOM that does not lay out) nothing was seen.
+  function litInView() {
+    const box = items.get(lit)?.a.getBoundingClientRect?.();
+    const frame = nav.getBoundingClientRect?.();
+    return Boolean(box && frame && box.bottom > frame.top && box.top < frame.bottom);
   }
 
   function paintLit() {
@@ -106,12 +116,12 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     if (next) item.a.append(next);
   }
 
-    function counter(id, n) {
+  function counter(id, n) {
     counts.set(id, n);
     redrawSide(id);
   }
 
-    function tag(id, next) {
+  function tag(id, next) {
     if (next) tags.set(id, next);
     else tags.delete(id);
     redrawSide(id);

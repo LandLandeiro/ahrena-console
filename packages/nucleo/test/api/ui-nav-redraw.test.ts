@@ -11,9 +11,21 @@ import { createNav } from '../../ui/nav.js';
 import { SCREENS } from '../../ui/screens.js';
 
 const original = ElementoFalso.prototype.scrollIntoView;
+const originalFocus = ElementoFalso.prototype.focus;
 afterEach(() => {
   ElementoFalso.prototype.scrollIntoView = original;
+  ElementoFalso.prototype.focus = originalFocus;
+  delete (ElementoFalso.prototype as { getBoundingClientRect?: unknown }).getBoundingClientRect;
 });
+
+// Boxes for the layout the fake DOM does not have: the nav is 0..100; an item sits at `tops[id]` and is 30 tall.
+function layout(tops: Record<string, number>) {
+  (ElementoFalso.prototype as { getBoundingClientRect?: unknown }).getBoundingClientRect = function (this: ElementoFalso) {
+    const top = this.tagName?.toLowerCase() === 'nav' ? 0 : (tops[this.getAttribute('data-screen') ?? ''] ?? 0);
+    const height = this.tagName?.toLowerCase() === 'nav' ? 100 : 30;
+    return { top, bottom: top + height, left: 0, right: 0, width: 0, height };
+  };
+}
 
 function rig() {
   const reveals: string[] = [];
@@ -71,7 +83,55 @@ describe('#750: the lit item and the scroll across a redraw', () => {
   });
 });
 
+describe('#750: a redraw keeps who could see the lit item looking at it', () => {
+  const remote = [{ id: 'ws', label: 'Workstation', state: 'connected' }];
+
+  test('the lit item was in view and a remote machine is added above it: it is brought into view again', async () => {
+    const reveals: string[] = [];
+    ElementoFalso.prototype.scrollIntoView = function (this: ElementoFalso) {
+      reveals.push(this.getAttribute('data-screen') ?? '?');
+    };
+    layout({ connections: 60 });
+    const nav = new ElementoFalso('nav');
+    const { highlight, readMachines } = createNav({ nav, read: async () => remote, screens: SCREENS });
+    highlight('connections');
+    assert.deepEqual(reveals, ['connections']);
+    await readMachines();
+    assert.deepEqual(reveals, ['connections', 'connections']);
+  });
+
+  test('the lit item was out of view: a redraw does not pull the list back to it', async () => {
+    const reveals: string[] = [];
+    ElementoFalso.prototype.scrollIntoView = function (this: ElementoFalso) {
+      reveals.push(this.getAttribute('data-screen') ?? '?');
+    };
+    layout({ connections: 400 });
+    const nav = new ElementoFalso('nav');
+    const { highlight, readMachines, draw } = createNav({ nav, read: async () => remote, screens: SCREENS });
+    highlight('connections');
+    reveals.length = 0;
+    await readMachines();
+    draw();
+    assert.deepEqual(reveals, []);
+  });
+});
+
 describe('#750: the focus of an item survives the redraw', () => {
+  test('the focus comes back without scrolling the list to the item', () => {
+    const { nav, draw } = rig();
+    const calls: unknown[] = [];
+    ElementoFalso.prototype.focus = function (this: ElementoFalso, ...args: unknown[]) {
+      calls.push(args[0]);
+      return originalFocus.call(this);
+    };
+    nav.querySelector('[data-screen="sessions"]')!.focus();
+    calls.length = 0;
+    nav.scrollTop = 238;
+    draw();
+    assert.deepEqual(calls, [{ preventScroll: true }]);
+    assert.equal(nav.scrollTop, 238);
+  });
+
   test('the item with the same id gets the focus back', () => {
     const { nav, draw } = rig();
     nav.querySelector('[data-screen="sessions"]')!.focus();
