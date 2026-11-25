@@ -40,6 +40,8 @@ export function filterLabel(filter, count) {
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
 const clean = (text) => String(text ?? '').trim();
+// ADR-0028: a session without a title (null, empty or blanks) reads "Sem título", as the Histórico does; the data stays as it came.
+const titled = (title) => (clean(title) ? title : 'Sem título');
 
 // ADR-0028: the plan is null without steps; the step is done + 1 while one runs, never above the total.
 function planOf(c) {
@@ -56,7 +58,7 @@ const base = (c) => ({
   machine: c.machine ?? null,
   href: itemHref(c),
   open: c.open ?? null,
-  title: c.title,
+  title: titled(c.title),
   state: stateOfSession({ attention: c.attention, status: c.status }),
 });
 
@@ -123,7 +125,7 @@ export function treeSummary(tree) {
 export function childContent(node, now = Date.now()) {
   return {
     id: node.id,
-    title: node.title,
+    title: titled(node.title),
     status: node.status,
     attention: attentionOf(node.attention),
     since: sinceText(node.since, now),
@@ -272,7 +274,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
     ? []
     : parked.items.map((c) => {
         const href = itemHref(c);
-        const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title);
+        const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: titled(c.title) }, titled(c.title));
         const key = itemKey(c);
         const openLink = el('a', { class: 'btn outline', href }, 'Abrir');
         spot('parked', key, link);
@@ -434,7 +436,10 @@ export async function mount(area, ctx) {
     const nest = {
       isOpen: (id) => opened.has(id),
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
-      titleOf: (id) => (wall.cards ?? []).find((x) => x.id === id)?.title ?? null,
+      titleOf: (id) => {
+        const parent = (wall.cards ?? []).find((x) => x.id === id);
+        return parent ? titled(parent.title) : null;
+      },
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
