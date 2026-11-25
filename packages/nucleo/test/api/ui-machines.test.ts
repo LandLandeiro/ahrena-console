@@ -718,7 +718,7 @@ describe('#178 criterion 1: the sidebar draws the remote machines from /api/mach
     const { readMachines, highlight, counter } = createNav({ nav, read: async (route: string) => (reads.push(route), list), screens: SCREENS });
     const machinesBlock = () => nav.querySelector('[data-section="machines"]')!;
     assert.deepEqual(machinesBlock().querySelectorAll('a').map((a) => a.getAttribute('data-screen')), ['this-machine']);
-    counter('dashboard', 4);
+    counter('sessions', 4);
     // The open screen is the remote's, before the list arrives.
     highlight('machine-ws-exemplo');
     list = [...(list as unknown[]), { id: 'ws-exemplo', label: 'Workstation', state: 'unreachable', reason: 'port-closed', port: 14720 }];
@@ -735,13 +735,13 @@ describe('#178 criterion 1: the sidebar draws the remote machines from /api/mach
     assert.equal(dot.getAttribute('aria-label'), 'Sem conexão');
     assert.equal(links[0]!.querySelector('.cc-nav-dot'), null, 'this machine has no dot');
     assert.equal(links[1]!.getAttribute('aria-current'), 'page');
-    assert.equal(texto(nav.querySelector('[data-screen="dashboard"] .q')), '4');
+    assert.equal(texto(nav.querySelector('[data-screen="sessions"] .cc-nav-count')), '4');
     // The machine comes back: one more redraw, the counter and aria-current still there.
     list = (list as { id: string }[]).map((m) => (m.id === 'ws-exemplo' ? { ...m, state: 'connected', reason: null } : m));
     await readMachines();
     assert.equal(nav.querySelector('[data-screen="machine-ws-exemplo"] .cc-nav-dot')!.getAttribute('aria-label'), 'Conectada');
     assert.equal(nav.querySelector('[data-screen="machine-ws-exemplo"]')!.getAttribute('aria-current'), 'page');
-    assert.equal(texto(nav.querySelector('[data-screen="dashboard"] .q')), '4');
+    assert.equal(texto(nav.querySelector('[data-screen="sessions"] .cc-nav-count')), '4');
     // A failed read (no telemetry, offline) keeps the items there.
     const failing = createNav({ nav: new ElementoFalso('nav'), read: async () => Promise.reject(new Error('404')), screens: SCREENS });
     await failing.readMachines();

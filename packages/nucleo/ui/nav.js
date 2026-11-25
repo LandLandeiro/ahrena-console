@@ -3,7 +3,8 @@
 // The registry is static; the remote machines come from `machines.json`, which only the core reads.
 // `readMachines()` reads `GET /api/machines` and, when the list changed, draws the sidebar again with
 // `machineItems(list)` added: each remote is an item of the Máquinas block, after "Esta máquina",
-// with its state dot. The counters (the "4" of the Dashboard) and the lit item survive the redraw.
+// with its state dot. The counters, the tags ("3 esperam" of the Mural, issue 750) and the lit item survive the redraw, and so
+// does the scroll of the list: the sidebar draws again every 60 s while the person reads.
 // `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Conexões the dot that sums up the
 // worst cloud connector; a core without the route (404) shows no dot.
 
@@ -20,10 +21,15 @@ const UPDATING_REREAD_MS = 5000;
 /** The yellow arrow of a remote whose núcleo is older than the app (issue 449): the color alone does not say it. */
 const CORE_OUTDATED_LABEL = 'Núcleo defasado';
 
-/** Draws the sidebar into `nav` at once; `read` is the shell's read layer. */
-export function createNav({ nav, read, screens = SCREENS }) {
+/** A label this long may be cut by the item (one line, an ellipsis): the full text goes in the tooltip. */
+const LONG_LABEL = 24;
+
+/** Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are. */
+export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} }) {
   const items = new Map();
   const counts = new Map();
+  // The tag of an item: `{ tone, text, note }`, drawn at the right in place of the plain number (issue 750).
+  const tags = new Map();
   let lit = null;
   let remoteItems = [];
   // The dots that are not a machine's: `id → { state, label }` (Conexões, issue 277).
@@ -31,7 +37,20 @@ export function createNav({ nav, read, screens = SCREENS }) {
   // The one re-read pending while a machine is being updated; never two at once. (ADR-0024)
   let updatingTimer = null;
 
+  // The right side of an item holds one thing: the tag when there is one, else the plain number.
+  function side(id) {
+    const tag = tags.get(id);
+    if (tag) {
+      const text = tag.note ? `${tag.text} ${tag.note}` : tag.text;
+      return el('span', { class: 'cc-nav-tag', 'data-tone': tag.tone, title: tag.note ? text : null }, tag.text, tag.note ? el('span', { class: 'cc-sr-only' }, ` ${tag.note}`) : null);
+    }
+    const n = counts.get(id);
+    return n ? el('span', { class: 'cc-nav-count' }, String(n)) : null;
+  }
+
   function draw() {
+    // Emptying the list sends the scroll to the top: put it back after drawing.
+    const scrolled = nav.scrollTop;
     items.clear();
     const groups = [];
     for (const section of sidebarSections([...screens, ...remoteItems])) {
@@ -39,21 +58,20 @@ export function createNav({ nav, read, screens = SCREENS }) {
       const group = el(
         'div',
         { class: 'cc-nav-section', 'data-section': section.id, role: titleId && 'group', 'aria-labelledby': titleId },
-        titleId && el('div', { class: 'cc-nav-title eyebrow', id: titleId }, section.label),
+        titleId && el('div', { class: 'cc-nav-title', id: titleId }, section.label),
       );
       for (const screen of section.items) {
-        const q = el('span', { class: 'q', hidden: true });
         const mark = screen.state ? { state: screen.state, label: screen.stateLabel ?? MACHINE_STATE_LABELS[screen.state] ?? screen.state } : (dots.get(screen.id) ?? null);
         const dot = mark ? el('span', { class: 'cc-nav-dot', 'data-state': mark.state, role: 'img', 'aria-label': mark.label, title: mark.label }) : null;
         const flag = screen.coreOutdated ? el('span', { class: 'cc-nav-flag', role: 'img', 'aria-label': CORE_OUTDATED_LABEL, title: CORE_OUTDATED_LABEL }, icon('arrow-up-circle')) : null;
-        const a = el('a', { class: 'cc-nav', href: screen.route, 'data-screen': screen.id }, icon(screen.item.icon), el('span', { class: 'cc-nav-label' }, screen.item.label), flag, dot, q);
-        items.set(screen.id, { a, q });
+        const a = el('a', { class: 'cc-nav', href: screen.route, 'data-screen': screen.id }, icon(screen.item.icon), el('span', { class: 'cc-nav-label', title: screen.item.label.length > LONG_LABEL ? screen.item.label : null }, screen.item.label), flag, dot, side(screen.id));
+        items.set(screen.id, { a });
         group.append(a);
       }
       groups.push(group);
     }
     nav.replaceChildren(...groups);
-    for (const [id, n] of counts) counter(id, n);
+    nav.scrollTop = scrolled;
     highlight(lit);
   }
 
@@ -69,12 +87,26 @@ export function createNav({ nav, read, screens = SCREENS }) {
     }
   }
 
-  function counter(id, n) {
-    counts.set(id, n);
+  // The right side of one item again, without drawing the list: the focus and the scroll stay where they are.
+  function redrawSide(id) {
     const item = items.get(id);
     if (!item) return;
-    item.q.hidden = !n;
-    item.q.textContent = n ? String(n) : '';
+    item.a.querySelector('.cc-nav-tag, .cc-nav-count')?.remove();
+    const next = side(id);
+    if (next) item.a.append(next);
+  }
+
+  /** A plain number at the right of an item (mono, subtle); zero takes it away. */
+  function counter(id, n) {
+    counts.set(id, n);
+    redrawSide(id);
+  }
+
+  /** A tag at the right of an item (`{ tone: 'waiting' | 'active', text, note? }`); `null` takes it away. */
+  function tag(id, next) {
+    if (next) tags.set(id, next);
+    else tags.delete(id);
+    redrawSide(id);
   }
 
   async function readMachines() {
@@ -86,6 +118,8 @@ export function createNav({ nav, read, screens = SCREENS }) {
       return;
     }
     const next = machineItems(list);
+    // This machine is always one; the remotes of the list are the others.
+    onMachines(1 + next.length);
     if (!updatingTimer && next.some((item) => item.state === 'updating')) {
       updatingTimer = setTimeout(() => {
         updatingTimer = null;
@@ -116,5 +150,5 @@ export function createNav({ nav, read, screens = SCREENS }) {
   }
 
   draw();
-  return { draw, readMachines, readConnectors, highlight, counter };
+  return { draw, readMachines, readConnectors, highlight, counter, tag };
 }

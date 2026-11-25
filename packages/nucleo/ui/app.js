@@ -7,6 +7,7 @@ import { header, el, icon } from './dom.js';
 import { error, empty } from './states.js';
 import { findScreen, litItem } from './screens.js';
 import { createNav } from './nav.js';
+import { createCounts } from './counts.js';
 import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
@@ -22,7 +23,10 @@ port.textContent = location.host;
 
 // One block per section (C1, C24): the everyday screens, then Delivery, Decisions, Machines and Control. The remote
 // machines (issue 178) come from `GET /api/machines` and are added by nav.js (`createNav`).
-const { readMachines, readConnectors, highlight, counter } = createNav({ nav, read });
+const { readMachines, readConnectors, highlight, counter, tag } = createNav({ nav, read });
+// The yellow tag of the Mural and the orange number of Quadro do trabalho (issue 750): read now, on the changes that move them and when the core comes back.
+const counts = createCounts({ read, nav: { tag } });
+counts.refresh();
 // A remote's state also changes without an alert (another version over there): re-read now and then.
 setInterval(readMachines, 60_000);
 // The Conexões dot (issue 277): now, on every `connector` change, on restart and every minute (an expiry is no event).
@@ -62,6 +66,7 @@ function restart() {
   githubFooter.refresh();
   appUpdate.refresh().then(drawLive);
   if (!connected) return void (connected = true);
+  counts.refresh();
   if (screenFailed) return open();
   for (const f of listeners.restart) f();
 }
@@ -111,6 +116,7 @@ startLive({
   onChange(changes) {
     // A machine that goes down or comes back (`<id>:machine-unreachable`) changes its dot.
     if (changes.some((c) => c.type === 'alert')) readMachines();
+    counts.changed(changes);
     if (connectionChanged(changes)) githubFooter.refresh();
     if (changes.some((c) => c.type === 'connector')) readConnectors();
     if (appUpdateChanged(changes)) appUpdate.refresh().then(drawLive);

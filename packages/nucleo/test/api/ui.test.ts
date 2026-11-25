@@ -302,7 +302,7 @@ describe('screen registry', () => {
     assert.deepEqual(
       sidebarSections().map((s: { id: string; label: string | null; items: { id: string }[] }) => [s.id, s.label, s.items.map((t) => t.id)]),
       [
-        ['main', null, ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'analytics', 'workflows', 'history']],
+        ['main', 'Agora', ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'analytics', 'workflows', 'history']],
         ['delivery', 'Entrega', ['repos', 'project', 'work', 'dev-console']],
         ['decisions', 'Decisões', ['decisions', 'adrs', 'pdrs']],
         ['machines', 'Máquinas', ['this-machine']],
@@ -341,9 +341,9 @@ describe('screen registry', () => {
     for (const old of ['/ui/sessoes', '/ui/sessoes/b91d04aa-4e1', '/ui/historico', '/ui/mural', '/ui/projeto', '/ui/decisoes']) assert.equal(findScreen(old), null, old);
   });
 
-  test('the sidebar has the sections: the everyday screens without a title, Entrega, Decisões, Máquinas and Controle; an empty section does not show', () => {
+  test('the sidebar has the sections: the everyday screens under Agora, Entrega, Decisões, Máquinas and Controle; an empty section does not show', () => {
     assert.deepEqual(SECTIONS, [
-      { id: 'main', label: null },
+      { id: 'main', label: 'Agora' },
       { id: 'delivery', label: 'Entrega' },
       { id: 'decisions', label: 'Decisões' },
       { id: 'machines', label: 'Máquinas' },
@@ -369,7 +369,7 @@ describe('screen registry', () => {
     const app = readFileSync(`${UI_FOLDER}nav.js`, 'utf8');
     assert.match(app, /sidebarSections\(\[\.\.\.screens, \.\.\.remoteItems\]\)/);
     assert.match(app, /'cc-nav-section'/);
-    assert.match(app, /'cc-nav-title eyebrow'/);
+    assert.match(app, /'cc-nav-title'/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     assert.match(css, /\.cc-nav-section \{/);
     assert.match(css, /\.cc-nav-title \{/);
