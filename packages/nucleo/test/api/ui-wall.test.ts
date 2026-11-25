@@ -182,7 +182,7 @@ const MURAL = {
   ],
 };
 
-async function montarTela(read: (rota: string) => Promise<unknown>) {
+async function montarTela(read: (rota: string) => Promise<unknown>, write: (rota: string, corpo: unknown) => Promise<unknown> = async () => ({})) {
   const area = new Elemento('main');
   const sair = new AbortController();
   const ouvintes = { mudar: [] as ((m: unknown[]) => void)[], reiniciar: [] as (() => void)[] };
@@ -191,6 +191,7 @@ async function montarTela(read: (rota: string) => Promise<unknown>) {
     params: {},
     signal: sair.signal,
     read: (rota: string) => (rotas.push(rota), read(rota)),
+    write,
     onChange: (f: (m: unknown[]) => void) => ouvintes.mudar.push(f),
     onRestart: (f: () => void) => ouvintes.reiniciar.push(f),
     counter: () => {},
@@ -1215,6 +1216,32 @@ describe('Wall: a click on the state label opens the session, as the stretched l
       area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!.click();
       const kidTag = area.todos((e) => e.getAttribute('data-child') === 'tl')[0]!.todos((e) => e.classes.includes('state-tag'))[0]!;
       assert.equal(kidTag.ouvintes.get('click')?.length ?? 0, 0);
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('Wall: the failure notice of the open action is brought into view (#751)', () => {
+  test('the card and the row both ask for the notice to scroll into view when the open fails', async () => {
+    const fail = async () => {
+      throw Object.assign(new Error('Nenhum terminal respondeu'), { name: 'WriteError', status: 502, body: { error: 'x', command: 'claude --resume x' } });
+    };
+    const open = { target: 'terminal', command: 'claude --resume x' };
+    const cards = [cardDeExemplo('sv-card', { open, status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } }), cardDeExemplo('sv-row', { open })];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }), fail);
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      for (const id of ['sv-card', 'sv-row']) {
+        const box = sessionsOf(area).find((e) => e.getAttribute('data-session') === id)!;
+        const seen: unknown[] = [];
+        const status = comClasse(box, 'open-status')[0] as Elemento & { isConnected?: boolean; scrollIntoView?: (o: unknown) => void };
+        status.isConnected = true;
+        status.scrollIntoView = (o) => seen.push(o);
+        comClasse(box, 'open-action')[0]!.todos((e) => e.tag === 'button')[0]!.click();
+        await ate(() => comClasse(box, 'open-fail').length === 1);
+        assert.ok(seen.length >= 1, `${id}: the notice scrolls into view`);
+      }
     } finally {
       await sair();
     }

@@ -385,7 +385,7 @@ test('open-action.css: the card notice opens below the button, over the card, an
   assert.doesNotMatch(small, /(^|[;\s])bottom:/, 'never above it, where the title of the card is');
   assert.match(small, /max-width:\s*min\([^)]*,\s*100%\)/, 'wide as the card at most');
   assert.match(rule('.open-size-small'), /display:\s*flex/);
-  assert.match(rule('.open-size-small'), /width:\s*100%/, 'the action spans the act area, so the notice is not as narrow as the button');
+  assert.match(rule('.open-size-small'), /(^|[;\s])width:\s*100%/, 'the action spans the act area, so the notice is not as narrow as the button');
   assert.match(rule('.open-size-icon .open-status'), /top:\s*calc\(100% \+ 6px\)/);
 });
 
