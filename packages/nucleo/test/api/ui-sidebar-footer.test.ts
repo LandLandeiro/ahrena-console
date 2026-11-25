@@ -1,5 +1,4 @@
-// Issue 750: the footer of the bar. The "Ao vivo" block with "N máquinas · versão X", the person row with the theme
-// button and the account menu, and the layered Escape. On the fake DOM; the markup is read from index.html.
+// #750: the footer of the bar: the "Ao vivo" block, the person row, the account menu and the layered Escape.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';

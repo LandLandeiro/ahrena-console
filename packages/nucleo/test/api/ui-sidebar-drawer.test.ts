@@ -1,6 +1,4 @@
-// Issue 750: below 860 px the bar is a drawer. Open: it comes on top, the background is inert and the focus goes to the
-// first item. Escape, the scrim and a navigation close it and the focus goes back to the menu button. Closed, it is
-// out of the tab; crossing 860 px clears everything. On the fake DOM; the sizes are asserted on the rules.
+// #750: below 860 px the bar is a drawer: inert background, focus to the first item and back to the menu button.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
@@ -204,7 +202,6 @@ describe('issue 750: the markup and the rules of the drawer', () => {
     const z = (css: string, selector: string) => Number(new RegExp(`^${selector.replace(/[.]/g, '\\.')} \\{[^}]*z-index: (\\d+)`, 'm').exec(css)?.[1]);
     assert.ok(z(update, '.up-pop') > 40);
     assert.match(update, /@media \(max-width: 859px\) \{[^@]*\.cc-notice \{ padding: 12px 16px 0; \}/);
-    // The panel is not in the inert background: it sits next to the frame, and the notice is the background's.
     assert.match(html, /<\/div>\s*<div class="up-pop" id="update-panel" hidden><\/div>/);
   });
 

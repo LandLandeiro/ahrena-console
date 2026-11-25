@@ -1,6 +1,4 @@
-// The drawer (issue 750): below 860 px the bar leaves the frame and comes on top when the menu button asks.
-// Open: the background is inert, the scrim shows and the focus goes to the first item. Closed: the bar is inert,
-// so it is out of the tab. Any link of the bar closes it, and so does a route change of the shell (app.js). Crossing 860 px clears the state and takes no focus.
+// The drawer (ADR-0028): below 860 px the bar is out of the tab until the menu button opens it; crossing 860 px clears the state and takes no focus.
 
 export const DRAWER_QUERY = '(max-width: 859px)';
 
@@ -8,7 +6,6 @@ export function createDrawer({ button, side, scrim, background, media = globalTh
   let opened = false;
 
   function paint() {
-    // Wide: a plain column, nothing inert. Narrow: the bar is reachable only while open.
     side.inert = media.matches && !opened;
     if (opened) side.setAttribute('data-open', '');
     else side.removeAttribute('data-open');

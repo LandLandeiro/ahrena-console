@@ -1,5 +1,4 @@
-// Issue 750: the count tags in the bar pass 4.5:1, computed from tokens.json, in both themes, on the bar and on the
-// current item (--surface); the CSS uses exactly those variables. Opaque pairs, so the ratio is the whole proof.
+// #750: the count tags in the bar pass 4.5:1 from tokens.json, in both themes, on the bar and on the current item.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';

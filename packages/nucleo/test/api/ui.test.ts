@@ -378,7 +378,6 @@ describe('screen registry', () => {
   test('sidebar breathing: items keep their height and only the item list scrolls on a short window', () => {
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     const rule = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.#]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
-    // The item is 31 px at least (issue 750); it never shrinks to fit the window.
     assert.match(rule('.cc-nav'), /min-height: 31px/);
     assert.match(rule('.cc-nav'), /flex: none/);
     assert.match(rule('.cc-nav-title'), /margin: 11px 0 3px/);

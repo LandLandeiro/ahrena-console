@@ -1,5 +1,4 @@
-// One Escape for the shell (issue 750): the layers close one at a time, the first open one in the order given
-// (the version panel, the account menu, the drawer), so a key press never closes two things.
+// ADR-0028: one Escape closes one layer, the first open one in the order given.
 
 export function createEscape(doc, layers) {
   function onKey(ev) {

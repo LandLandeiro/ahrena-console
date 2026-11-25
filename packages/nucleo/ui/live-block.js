@@ -1,7 +1,4 @@
-// The "Ao vivo" block of the bar footer (issue 750): the state line (the live region), and the note "N máquinas · versão X".
-//
-// The nodes are built once and only their text and attributes change. A live region that is built again is not announced,
-// and a button that is built again loses the focus the person is on (the version button opens the update panel).
+// The "Ao vivo" block (ADR-0028): nodes are built once, because a rebuilt live region is not announced and a rebuilt button loses the focus.
 
 import { el } from './dom.js';
 
@@ -34,7 +31,6 @@ export function createLiveBlock({ node, onVersion = () => {}, doc = document }) 
   }
 
   function drawVersion(version) {
-    // The new-version dot goes before the label and is added or taken away.
     setText(label, version.label);
     const dot = button.querySelector('.up-dot');
     if (version.fresh && !dot) button.insertBefore(el('span', { class: 'up-dot', role: 'img', 'aria-label': 'versão nova' }), label);
@@ -50,7 +46,6 @@ export function createLiveBlock({ node, onVersion = () => {}, doc = document }) 
     const hasMachines = Number.isInteger(machines) && machines > 0;
     if (hasMachines) setText(machinesNode, machinesText(machines));
     if (version) drawVersion(version);
-    // The note's children change only when its shape does; the focus the person has on the button is kept through it.
     hasVersion = Boolean(version);
     const next = `${hasMachines}|${hasVersion}`;
     if (next !== shape) {

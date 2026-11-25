@@ -1,5 +1,4 @@
-// The theme button (issue 750, ADR-0028): light, dark, or the system's until the person chooses.
-// The choice is kept in localStorage and put on <html> as `data-theme`; theme-init.js does the same before the first paint.
+// The theme button (ADR-0028): light, dark, or the system's until the person chooses; theme-init.js sets the saved one before the first paint.
 
 import { icon } from './dom.js';
 
@@ -27,7 +26,7 @@ export function createTheme({ button, root = document.documentElement, storage =
     const saved = storage?.getItem(THEME_KEY);
     if (isTheme(saved)) choice = saved;
   } catch {
-    // Denied: the choice lives in memory until the page closes.
+    // ADR-0028: denied storage, the choice lives in memory.
   }
 
   const effective = () => choice ?? (media.matches ? 'dark' : 'light');
@@ -47,7 +46,7 @@ export function createTheme({ button, root = document.documentElement, storage =
     try {
       storage?.setItem(THEME_KEY, choice);
     } catch {
-      // Full or denied: the page still switches.
+      // ADR-0028: a full or denied storage still switches the page.
     }
     draw();
   });

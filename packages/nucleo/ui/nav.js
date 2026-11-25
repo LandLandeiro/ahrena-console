@@ -3,8 +3,7 @@
 // The registry is static; the remote machines come from `machines.json`, which only the core reads.
 // `readMachines()` reads `GET /api/machines` and, when the list changed, draws the sidebar again with
 // `machineItems(list)` added: each remote is an item of the Máquinas block, after "Esta máquina",
-// with its state dot. The counters, the tags ("3 esperam" of the Mural, issue 750) and the lit item survive the redraw, and so
-// does the scroll of the list: the sidebar draws again every 60 s while the person reads.
+// with its state dot. The counters, the tags and the lit item survive the redraw (ADR-0028).
 // `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Conexões the dot that sums up the
 // worst cloud connector; a core without the route (404) shows no dot.
 
@@ -21,17 +20,15 @@ const UPDATING_REREAD_MS = 5000;
 /** The yellow arrow of a remote whose núcleo is older than the app (issue 449): the color alone does not say it. */
 const CORE_OUTDATED_LABEL = 'Núcleo defasado';
 
-/** A label this long may be cut by the item (one line, an ellipsis): the full text goes in the tooltip. */
+/** A label this long gets a tooltip with the full text: the item cuts it with an ellipsis (ADR-0028). */
 const LONG_LABEL = 24;
 
 /** Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are. */
 export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} }) {
   const items = new Map();
   const counts = new Map();
-  // The tag of an item: `{ tone, text, note }`, drawn at the right in place of the plain number (issue 750).
   const tags = new Map();
   let lit = null;
-  // The id last brought into view: a redraw does not do it again.
   let revealed = null;
   let remoteItems = [];
   // The dots that are not a machine's: `id → { state, label }` (Conexões, issue 277).
@@ -39,7 +36,6 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
   // The one re-read pending while a machine is being updated; never two at once. (ADR-0024)
   let updatingTimer = null;
 
-  // The right side of an item holds one thing: the tag when there is one, else the plain number.
   function side(id) {
     const tag = tags.get(id);
     if (tag) {
@@ -51,7 +47,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
   }
 
   function draw() {
-    // Emptying the list sends the scroll to the top: put it back after drawing.
+    // ADR-0028: emptying the list sends the scroll to the top, so it is put back.
     const scrolled = nav.scrollTop;
     const focused = globalThis.document?.activeElement;
     const focusedId = focused && nav.contains(focused) ? focused.closest?.('a[data-screen]')?.getAttribute('data-screen') : null;
@@ -81,7 +77,6 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     if (focusedId) items.get(focusedId)?.a.focus();
   }
 
-  // Class and aria-current only: the redraw must not pull the list back to the lit item.
   function paintLit() {
     for (const [k, { a }] of items) {
       a.classList.toggle('on', k === lit);
@@ -96,14 +91,13 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     reveal();
   }
 
-  // On a short window the list scrolls: a newly lit item must not stay out of sight (#750). Once per id.
+  // ADR-0028: a newly lit item is brought into view once; a redraw must not pull the list back to it.
   function reveal() {
     if (lit === revealed || !items.has(lit)) return;
     revealed = lit;
     items.get(lit).a.scrollIntoView?.({ block: 'nearest' });
   }
 
-  // The right side of one item again, without drawing the list: the focus and the scroll stay where they are.
   function redrawSide(id) {
     const item = items.get(id);
     if (!item) return;
@@ -112,14 +106,12 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     if (next) item.a.append(next);
   }
 
-  /** A plain number at the right of an item (mono, subtle); zero takes it away. */
-  function counter(id, n) {
+    function counter(id, n) {
     counts.set(id, n);
     redrawSide(id);
   }
 
-  /** A tag at the right of an item (`{ tone: 'waiting' | 'active', text, note? }`); `null` takes it away. */
-  function tag(id, next) {
+    function tag(id, next) {
     if (next) tags.set(id, next);
     else tags.delete(id);
     redrawSide(id);
@@ -134,7 +126,6 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
       return;
     }
     const next = machineItems(list);
-    // This machine is always one; the remotes of the list are the others.
     onMachines(1 + next.length);
     if (!updatingTimer && next.some((item) => item.state === 'updating')) {
       updatingTimer = setTimeout(() => {

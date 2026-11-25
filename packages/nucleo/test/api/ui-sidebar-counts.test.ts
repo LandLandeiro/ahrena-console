@@ -1,7 +1,4 @@
-// #750: what the sidebar says about each item. The Mural says how many sessions wait for the person ("3 esperam",
-// yellow outline); Quadro do trabalho says how many cards are queued (an orange number). The shell reads them: GET
-// /api/attention and GET /api/work, the second one costly, so only at the start, when the core comes back, and after a
-// change that concerns the board, debounced, and never with refresh=1. No browser: the fake DOM and a manual timer.
+// #750: the Mural tag and the orange number; /api/work is read rarely and never with refresh=1. Fake DOM and a manual timer.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
@@ -287,7 +284,6 @@ describe('#750 the sidebar draws the tag and the number', () => {
   });
 });
 
-// Virtual time: timers that fire at their moment, and a clock the counts read.
 function clock() {
   let now = 0;
   let next = 0;

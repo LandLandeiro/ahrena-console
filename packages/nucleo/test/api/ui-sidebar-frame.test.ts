@@ -1,5 +1,4 @@
-// Issue 750: the sidebar and the page frame, as rules. The fake DOM has no layout, so the measures are asserted on the
-// rules; the real browser numbers (width, item height, footer at 1100x700) come from the capture run.
+// #750: the sidebar and the page frame as rules; the real browser measures come from the capture run.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
@@ -164,7 +163,6 @@ describe('issue 750: the bar', () => {
     assert.doesNotMatch(shell, /max-width: 640px/);
     const update = readFileSync(`${UI_FOLDER}app-update.css`, 'utf8');
     assert.doesNotMatch(update, /max-width: 640px/);
-    // The version panel opens beside the bar (248 px) and, in the drawer's width, from the left edge, above the drawer.
     assert.match(rule(update, '.up-pop'), /left: 260px/);
     assert.match(rule(update, '.up-pop'), /z-index: 60/);
     assert.match(update, /@media \(max-width: 859px\) \{[^}]*\.up-pop \{ left: 16px; \}/);

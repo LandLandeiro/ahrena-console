@@ -1,6 +1,4 @@
-// #750: the theme. The choice lives in localStorage and becomes data-theme on <html> before the first paint
-// (a classic external script in <head>: the content policy forbids an inline one); without a choice the page
-// follows the system. No browser here: the script runs in a bare vm context and the button on the fake DOM.
+// #750: the theme is kept in localStorage and set on <html> before the first paint by a classic script in <head>.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';

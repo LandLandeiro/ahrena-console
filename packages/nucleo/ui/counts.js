@@ -1,10 +1,4 @@
-// What the sidebar says about two items (issue 750): the Mural says how many sessions wait for the person
-// (a yellow outline tag, "3 esperam") and Quadro do trabalho says how many cards are queued (an orange number).
-//
-// The shell reads `GET /api/attention` and `GET /api/work`. The second one is costly (it can reach GitHub), so it is read
-// at the start, when the core comes back and after a change that concerns the board, debounced, and never forced.
-// Each read keeps its own sequence: an answer that arrives after a newer read was sent is dropped, whether it is a number
-// or an error. An error, zero or an answer of another shape takes the tag away: the sidebar never shows an error.
+// The Mural tag and the orange number of Quadro do trabalho (ADR-0028): /api/work is costly, so it is read rarely and never forced.
 
 import { attentionOfItem, isBlocked } from './attention.js';
 
@@ -17,9 +11,7 @@ export const ATTENTION_CHANGES = new Set(['needs-you', 'session', 'state', 'perm
 /** The changes that move the board: the repositories of the project and the GitHub connection. */
 export const WORK_CHANGES = new Set(['repos', 'connections']);
 
-/** Burst of changes becomes one read. */
 const DEBOUNCE_MS = 1000;
-/** While the orange number is above zero the queue may move by itself (the core opens a session): one read per this window at most. */
 const QUEUE_REREAD_MS = 30_000;
 
 /** How many sessions wait for the person: the `blocked` number of the route, or the blocked items. */
@@ -46,9 +38,8 @@ const queuedTag = (n) => (n > 0 ? { tone: 'active', text: String(n), note: 'na f
  * is called with every batch of the live stream and reads only what the batch moves.
  */
 export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout, now = Date.now }) {
-  // What is on the bar now, per item: the number of the last answer that was kept (0 when the tag is away).
   const shown = { wall: 0, work: 0 };
-  // Whether the last number read of the board was above zero; an error leaves it as it was (#750), so the window still reads.
+  // Whether the last number read of the board was above zero; an error leaves it as it was (ADR-0028), so the window still reads.
   let hadQueue = false;
   function reader(route, id, tagOf, count) {
     let latest = 0;
@@ -62,7 +53,7 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
         tag = tagOf(n);
         answered = true;
       } catch {
-        // A failure (409, 502, 503, offline) is no number: the tag goes away.
+        // ADR-0028: a failure (409, 502, 503, offline) is no number, the tag goes away.
       }
       if (mine !== latest) return;
       shown[id] = tag ? n : 0;
@@ -73,7 +64,6 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
   const loadAttention = reader(ATTENTION_ROUTE, 'wall', waitingTag, waitingCount);
   const loadWork = reader(WORK_ROUTE, 'work', queuedTag, queuedCount);
 
-  // One pending read per key: a batch that arrives meanwhile joins it, so a steady stream still reads once per window.
   const timers = new Map();
   function later(key, load) {
     if (timers.has(key)) return;
@@ -81,7 +71,6 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
   }
   let queueReadAt = -Infinity;
   let tail;
-  // The tail read: only while the number is still above zero, and never on top of a read that is already pending.
   function readTail() {
     tail = undefined;
     if (!hadQueue || timers.has('work')) return;
@@ -96,18 +85,16 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
       const types = new Set(changes.map((c) => c?.type));
       if ([...types].some((t) => ATTENTION_CHANGES.has(t))) later('attention', loadAttention);
       if ([...types].some((t) => WORK_CHANGES.has(t))) later('work', loadWork);
-      // The queue moves by itself when the core opens a session: while the number is above zero, a session change reads it, once per window.
+      // ADR-0028: the queue moves by itself, so while it is above zero a session change reads it, once per window.
       if (types.has('session') && hadQueue) {
         if (now() - queueReadAt >= QUEUE_REREAD_MS) {
           queueReadAt = now();
           later('work', loadWork);
         } else if (tail === undefined) {
-          // Inside the window the change is not lost: one read at the end of it (issue 750, round 3).
           tail = setTimer(readTail, queueReadAt + QUEUE_REREAD_MS - now());
         }
       }
     },
-    /** A write the person made to the board (queue, dequeue, retry) moves the number and the core emits no change for it. */
     wrote(route) {
       if (typeof route === 'string' && (route === '/api/work' || route.startsWith('/api/work/'))) later('work', loadWork);
     },

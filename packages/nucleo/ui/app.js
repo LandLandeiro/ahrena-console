@@ -27,7 +27,6 @@ port.textContent = location.host;
 
 // ---------- Sidebar ----------
 
-// How many machines there are, this one and the remotes (`/api/machines`), for the footer's note (issue 750).
 let machineCount = null;
 
 // One block per section (C1, C24): the everyday screens, then Delivery, Decisions, Machines and Control. The remote
@@ -40,10 +39,9 @@ const { readMachines, readConnectors, highlight, counter, tag } = createNav({
     drawLive();
   },
 });
-// The yellow tag of the Mural and the orange number of Quadro do trabalho (issue 750): read now, on the changes that move them and when the core comes back.
 const counts = createCounts({ read, nav: { tag } });
 counts.refresh();
-// A write the person makes to the board moves the orange number (issue 750): the screens write through this one.
+// ADR-0028: the screens write through this one, so a write to the board moves the orange number.
 const writeCounted = afterWrite(write, counts);
 // A remote's state also changes without an alert (another version over there): re-read now and then.
 setInterval(readMachines, 60_000);
@@ -67,10 +65,9 @@ document.addEventListener('click', (ev) => {
   drawLive();
 });
 
-// The theme button and the account menu of the footer (issue 750); Escape closes one layer at a time, the panel first.
 createTheme({ button: document.getElementById('theme-button') });
 const accountMenu = createAccountMenu({ button: document.getElementById('account-button'), menu: document.getElementById('account-menu') });
-// Below 860 px the bar is a drawer; the column (top bar, notice, screen) is the inert background while it is open.
+// ADR-0028: the column is the inert background while the drawer is open.
 const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), background: [document.querySelector('.cc-col')] });
 createEscape(document, [
   { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive(), live.focusVersion()) },
@@ -107,7 +104,6 @@ async function readVersion() {
 }
 
 // The version in the footer is a button (issue 330): it opens the version panel, and has a dot while a newer one waits.
-// The text is the one of the note, "versão 0.0.22" (issue 750); live-block.js keeps the node, so the focus stays on it.
 function versionButton() {
   if (!version) return null;
   const fresh = hasUpdate(appUpdate.view);
@@ -159,7 +155,6 @@ function navigate(route, state = null) {
 }
 
 async function open() {
-  // A navigation (a link, the back button, navigate()) closes the drawer and gives the focus back to its button (issue 750).
   drawer.close();
   leaving?.abort();
   const leave = new AbortController();

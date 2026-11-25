@@ -1,5 +1,4 @@
-// #750: the sidebar draws again every minute while the person reads. The scroll of the list, the lit item and the focus
-// of an item survive the redraw, and the lit item is brought into view only when it changes. Fake DOM, no browser.
+// #750: a redraw of the sidebar keeps the scroll, the lit item and the focus; a new lit item is brought into view once.
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 import { documentoFalso, ElementoFalso, instalarDomFalso } from './fake-dom.ts';

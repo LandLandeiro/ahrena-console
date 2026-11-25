@@ -1,5 +1,4 @@
-// The small menu of "Opções da conta" (issue 750): the link to Conexões and the port of the core. Nothing else.
-// Closing by Escape is in escape.js, which gives the focus back to the button through `close()`.
+// The menu of "Opções da conta" (ADR-0028): the link to Conexões and the port of the core.
 
 export function createAccountMenu({ button, menu, doc = document }) {
   button.setAttribute('aria-expanded', 'false');
@@ -16,7 +15,6 @@ export function createAccountMenu({ button, menu, doc = document }) {
     set(true);
   }
 
-  /** `restoreFocus` is false when the person already moved on by clicking somewhere else. */
   function close({ restoreFocus = true } = {}) {
     if (!isOpen()) return;
     set(false);
@@ -28,8 +26,7 @@ export function createAccountMenu({ button, menu, doc = document }) {
     if (!isOpen() || !(ev.target instanceof Element) || menu.contains(ev.target) || button.contains(ev.target)) return;
     close({ restoreFocus: false });
   });
-  // Tab (or Shift+Tab) out of the menu and the button closes it; the focus stays where the person put it. A focusout with
-  // nowhere to go is a click on a button the browser does not focus (Safari), not a Tab, so it keeps the menu open.
+  // ADR-0028: a focusout with nowhere to go is a click Safari does not focus, not a Tab, so only Tab closes the menu.
   let tabbed = false;
   for (const node of [button, menu]) node.addEventListener('keydown', (ev) => void (tabbed = ev.key === 'Tab'));
   function left(ev) {
@@ -42,7 +39,7 @@ export function createAccountMenu({ button, menu, doc = document }) {
   }
   button.addEventListener('focusout', left);
   menu.addEventListener('focusout', left);
-  // A link of the menu closes it and the focus goes back to the button; inside the drawer the drawer closes right after and takes it to its own button (#750).
+  // ADR-0028: inside the drawer it closes right after and takes the focus to its own button.
   menu.addEventListener('click', (ev) => {
     if (ev.target instanceof Element && ev.target.closest('a[href]')) close();
   });
