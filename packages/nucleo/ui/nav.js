@@ -31,6 +31,8 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
   // The tag of an item: `{ tone, text, note }`, drawn at the right in place of the plain number (issue 750).
   const tags = new Map();
   let lit = null;
+  // The id last brought into view: a redraw does not do it again.
+  let revealed = null;
   let remoteItems = [];
   // The dots that are not a machine's: `id → { state, label }` (Conexões, issue 277).
   const dots = new Map();
@@ -51,6 +53,8 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
   function draw() {
     // Emptying the list sends the scroll to the top: put it back after drawing.
     const scrolled = nav.scrollTop;
+    const focused = globalThis.document?.activeElement;
+    const focusedId = focused && nav.contains(focused) ? focused.closest?.('a[data-screen]')?.getAttribute('data-screen') : null;
     items.clear();
     const groups = [];
     for (const section of sidebarSections([...screens, ...remoteItems])) {
@@ -72,19 +76,31 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     }
     nav.replaceChildren(...groups);
     nav.scrollTop = scrolled;
-    highlight(lit);
+    paintLit();
+    reveal();
+    if (focusedId) items.get(focusedId)?.a.focus();
+  }
+
+  // Class and aria-current only: the redraw must not pull the list back to the lit item.
+  function paintLit() {
+    for (const [k, { a }] of items) {
+      a.classList.toggle('on', k === lit);
+      if (k === lit) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
   }
 
   function highlight(id) {
     lit = id;
-    for (const [k, { a }] of items) {
-      a.classList.toggle('on', k === id);
-      if (k === id) {
-        a.setAttribute('aria-current', 'page');
-        // On a short window the list scrolls: the lit item must not stay out of sight.
-        a.scrollIntoView?.({ block: 'nearest' });
-      } else a.removeAttribute('aria-current');
-    }
+    paintLit();
+    reveal();
+  }
+
+  // On a short window the list scrolls: a newly lit item must not stay out of sight (#750). Once per id.
+  function reveal() {
+    if (lit === revealed || !items.has(lit)) return;
+    revealed = lit;
+    items.get(lit).a.scrollIntoView?.({ block: 'nearest' });
   }
 
   // The right side of one item again, without drawing the list: the focus and the scroll stay where they are.
