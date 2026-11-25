@@ -221,6 +221,13 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.deepEqual(usage({ context: { pct: 91 } }), { pct: 91, label: 'Uso da conversa 91%' });
     assert.equal(usage({ context: { pct: 140 } })?.pct, 100);
   });
+  test('a context without a finite pct shows no usage: never "NaN%" or an invented 0% (#751)', () => {
+    const failed = { attention: { level: 'blocked', reason: 'error' }, status: 'error' };
+    for (const context of [{}, { pct: null }, { pct: undefined }, { pct: NaN }, { pct: Infinity }, { pct: 'x' }, { used: 1, limit: 2 }]) {
+      assert.equal(cardContent(blocked({ ...failed, context })).usage, null, JSON.stringify(context));
+    }
+    assert.deepEqual(cardContent(blocked({ ...failed, context: { pct: 0 } })).usage, { pct: 0, label: 'Uso da conversa 0%' }, 'a real 0 stays');
+  });
   test('the state is the one of the session, with today\'s words', () => {
     assert.deepEqual(cardContent(blocked()).state, { kind: 'needs', label: 'Pergunta' });
     assert.deepEqual(cardContent(blocked({ attention: { level: 'blocked', reason: 'permission' } })).state, { kind: 'permission', label: 'Pede permissão' });

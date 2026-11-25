@@ -64,7 +64,7 @@ const base = (c) => ({
 export function cardContent(c) {
   const v = base(c);
   const plan = planOf(c);
-  const pct = c.context ? limit(c.context.pct) : null;
+  const pct = Number.isFinite(c.context?.pct) ? limit(c.context.pct) : null;
   const failed = v.state.kind === 'error';
   return {
     ...v,
