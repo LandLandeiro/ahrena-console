@@ -60,13 +60,13 @@
  */
 .table { table-layout: fixed; }
 .table .c-session { width: 19%; }
-.table .c-status { width: 15%; }
-.table .c-activity { width: 10%; }
-.table .c-duration { width: 9%; }
+.table .c-status { width: 15.5%; }
+.table .c-activity { width: 9%; }
+.table .c-duration { width: 9.5%; }
 .table .c-agents { width: 8%; }
-.table .c-cost { width: 9%; }
-.table .c-dir { width: 11%; }
-.table .c-message { width: 15%; }
+.table .c-cost { width: 9.8%; }
+.table .c-dir { width: 9.6%; }
+.table .c-message { width: 15.6%; }
 .table .c-open { width: 4%; }
 .table .nm, .table .st, .table .dur, .table th { white-space: normal; }
 .table th { overflow: hidden; text-overflow: ellipsis; letter-spacing: .05em; }
@@ -79,21 +79,23 @@
 .table .msg { padding-left: 4px; }
 @media (max-width: 1240px) {
   .table .c-dir, .table .dir { display: none; }
-  .table .c-session { width: 22%; }
-  .table .c-status { width: 17%; }
+  .table th, .table td { padding-left: 8px; padding-right: 8px; }
+  .table th:first-child, .table td:first-child { padding-left: 14px; }
+  .table .c-session { width: 21%; }
+  .table .c-status { width: 17.5%; }
   .table .c-activity { width: 11%; }
   .table .c-duration { width: 11%; }
   .table .c-agents { width: 9%; }
   .table .c-cost { width: 11%; }
-  .table .c-message { width: 14%; }
+  .table .c-message { width: 14.5%; }
   .table .c-open { width: 5%; }
 }
 @media (max-width: 900px) {
   .table .c-message, .table .msg { display: none; }
   .table th, .table td { padding-left: 6px; padding-right: 6px; }
   .table th { letter-spacing: .04em; }
-  .table .c-session { width: 22%; }
-  .table .c-status { width: 23%; }
+  .table .c-session { width: 21%; }
+  .table .c-status { width: 24%; }
   .table .c-activity { width: 12%; }
   .table .c-duration { width: 13%; }
   .table .c-agents { width: 10%; }

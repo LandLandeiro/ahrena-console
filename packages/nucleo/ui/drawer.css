@@ -1,15 +1,21 @@
 /* The top bar and the drawer (issue 750): below 860 px the bar leaves the frame and comes on top. Colors come from brand.css. */
 .cc-top { display: none; }
 .cc-scrim { display: none; }
+.cc-side-head { flex: none; display: flex; align-items: center; padding-right: 12px; }
+.cc-side-head .cc-brand { flex: 1; min-width: 0; }
+.cc-side-head .cc-ibtn { display: none; }
 
 @media (max-width: 859px) {
-  .cc { grid-template-columns: minmax(0, 1fr); }
-  .cc-top { display: flex; flex: none; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; background: var(--sidebar); border-bottom: 1px solid var(--border); }
+  .cc { --top-height: 48px; grid-template-columns: minmax(0, 1fr); }
+  .cc-top { display: flex; flex: none; align-items: center; gap: 10px; height: var(--top-height); padding: 0 12px; background: var(--sidebar); border-bottom: 1px solid var(--border); }
+  .cc-side-head .cc-ibtn { display: grid; }
+  #menu-button { display: flex; align-items: center; justify-content: center; gap: 6px; width: auto; min-width: 28px; padding: 0 6px; }
+  #menu-button .cc-nav-tag { margin-left: 0; }
   .cc-top .logo { width: 24px; height: 24px; }
   .cc-top b { font-size: 13.5px; font-weight: var(--weight-semibold); }
-  .cc-side { position: fixed; top: 0; bottom: 0; left: 0; width: min(248px, 86vw); z-index: 40; transform: translateX(-100%); visibility: hidden; transition: transform .18s ease, visibility 0s linear .18s; }
+  .cc-side { position: fixed; top: var(--top-height); bottom: 0; left: 0; width: min(248px, 86vw); z-index: 40; transform: translateX(-100%); visibility: hidden; transition: transform .18s ease, visibility 0s linear .18s; }
   .cc-side[data-open] { transform: none; visibility: visible; transition-delay: 0s; }
-  .cc-scrim { display: block; position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 39; background: color-mix(in srgb, var(--mono-black) 30%, transparent); }
+  .cc-scrim { display: block; position: fixed; top: var(--top-height); right: 0; bottom: 0; left: 0; z-index: 39; background: color-mix(in srgb, var(--mono-black) 30%, transparent); }
   .cc-main { padding: 16px; }
 }
 

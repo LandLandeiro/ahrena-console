@@ -33,11 +33,18 @@ function rig(narrow: boolean) {
   const scrim = new ElementoFalso('div');
   scrim.hidden = true;
   const column = new ElementoFalso('div');
+  const notice = new ElementoFalso('div');
+  const closeButton = new ElementoFalso('button');
+  closeButton.setAttribute('id', 'drawer-close');
+  side.append(closeButton);
+  const count = new ElementoFalso('span');
+  count.hidden = true;
+  button.append(count);
   const listeners = new Set<(ev: { matches: boolean }) => void>();
   const media = { matches: narrow, addEventListener: (_: string, f: (ev: { matches: boolean }) => void) => void listeners.add(f) };
   const cross = (matches: boolean) => { media.matches = matches; listeners.forEach((f) => f({ matches })); };
-  const drawer = createDrawer({ button, side, scrim, background: [column], media });
-  return { button, side, first, second, scrim, column, cross, drawer, media };
+  const drawer = createDrawer({ button, side, scrim, background: [column, notice], closeButton, count, media });
+  return { button, side, first, second, scrim, column, notice, closeButton, count, nav, cross, drawer, media };
 }
 
 describe('issue 750: the drawer', () => {
@@ -174,7 +181,7 @@ describe('issue 750: the drawer', () => {
 describe('issue 750: the markup and the rules of the drawer', () => {
   test('the top bar holds the menu button, the logo and the name; the scrim is hidden; the bar has an id', () => {
     assert.match(html, /<header class="cc-top">/);
-    assert.match(html, /<button type="button" class="cc-ibtn" id="menu-button" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">/);
+    assert.match(html, /<button type="button" class="cc-ibtn" id="menu-button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">/);
     assert.match(html, /<aside class="cc-side" id="sidebar">/);
     assert.match(html, /<div class="cc-scrim" id="scrim" hidden><\/div>/);
     assert.match(html, /<link rel="stylesheet" href="\/ui\/drawer\.css">/);
@@ -207,7 +214,8 @@ describe('issue 750: the markup and the rules of the drawer', () => {
 
   test('app.js builds the drawer with the column as the background and puts it in the Escape order', () => {
     assert.match(app, /createDrawer\(\{/);
-    assert.match(app, /background: \[document\.querySelector\('\.cc-col'\)\]/);
+    assert.match(app, /background: \[document\.getElementById\('update-notice'\), document\.getElementById\('content'\)\]/);
+    assert.doesNotMatch(app, /background: \[[^\]]*\.cc-col/, 'the top bar stays out of the inert set: the menu button is still reachable');
     assert.match(app, /createEscape\(document, \[\s*\{ isOpen: \(\) => appUpdate\.isOpen[^\]]*accountMenu,\s*drawer,\s*\]\)/);
   });
 });
@@ -229,5 +237,123 @@ describe('#750: the Conexões link of the account menu inside the drawer', () =>
     assert.equal(panel.hidden, true);
     assert.equal(drawer.isOpen(), false);
     assert.equal(documentoFalso.activeElement, button);
+  });
+});
+
+describe('#750: the drawer starts under the top bar, so the menu button stays in reach', () => {
+  const rule = (css: string, selector: string) => css.match(new RegExp(`^\\s*${selector.replace(/[.#\[\]="()>:+-]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
+  const narrow = drawerCss.slice(drawerCss.indexOf('@media (max-width: 859px)'));
+
+  test('the bar and the veil start at the height of the top bar, from one custom property of 48 px', () => {
+    assert.match(rule(narrow, '.cc'), /--top-height: 48px/);
+    assert.match(rule(narrow, '.cc-top'), /height: var\(--top-height\)/);
+    assert.match(rule(narrow, '.cc-side'), /top: var\(--top-height\)/);
+    assert.match(rule(narrow, '.cc-side'), /bottom: 0/);
+    assert.match(rule(narrow, '.cc-scrim'), /top: var\(--top-height\)/);
+    assert.doesNotMatch(rule(narrow, '.cc-side'), /top: 0/);
+    assert.doesNotMatch(rule(narrow, '.cc-scrim'), /top: 0/);
+  });
+
+  test('only the update notice and the content are inert while open: the top bar, with the menu button, is not', () => {
+    const { button, column, notice, drawer } = rig(true);
+    button.click();
+    assert.equal(notice.inert, true);
+    assert.equal(column.inert, true);
+    assert.equal(button.inert, undefined);
+    button.click();
+    assert.equal(drawer.isOpen(), false, 'the menu button closes it');
+    assert.equal(button.getAttribute('aria-expanded'), 'false');
+    assert.equal(notice.inert, false);
+    assert.equal(column.inert, false);
+    assert.equal(documentoFalso.activeElement, button);
+    button.click();
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+  });
+});
+
+describe('#750: the close button', () => {
+  test('it sits in the bar before the list, closes the drawer and puts the focus on the menu button; it does not take the first focus', () => {
+    const { button, closeButton, first, drawer } = rig(true);
+    button.click();
+    assert.equal(documentoFalso.activeElement, first);
+    closeButton.click();
+    assert.equal(drawer.isOpen(), false);
+    assert.equal(documentoFalso.activeElement, button);
+  });
+
+  test('the markup: a button with the X icon and its label, in the brand row, visible only below 860 px, at least 28 px', () => {
+    const row = /<div class="cc-side-head">([\s\S]*?)<\/div>\s*<nav id="nav"/.exec(html)?.[1] ?? '';
+    assert.match(row, /<a class="cc-brand" href="\/ui">/);
+    assert.match(row, /<button type="button" class="cc-ibtn" id="drawer-close" aria-label="Fechar menu">/);
+    assert.match(row, /<svg class="icon"[^>]*aria-hidden="true"><path d="M18 6 6 18"\/><path d="m6 6 12 12"\/><\/svg>/);
+    assert.doesNotMatch(row, /style=/);
+    const shell = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
+    assert.match(shell, /\.cc-ibtn \{ width: 28px; height: 28px;/);
+    assert.match(drawerCss, /^\.cc-side-head \.cc-ibtn \{ display: none; \}/m);
+    const narrow = drawerCss.slice(drawerCss.indexOf('@media (max-width: 859px)'));
+    assert.match(narrow, /\.cc-side-head \.cc-ibtn \{ display: grid; \}/);
+  });
+});
+
+describe('#750: the list keeps its scroll when the drawer opens', () => {
+  test('a pointer open focuses the first item without scrolling; a keyboard open (focus ring on the button) lets it scroll', () => {
+    for (const keyboard of [false, true]) {
+      const { button, first, drawer } = rig(true);
+      const seen: unknown[] = [];
+      const real = first.focus.bind(first);
+      first.focus = (options?: unknown) => (seen.push(options), real());
+      button.matches = (q: string) => keyboard && q === ':focus-visible';
+      drawer.open();
+      assert.deepEqual(seen, [{ preventScroll: !keyboard }], keyboard ? 'keyboard' : 'pointer');
+      assert.equal(documentoFalso.activeElement, first);
+    }
+  });
+
+  const rule = (css: string, selector: string) => css.match(new RegExp(`^\\s*${selector.replace(/[.#\[\]="()>:+-]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
+  test('nothing in the drawer resets the list: scrolled to the bottom, a screen picked, reopened, the scrollTop is the same', () => {
+    const { button, nav, second, drawer } = rig(true);
+    drawer.open();
+    nav.scrollTop = 420;
+    second.click();
+    assert.equal(drawer.isOpen(), false);
+    drawer.open();
+    assert.equal(nav.scrollTop, 420);
+    const hide = (selector: string) => rule(drawerCss, selector);
+    assert.doesNotMatch(hide('.cc-side'), /display: none/, 'display none would reset the scroll of the hidden list');
+    assert.doesNotMatch(hide('.cc-side[data-open]'), /display: none/);
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+  });
+});
+
+describe('#750: the waiting count on the menu button', () => {
+  test('it takes the Mural tag as it is: "3 esperam", "1 espera", gone at zero, the name says it once, aria-expanded says open or closed', () => {
+    const { button, count, drawer } = rig(true);
+    assert.equal(button.getAttribute('aria-label'), null, 'the page markup says "Menu"; the drawer only changes it with a count');
+    drawer.waiting({ tone: 'waiting', text: '3 esperam' });
+    assert.equal(count.textContent, '3 esperam');
+    assert.equal(count.hidden, false);
+    assert.equal(button.getAttribute('aria-label'), 'Menu, 3 esperam');
+    drawer.open();
+    assert.equal(button.getAttribute('aria-label'), 'Menu, 3 esperam', 'the name does not change with the open state');
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+    drawer.close();
+    drawer.waiting({ tone: 'waiting', text: '1 espera' });
+    assert.equal(count.textContent, '1 espera');
+    assert.equal(button.getAttribute('aria-label'), 'Menu, 1 espera');
+    drawer.waiting(null);
+    assert.equal(count.hidden, true);
+    assert.equal(count.textContent, '');
+    assert.equal(button.getAttribute('aria-label'), 'Menu');
+  });
+
+  test('the markup: the tag is the yellow one of the bar, hidden from the name; the button is named Menu', () => {
+    assert.match(html, /<span class="cc-nav-tag" data-tone="waiting" aria-hidden="true" hidden><\/span>\s*<\/button>/);
+    const shell = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
+    assert.match(shell, /\.cc-nav-tag\[data-tone="waiting"\] \{ color: var\(--status-waiting-text\); background: var\(--status-waiting-badge\);/);
+  });
+
+  test('app.js feeds it from the counts the Mural tag reads: the wrapped tag function, no read of its own', () => {
+    assert.match(app, /createCounts\(\{ read, nav: \{ tag: \(id, next\) => \{[^}]*tag\(id, next\);[^}]*id === 'wall'[^}]*drawer\.waiting\(next\)/);
+    assert.equal((app.match(/api\/attention/g) ?? []).length, 0, 'no second read of /api/attention in the shell');
   });
 });
