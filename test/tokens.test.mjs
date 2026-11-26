@@ -525,15 +525,12 @@ test('#749: error text reaches 4.5:1 on the background set in its own rule or in
   assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)
   assert.ok(mixes.length >= 8, `the guard found only ${mixes.length} mixes of an error token`)
   const low = []
-  for (const theme of THEMES) {
-    const t = tokens.themes[theme]
-    const text = tokens.status.error[theme].text
-    for (const pair of [...labels, ...mixes]) {
-      const back = paint(pair.background, theme)
-      for (const surface of ['bg', 'surface', 'raised']) {
-        const r = contrast(text, hex(over(back, rgb(t[surface]))))
-        if (r < AA_TEXT) low.push(`${pair.file} ${pair.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${pair.background}`)
-      }
+  const cases = THEMES.flatMap((theme) => [...labels, ...mixes].map((pair) => ({ theme, pair })))
+  for (const { theme, pair } of cases) {
+    const back = paint(pair.background, theme)
+    for (const surface of ['bg', 'surface', 'raised']) {
+      const r = contrast(tokens.status.error[theme].text, hex(over(back, rgb(tokens.themes[theme][surface]))))
+      if (r < AA_TEXT) low.push(`${pair.file} ${pair.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${pair.background}`)
     }
   }
   assert.deepEqual(low, [], 'error text is under 4.5:1: paint it with the opaque pair --status-error-badge')
