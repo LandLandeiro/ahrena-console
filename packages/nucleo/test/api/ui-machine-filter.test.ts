@@ -219,6 +219,16 @@ describe('machine-filter: the machine with its icon (#751)', () => {
     assert.equal(texto(mf.machineMark({ id: 's1' })), 'Esta máquina');
   });
 
+  test('machineMark: the name carries the whole text in its title, local or remote, the long one included (#751)', () => {
+    const long = 'Estação de trabalho do time de plataforma e de dados, sala 4';
+    const named = (item: unknown) => mf.machineMark(item).querySelectorAll('span').find((n: { textContent: string }) => n.textContent !== '')!;
+    assert.equal(named({ id: 's1' }).getAttribute('title'), 'Esta máquina');
+    assert.equal(named({ id: 's1', machine: WS }).getAttribute('title'), 'Workstation');
+    assert.equal(named({ id: 's1', machine: { id: 'ws', label: long } }).getAttribute('title'), long);
+    assert.equal(named({ id: 's1', machine: { id: 'ws' } }).getAttribute('title'), 'Máquina remota');
+    assert.equal(mf.machineMark({ id: 's1', machine: WS }).getAttribute('aria-label'), null, 'the visible text already is the name: nothing added for the reader');
+  });
+
   test('the laptop icon exists and the sheet draws it at 14px, opacity .8', () => {
     assert.ok(ICON_NAMES.includes('laptop'));
     const css = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8');

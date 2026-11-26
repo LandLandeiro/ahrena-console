@@ -39,7 +39,8 @@ const { readMachines, readConnectors, highlight, counter, tag } = createNav({
     drawLive();
   },
 });
-const counts = createCounts({ read, nav: { tag } });
+// ADR-0028: the Mural tag also goes to the menu button; one read, two places.
+const counts = createCounts({ read, nav: { tag: (id, next) => { tag(id, next); if (id === 'wall') drawer.waiting(next); } } });
 counts.refresh();
 // ADR-0028: the screens write through this one, so a write to the board moves the orange number.
 const writeCounted = afterWrite(write, counts);
@@ -67,8 +68,8 @@ document.addEventListener('click', (ev) => {
 
 createTheme({ button: document.getElementById('theme-button') });
 const accountMenu = createAccountMenu({ button: document.getElementById('account-button'), menu: document.getElementById('account-menu') });
-// ADR-0028: the column is the inert background while the drawer is open.
-const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), background: [document.querySelector('.cc-col')] });
+// ADR-0028: the notice and the content are the inert background while the drawer is open; the top bar stays in reach.
+const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), closeButton: document.getElementById('drawer-close'), background: [document.getElementById('update-notice'), document.getElementById('content')] });
 createEscape(document, [
   { isOpen: () => appUpdate.isOpen, close: () => (appUpdate.close(), drawLive(), live.focusVersion()) },
   accountMenu,

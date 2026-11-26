@@ -2,7 +2,7 @@
 // Roda com: node --test test/
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
 const tokens = JSON.parse(readFileSync(new URL('../docs/brand/tokens.json', import.meta.url), 'utf8'))
@@ -412,4 +412,126 @@ test('#700/AC-2: no generated or hand-written consumer references a green token'
     text.split('\n').forEach((line, i) => { if (GREEN_REFERENCE.test(line)) found.push(`${file}:${i + 1}`) })
   }
   assert.deepEqual(found, [], 'a consumer still references the retired green')
+})
+
+// #749: error text on the background set in its own rule or in its parent selector's rule, and on every background written as a color-mix of an error token, stays at 4.5:1 or more.
+const UI_DIR = new URL('../packages/nucleo/ui/', import.meta.url)
+
+function uiCssFiles(dir = UI_DIR) {
+  const out = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), dir)
+    if (entry.isDirectory()) out.push(...uiCssFiles(url))
+    else if (entry.name.endsWith('.css') && entry.name !== 'brand.css') out.push(url)
+  }
+  return out
+}
+
+function cssRules(file) {
+  const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const rules = []
+  for (const m of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const decls = {}
+    for (const d of m[2].split(';')) {
+      const i = d.indexOf(':')
+      if (i > 0) decls[d.slice(0, i).trim()] = d.slice(i + 1).trim()
+    }
+    for (const selector of m[1].split(',').map((s) => s.trim())) rules.push({ selector, decls })
+  }
+  return rules
+}
+
+const splitTop = (s) => {
+  const parts = []
+  let depth = 0
+  let from = 0
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')') depth--
+    else if (s[i] === ',' && depth === 0) { parts.push(s.slice(from, i).trim()); from = i + 1 }
+  }
+  parts.push(s.slice(from).trim())
+  return parts
+}
+
+// #749: a colour is { rgb: 0-255, a: 0-1 }; a mix with transparent keeps the colour and drops the alpha.
+function paint(value, theme) {
+  const v = value.trim()
+  if (v === 'transparent') return { rgb: [0, 0, 0], a: 0 }
+  const variable = v.match(/^var\(--([a-z0-9-]+)\)$/)
+  if (variable) return { rgb: rgb(themeHex(variable[1], theme)), a: 1 }
+  const mix = v.match(/^color-mix\(\s*in\s+srgb\s*,(.*)\)$/s)
+  if (!mix) throw new Error(`cannot read the colour "${v}"`)
+  const [first, second] = splitTop(mix[1]).map((part) => {
+    const pct = part.match(/\s(\d+(?:\.\d+)?)%$/)
+    return { color: paint(pct ? part.slice(0, pct.index) : part, theme), pct: pct ? Number(pct[1]) / 100 : null }
+  })
+  const pa = first.pct ?? (second.pct === null ? 0.5 : 1 - second.pct)
+  const pb = second.pct ?? 1 - pa
+  const a = first.color.a * pa + second.color.a * pb
+  const channel = (i) => (first.color.rgb[i] * first.color.a * pa + second.color.rgb[i] * second.color.a * pb) / a
+  return { rgb: [channel(0), channel(1), channel(2)], a }
+}
+
+function themeHex(name, theme) {
+  const status = name.match(/^status-([a-z]+)-(dot|text|badge)$/)
+  if (status) return tokens.status[status[1]][theme][status[2]]
+  const key = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+  if (tokens.themes[theme][key]) return tokens.themes[theme][key]
+  throw new Error(`no token behind --${name}`)
+}
+
+const over = (top, below) => top.rgb.map((c, i) => c * top.a + below[i] * (1 - top.a))
+const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`
+
+const ERROR_TEXT = /^var\(--status-error-text\)$/
+const ERROR_MIX = /^color-mix\(.*--status-error-/s
+const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/s)?.[1])
+// #749: the one mix of an error token that holds no text: the recording meter bar.
+const ERROR_MIX_WITHOUT_TEXT = new Set(['screens/session-message.css .sm-level i'])
+
+// #749: the pairs measured: a rule that sets the error text and a background in the same rule or, for a descendant, the first rule of its parent selector; and every rule whose background is written as a color-mix of an error token, against the error text, except the one in ERROR_MIX_WITHOUT_TEXT.
+function errorPairs() {
+  const labels = []
+  const mixes = []
+  for (const file of uiCssFiles()) {
+    const name = file.pathname.split('/packages/nucleo/ui/')[1]
+    const rules = cssRules(file)
+    for (const { selector, decls } of rules) {
+      const own = backgroundOf(decls)
+      if (ERROR_MIX.test(own ?? '') && !ERROR_MIX_WITHOUT_TEXT.has(`${name} ${selector}`)) mixes.push({ file: name, selector, background: own })
+      if (!ERROR_TEXT.test(decls.color ?? '')) continue
+      let background = own
+      if (!background) {
+        const parent = selector.replace(/\s*(?:>\s*)?[^\s>]+$/, '')
+        background = backgroundOf(rules.find((r) => r.selector === parent && backgroundOf(r.decls))?.decls ?? {})
+      }
+      if (background) labels.push({ file: name, selector, background })
+    }
+  }
+  return { labels, mixes }
+}
+
+test('#749: error text reaches 4.5:1 on the background set in its own rule or in its parent selector\'s rule, and on every background written as a color-mix of an error token, on bg, surface and raised, in both themes', () => {
+  const { labels, mixes } = errorPairs()
+  const found = new Set(labels.map((l) => `${l.file} ${l.selector}`))
+  const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'kb-b-error', 'sd-s-error', 'wb-pill-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
+  for (const needle of known) {
+    assert.ok([...found].some((f) => f.includes(needle)), `the guard does not find ${needle}: it would pass with nothing to check`)
+  }
+  for (const file of ['repos.css', 'feed.css', 'dashboard.css', 'sessions.css', 'history.css', 'screens/machine-connection.css', 'screens/clouds.css', 'screens/machine.css', 'screens/workflows.css']) {
+    assert.ok(found.has(`${file} .b-error`), `the guard does not find .b-error in ${file}`)
+  }
+  assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)
+  assert.ok(mixes.length >= 8, `the guard found only ${mixes.length} mixes of an error token`)
+  const low = []
+  const cases = THEMES.flatMap((theme) => [...labels, ...mixes].map((pair) => ({ theme, pair })))
+  for (const { theme, pair } of cases) {
+    const back = paint(pair.background, theme)
+    for (const surface of ['bg', 'surface', 'raised']) {
+      const r = contrast(tokens.status.error[theme].text, hex(over(back, rgb(tokens.themes[theme][surface]))))
+      if (r < AA_TEXT) low.push(`${pair.file} ${pair.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${pair.background}`)
+    }
+  }
+  assert.deepEqual(low, [], 'error text is under 4.5:1: paint it with the opaque pair --status-error-badge')
 })

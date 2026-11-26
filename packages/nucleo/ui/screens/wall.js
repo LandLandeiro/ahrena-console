@@ -17,7 +17,7 @@ const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Releitura depois de uma rajada de mudanças. */
 export const DEBOUNCE_MS = 400;
-/** Contexto acima daqui aparece em vermelho no pé do card. */
+// ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
 const AGENT = 'Claude';
 
@@ -35,6 +35,8 @@ export const FILTERS = [
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
 const clean = (text) => String(text ?? '').trim();
+// ADR-0028: a session without a title (null, empty or blanks) reads "Sem título", as the Histórico does; the data stays as it came.
+const titled = (title) => (clean(title) ? title : 'Sem título');
 
 // ADR-0028: the plan is null without steps; the step is done + 1 while one runs, never above the total.
 function planOf(c) {
@@ -51,7 +53,7 @@ const base = (c) => ({
   machine: c.machine ?? null,
   href: itemHref(c),
   open: c.open ?? null,
-  title: c.title,
+  title: titled(c.title),
   state: stateOfSession({ attention: c.attention, status: c.status }),
 });
 
@@ -66,7 +68,7 @@ export function cardContent(c) {
     ask: clean(c.activity?.text) || v.state.label,
     actionLabel: failed ? 'Abrir para retomar' : 'Responder no Claude',
     plan: plan ? { ...plan, label: `Passo ${plan.step} de ${plan.total}` } : null,
-    usage: pct !== null && (failed || pct > HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%` } : null,
+    usage: pct !== null && (failed || pct >= HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%`, high: pct >= HIGH_CONTEXT } : null,
   };
 }
 
@@ -120,7 +122,7 @@ export function treeSummary(tree) {
 export function childContent(node, now = Date.now()) {
   return {
     id: node.id,
-    title: node.title,
+    title: titled(node.title),
     status: node.status,
     attention: attentionOf(node.attention),
     since: sinceText(node.since, now),
@@ -161,6 +163,13 @@ function spotsOf(nest, key, link, action) {
   if (action) nest.spot('open', key, action.children[0]);
 }
 
+// ADR-0028: the tag sits above the stretched link so its `title` shows; a click on it goes to the link, modifiers and all.
+function tagOver(tag, link) {
+  tag.setAttribute('class', `${tag.getAttribute('class')} wall-tag`);
+  tag.addEventListener('click', (ev) => link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: ev.button, ctrlKey: ev.ctrlKey, metaKey: ev.metaKey, shiftKey: ev.shiftKey, altKey: ev.altKey })));
+  return tag;
+}
+
 function titleLine(link, parentTitle) {
   return el('div', { class: 'wall-titleline' }, link, parentTitle ? el('span', { class: 'wall-from', title: `Aberta por ${parentTitle}` }, `filha de ${parentTitle}`) : null);
 }
@@ -175,12 +184,12 @@ function card(c, write, nest, known) {
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
-  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel });
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel, reveal: true, className: opened ? 'open-beside' : null });
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
-    who(stateTag({ kind: v.state.kind, label: v.state.label }), c.since),
+    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
     action ? el('div', { class: 'wall-act' }, action) : null,
     ...tree(c, summary, opened, nest),
@@ -196,7 +205,7 @@ function row(c, write, nest, known, place = '') {
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const working = v.state.kind === 'working';
   const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
-  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null });
+  const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null, reveal: true });
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
@@ -209,7 +218,7 @@ function row(c, write, nest, known, place = '') {
       el(
         'div',
         { class: 'wall-side' },
-        stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }),
+        tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }), link),
         v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
@@ -281,7 +290,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
     ? []
     : parked.items.map((c) => {
         const href = itemHref(c);
-        const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: c.title }, c.title);
+        const link = el('a', { class: 'wall-trunc wall-kid-title', href, title: titled(c.title) }, titled(c.title));
         const key = itemKey(c);
         const openLink = el('a', { class: 'btn outline', href }, 'Abrir');
         spot('parked', key, link);
@@ -311,8 +320,8 @@ function foot(v, machine) {
   const parts = [
     step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
     step ? bar({ tipo: 'plan', valor: step.step, max: step.total, rotulo: step.label }) : null,
-    v.usage ? el('span', { class: 'wall-num wall-over', 'data-foot': 'usage' }, v.usage.label) : null,
-    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: true, rotulo: v.usage.label }) : null,
+    v.usage ? el('span', { class: `wall-num${v.usage.high ? ' wall-over' : ''}`, 'data-foot': 'usage' }, v.usage.label) : null,
+    v.usage && !step ? bar({ tipo: 'context', valor: v.usage.pct, max: 100, alto: v.usage.high, rotulo: v.usage.label }) : null,
     machine,
   ].filter(Boolean);
   return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;
@@ -487,7 +496,10 @@ export async function mount(area, ctx) {
     const nest = {
       isOpen: (id) => opened.has(id),
       toggle: (id) => (opened.has(id) ? opened.delete(id) : opened.add(id), draw()),
-      titleOf: (id) => all.find((x) => x.id === id)?.title ?? null,
+      titleOf: (id) => {
+        const parent = all.find((x) => x.id === id);
+        return parent ? titled(parent.title) : null;
+      },
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();

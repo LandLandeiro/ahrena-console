@@ -33,7 +33,7 @@ button { font: inherit; cursor: pointer; }
 .cc-nav.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: var(--weight-medium); }
 /* The state dot of a remote machine (C24, issue 178): green connected, gray down, yellow another version. */
 .cc-nav-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cc-nav-dot { margin-left: auto; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--status-abandoned-dot); }
+.cc-nav-dot { position: relative; margin-left: auto; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--status-abandoned-dot); }
 .cc-nav-dot[data-state="connected"] { background: var(--status-completed-dot); }
 .cc-nav-dot[data-state="incompatible-version"] { background: var(--status-waiting-dot); }
 /* The tunnel is up and the core over there asks for the owner proof (issue 388): one yellow dot for the three reasons. */
@@ -166,7 +166,7 @@ button { font: inherit; cursor: pointer; }
 .attention-chip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-semibold); white-space: nowrap; flex: none; vertical-align: middle;
   background: color-mix(in srgb, var(--status-waiting-text) 16%, transparent); color: var(--status-waiting-text); }
 .attention-chip-light { font-weight: var(--weight-medium); background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
-.attention-chip-error { background: color-mix(in srgb, var(--status-error-text) 16%, transparent); color: var(--status-error-text); }
+.attention-chip-error { background: var(--status-error-badge); color: var(--status-error-text); }
 .attention-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .attention-dot-blocked { background: var(--status-waiting-dot); }
 .attention-dot-idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }

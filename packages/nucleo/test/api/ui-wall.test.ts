@@ -91,6 +91,10 @@ class Elemento extends No {
   click() {
     for (const f of this.ouvintes.get('click') ?? []) f({});
   }
+  dispatchEvent(ev: { type: string }) {
+    for (const f of this.ouvintes.get(ev.type) ?? []) f(ev);
+    return true;
+  }
   focus() {
     (globalThis as unknown as { document: { activeElement: unknown } }).document.activeElement = this;
   }
@@ -124,6 +128,13 @@ class Elemento extends No {
 const head = new Elemento('head');
 Object.assign(globalThis, {
   Node: No,
+  MouseEvent: class {
+    type: string;
+    constructor(type: string, init: Record<string, unknown> = {}) {
+      this.type = type;
+      Object.assign(this, init);
+    }
+  },
   document: {
     head,
     activeElement: null as unknown,
@@ -193,7 +204,7 @@ const MURAL = {
   ],
 };
 
-async function montarTela(read: (rota: string) => Promise<unknown>) {
+async function montarTela(read: (rota: string) => Promise<unknown>, write: (rota: string, corpo: unknown) => Promise<unknown> = async () => ({})) {
   const area = new Elemento('main');
   const sair = new AbortController();
   const ouvintes = { mudar: [] as ((m: unknown[]) => void)[], reiniciar: [] as (() => void)[] };
@@ -202,6 +213,7 @@ async function montarTela(read: (rota: string) => Promise<unknown>) {
     params: {},
     signal: sair.signal,
     read: (rota: string) => (rotas.push(rota), read(rota)),
+    write,
     onChange: (f: (m: unknown[]) => void) => ouvintes.mudar.push(f),
     onRestart: (f: () => void) => ouvintes.reiniciar.push(f),
     counter: () => {},
@@ -235,20 +247,26 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.equal(cardContent(blocked()).actionLabel, 'Responder no Claude');
     assert.equal(cardContent(blocked({ attention: { level: 'blocked', reason: 'error' }, status: 'error' })).actionLabel, 'Abrir para retomar');
   });
-  test('the usage shows in an error with a reading, and in any session past 90%', () => {
+  test('the usage shows in an error with a reading, and in any session from 90%; it is high only from 90% (#751)', () => {
     const usage = (extra: Card) => cardContent(blocked(extra)).usage;
-    assert.deepEqual(usage({ attention: { level: 'blocked', reason: 'error' }, status: 'error', context: { pct: 40 } }), { pct: 40, label: 'Uso da conversa 40%' });
-    assert.equal(usage({ attention: { level: 'blocked', reason: 'error' }, status: 'error', context: null }), null);
-    assert.equal(usage({ context: { pct: 90 } }), null);
-    assert.deepEqual(usage({ context: { pct: 91 } }), { pct: 91, label: 'Uso da conversa 91%' });
+    const failed = { attention: { level: 'blocked', reason: 'error' }, status: 'error' };
+    assert.deepEqual(usage({ ...failed, context: { pct: 40 } }), { pct: 40, label: 'Uso da conversa 40%', high: false });
+    assert.equal(usage({ ...failed, context: null }), null);
+    assert.equal(usage({ context: { pct: 89 } }), null);
+    assert.deepEqual(usage({ context: { pct: 90 } }), { pct: 90, label: 'Uso da conversa 90%', high: true });
+    assert.deepEqual(usage({ context: { pct: 91 } }), { pct: 91, label: 'Uso da conversa 91%', high: true });
+    assert.equal(usage({ context: { pct: 89.6 } })?.high, true, 'the rounded number that is shown is the one compared');
+    assert.equal(usage({ context: { pct: 89.4 } }), null);
     assert.equal(usage({ context: { pct: 140 } })?.pct, 100);
+    assert.equal(usage({ ...failed, context: { pct: 89 } })?.high, false);
+    assert.equal(usage({ ...failed, context: { pct: 90 } })?.high, true);
   });
   test('a context without a finite pct shows no usage: never "NaN%" or an invented 0% (#751)', () => {
     const failed = { attention: { level: 'blocked', reason: 'error' }, status: 'error' };
     for (const context of [{}, { pct: null }, { pct: undefined }, { pct: NaN }, { pct: Infinity }, { pct: 'x' }, { used: 1, limit: 2 }]) {
       assert.equal(cardContent(blocked({ ...failed, context })).usage, null, JSON.stringify(context));
     }
-    assert.deepEqual(cardContent(blocked({ ...failed, context: { pct: 0 } })).usage, { pct: 0, label: 'Uso da conversa 0%' }, 'a real 0 stays');
+    assert.deepEqual(cardContent(blocked({ ...failed, context: { pct: 0 } })).usage, { pct: 0, label: 'Uso da conversa 0%', high: false }, 'a real 0 stays');
   });
   test('the state is the one of the session, with today\'s words', () => {
     assert.deepEqual(cardContent(blocked()).state, { kind: 'needs', label: 'Pergunta' });
@@ -440,15 +458,35 @@ describe('Mural: a tela montada', () => {
     }
   });
 
-  test('past 90% of the usage shows in red in the foot of any card, and the step stays', async () => {
-    const fullCard = cardDeExemplo('q1', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 93, used: 1, limit: 2, label: '' } });
-    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [fullCard, cardDeExemplo('q2', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, context: { pct: 90, used: 1, limit: 2, label: '' } })] }));
+  test('from 90% of the usage shows in red in the foot and its bar, below it in the normal colour, with and without an error (#751)', async () => {
+    const mk = (id: string, pct: number, failed: boolean, plan: unknown = null) =>
+      cardDeExemplo(id, failed ? { status: 'error', state: 'error', attention: { level: 'blocked', reason: 'error' }, plan, context: { pct, used: 1, limit: 2, label: '' } } : { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'plan' }, plan, context: { pct, used: 1, limit: 2, label: '' } });
+    const cards = [mk('a89', 89, false), mk('a90', 90, false), mk('a91', 91, false), mk('e89', 89, true), mk('e90', 90, true), mk('e91', 91, true), mk('p93', 93, false, { done: 3, total: 5, current: 'x' })];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
     try {
-      await ate(() => cardsOf(area).length === 2);
-      const [a, b] = cardsOf(area);
-      assert.equal(comClasse(a!, 'wall-over')[0]!.textContent, 'Uso da conversa 93%');
-      assert.match(comClasse(a!, 'wall-foot')[0]!.textContent, /Passo 4 de 5.*Uso da conversa 93%/);
-      assert.equal(comClasse(b!, 'wall-over').length, 0, '90% is not above 90');
+      await ate(() => cardsOf(area).length === cards.length);
+      const by = (id: string) => cardsOf(area).find((c) => c.getAttribute('data-session') === id)!;
+      const state = (id: string) => ({ text: comClasse(by(id), 'wall-num').filter((n) => n.getAttribute('data-foot') === 'usage').map((n) => n.textContent), over: comClasse(by(id), 'wall-over').length, high: comClasse(by(id), 'wall-high').length, bar: comClasse(by(id), 'wall-bar').length });
+      assert.deepEqual(state('a89'), { text: [], over: 0, high: 0, bar: 0 }, '89 in a healthy card shows nothing');
+      assert.deepEqual(state('a90'), { text: ['Uso da conversa 90%'], over: 1, high: 1, bar: 1 }, '90 is red');
+      assert.deepEqual(state('a91'), { text: ['Uso da conversa 91%'], over: 1, high: 1, bar: 1 });
+      assert.deepEqual(state('e89'), { text: ['Uso da conversa 89%'], over: 0, high: 0, bar: 1 }, 'an error below 90 shows the text, in the normal colour');
+      assert.deepEqual(state('e90'), { text: ['Uso da conversa 90%'], over: 1, high: 1, bar: 1 });
+      assert.deepEqual(state('e91'), { text: ['Uso da conversa 91%'], over: 1, high: 1, bar: 1 });
+      assert.match(comClasse(by('p93'), 'wall-foot')[0]!.textContent, /Passo 4 de 5.*Uso da conversa 93%/, 'the step stays');
+      assert.equal(comClasse(by('p93'), 'wall-over').length, 1);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a row shows no usage of the conversation, whatever the percentage (#751)', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('r90', { context: { pct: 95, used: 1, limit: 2, label: '' } })] }));
+    try {
+      await ate(() => rowsOf(area).length === 1);
+      const row = rowsOf(area)[0]!;
+      assert.equal(comClasse(row, 'wall-over').length + comClasse(row, 'wall-high').length, 0);
+      assert.doesNotMatch(row.textContent, /Uso da conversa/);
     } finally {
       await sair();
     }
@@ -925,6 +963,14 @@ describe('#751: the sheet of the wall', () => {
     }
   });
 
+  test('the state tag of a card and of a row sits above the stretched link, so its title shows, and under the failure notice (#751)', () => {
+    const sel = '.wall-tag';
+    assert.match(ruleOf(sel), /position:\s*relative/);
+    assert.match(declared(sel, 'cursor') ?? '', /pointer/);
+    assert.ok(Number(declared(sel, 'z-index')) >= 1, 'above the link, which is z-index auto');
+    assert.ok(Number(declared(sel, 'z-index')) < Number(declared('.wall-act:has([role="status"]:not(:empty))', 'z-index')), 'the failure notice stays on top');
+  });
+
   test('the row is 68px tall: line-height 1.5 on the title and the phrase (#751)', () => {
     assert.equal(declared('.wall-rt', 'line-height'), '1.5');
     assert.equal(declared('.wall-phrase', 'line-height'), '1.5');
@@ -1102,6 +1148,32 @@ describe('Wall: nested children and Paradas (#333)', () => {
     }
   });
 
+  test('an opened leader card puts its notice beside the button; a closed one and an opened leader row keep it below (#751)', async () => {
+    const open = { target: 'terminal', command: 'claude --resume x' };
+    const tree = { total: 1, blocked: 0, active: 1, parked: 0 };
+    const cards = [
+      cardDeExemplo('lcard', { open, tree, children: [child('k1')], status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } }),
+      cardDeExemplo('lrow', { open, tree, children: [child('k2')] }),
+    ];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      const beside = () => comClasse(area, 'open-beside').length;
+      const toggle = (id: string) => area.todos((e) => e.getAttribute('data-tree') === id)[0]!.click();
+      assert.equal(beside(), 0, 'closed');
+      toggle('lrow');
+      assert.equal(beside(), 0, 'an opened leader row');
+      toggle('lcard');
+      const opened = comClasse(area, 'wall-card').find((e) => e.getAttribute('data-session') === 'lcard')!;
+      assert.equal(comClasse(opened, 'open-beside').length, 1, 'the opened leader card');
+      assert.equal(beside(), 1, 'no other action');
+      toggle('lcard');
+      assert.equal(beside(), 0, 'closed again');
+    } finally {
+      await sair();
+    }
+  });
+
   test('the child that needs you is a card of its own and says whose it is', async () => {
     const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
     try {
@@ -1259,6 +1331,65 @@ describe('#752: list semantics of the sections, the nested children and Paradas'
   });
 });
 
+
+describe('Wall: a session without a title shows "Sem título" (#751)', () => {
+  const blockedAsk = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  const untitled = (title: unknown) => ({
+    ...MURAL,
+    cards: [
+      cardDeExemplo('lider', { ...blockedAsk, title, tree: { total: 1, blocked: 0, active: 1, parked: 0 }, children: [child('kid', { title })] }),
+      cardDeExemplo('filha', { ...blockedAsk, title: 'Com título', parentId: 'lider' }),
+      cardDeExemplo('orfa', { ...blockedAsk, title: 'Outra', parentId: 'fora-do-mural' }),
+      cardDeExemplo('linha', { title }),
+      cardDeExemplo('filha-linha', { title: 'Linha com título', parentId: 'linha' }),
+    ],
+    parked: { total: 1, items: [cardDeExemplo('estac', { title, status: 'completed', state: 'completed' })] },
+  });
+  const links = (area: No, id: string) => area.todos((e) => e.tag === 'a' && e.getAttribute('data-session') === id);
+
+  for (const title of [null, '', '   ']) {
+    test(`title ${JSON.stringify(title)}: card, row, nested child and Paradas row say "Sem título", in the text and in the title`, async () => {
+      const data = untitled(title);
+      const before = JSON.stringify(data);
+      const { area, sair } = await montarTela(async () => data);
+      try {
+        await ate(() => sessionsOf(area).length === 5);
+        for (const id of ['lider', 'linha']) {
+          const link = links(area, id)[0]!;
+          assert.equal(link.textContent, 'Sem título', `${id}: text`);
+          assert.equal(link.getAttribute('title'), 'Sem título', `${id}: title`);
+        }
+        const from = (id: string) => comClasse(area.todos((e) => e.getAttribute('data-session') === id)[0]!, 'wall-from')[0];
+        assert.equal(from('filha')?.textContent, 'filha de Sem título', 'the card of a child of an untitled leader');
+        assert.equal(from('filha')?.getAttribute('title'), 'Aberta por Sem título');
+        assert.equal(from('filha-linha')?.textContent, 'filha de Sem título', 'the row of a child of an untitled row');
+        assert.equal(from('orfa'), undefined, 'a parent that is not on the wall gives no label');
+        area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!.click();
+        const kid = comClasse(area.todos((e) => e.getAttribute('data-child') === 'kid')[0]!, 'wall-kid-title')[0]!;
+        assert.equal(kid.textContent, 'Sem título', 'nested child: text');
+        assert.equal(kid.getAttribute('title'), 'Sem título', 'nested child: title');
+        area.todos((e) => e.getAttribute('data-parked') === 'toggle')[0]!.click();
+        const parked = comClasse(area.todos((e) => e.getAttribute('data-parked-row') === 'estac')[0]!, 'wall-kid-title')[0]!;
+        assert.equal(parked.textContent, 'Sem título', 'Paradas row: text');
+        assert.equal(parked.getAttribute('title'), 'Sem título', 'Paradas row: title');
+        assert.equal(JSON.stringify(data), before, 'the data does not change');
+      } finally {
+        await sair();
+      }
+    });
+  }
+
+  test('a title with text stays as it is, spaces and all', async () => {
+    const { area, sair } = await montarTela(async () => untitled('  Revisar o PR  '));
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      assert.equal(links(area, 'lider')[0]!.textContent, '  Revisar o PR  ');
+    } finally {
+      await sair();
+    }
+  });
+});
+
 describe('#752: the sheet of the sections', () => {
   const sheet = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
@@ -1311,6 +1442,34 @@ describe('#752: the sheet of the sections', () => {
   });
 });
 
+
+describe('Wall: a click on the state label opens the session, as the stretched link does (#751)', () => {
+  const ask = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  test('card and row forward the click, with its modifiers, to their link; the label of a nested child has no link to forward to', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...WALL_WITH_CHILDREN, cards: [cardDeExemplo('b', { ...ask }), cardDeExemplo('r'), WALL_WITH_CHILDREN.cards[0]!] }));
+    try {
+      await ate(() => sessionsOf(area).length === 3);
+      for (const id of ['b', 'r']) {
+        const box = sessionsOf(area).find((e) => e.getAttribute('data-session') === id)!;
+        const link = box.todos((e) => e.tag === 'a' && e.classes.includes('wall-link'))[0]!;
+        const got: Record<string, unknown>[] = [];
+        link.addEventListener('click', (ev) => got.push(ev as Record<string, unknown>));
+        const tag = box.todos((e) => e.classes.includes('state-tag'))[0]!;
+        assert.ok(tag.classes.includes('wall-tag'), `${id}: the tag is the one the sheet raises`);
+        for (const f of tag.ouvintes.get('click') ?? []) f({ button: 0, ctrlKey: true, metaKey: false, shiftKey: false, altKey: false });
+        assert.equal(got.length, 1, `${id}: one click reaches the link`);
+        assert.equal(got[0]!.ctrlKey, true, `${id}: ctrl/cmd click keeps its meaning`);
+        assert.equal(got[0]!.bubbles, true, `${id}: it bubbles, so the router sees it`);
+      }
+      area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!.click();
+      const kidTag = area.todos((e) => e.getAttribute('data-child') === 'tl')[0]!.todos((e) => e.classes.includes('state-tag'))[0]!;
+      assert.equal(kidTag.ouvintes.get('click')?.length ?? 0, 0);
+    } finally {
+      await sair();
+    }
+  });
+});
+
 describe('#752: round 3, the sheet and the names measured in the browser', () => {
   const sheet = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
   const rules = [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1]!.trim(), body: m[2]! }));
@@ -1339,6 +1498,32 @@ describe('#752: round 3, the sheet and the names measured in the browser', () =>
         assert.match(named[0]!.textContent, /^Paradas \(\d+\)$/);
         assert.equal(comClasse(area, 'wall-parked-h')[0]!.getAttribute('id'), null);
         assert.equal(comClasse(area, 'wall-parked-h')[0]!.getAttribute('aria-label'), named[0]!.textContent, 'the heading says the title, not the toggle text with it');
+      }
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('Wall: the failure notice of the open action is brought into view (#751)', () => {
+  test('the card and the row both ask for the notice to scroll into view when the open fails', async () => {
+    const fail = async () => {
+      throw Object.assign(new Error('Nenhum terminal respondeu'), { name: 'WriteError', status: 502, body: { error: 'x', command: 'claude --resume x' } });
+    };
+    const open = { target: 'terminal', command: 'claude --resume x' };
+    const cards = [cardDeExemplo('sv-card', { open, status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } }), cardDeExemplo('sv-row', { open })];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }), fail);
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      for (const id of ['sv-card', 'sv-row']) {
+        const box = sessionsOf(area).find((e) => e.getAttribute('data-session') === id)!;
+        const seen: unknown[] = [];
+        const status = comClasse(box, 'open-status')[0] as Elemento & { isConnected?: boolean; scrollIntoView?: (o: unknown) => void };
+        status.isConnected = true;
+        status.scrollIntoView = (o) => seen.push(o);
+        comClasse(box, 'open-action')[0]!.todos((e) => e.tag === 'button')[0]!.click();
+        await ate(() => comClasse(box, 'open-fail').length === 1);
+        assert.ok(seen.length >= 1, `${id}: the notice scrolls into view`);
       }
     } finally {
       await sair();

@@ -46,6 +46,8 @@
 .wall-name { font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text); }
 .wall-age { font-size: var(--text-md); color: var(--subtle); white-space: nowrap; }
 .wall-state { margin-left: auto; min-width: 0; max-width: 100%; }
+/* ADR-0028: above the stretched link (z-index auto) and under the failure notice (3), so the label's title shows. */
+.wall-tag { position: relative; z-index: 1; cursor: pointer; }
 
 .wall-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .wall-titleline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }

@@ -22,13 +22,20 @@
 /* full (Detail header): the state wraps beside the button, never pushing the row sideways. */
 .open-size-full .open-status { max-width: 320px; }
 
-/* small (wall foot): the foot has no room for a sentence, so the state opens above the button, like the
-   icon's below it; the foot keeps its height and the card's neighbours keep theirs (rule 9). */
-.open-size-small { flex: 1 1 auto; max-width: 100%; }
+/* small (wall card): the action spans the card's act area and the state opens below the button, over the card's own foot,
+   so it never covers the title above (ADR-0028); the grid keeps its height and the neighbours theirs (rule 9). */
+.open-size-small { display: flex; flex: 1 1 auto; width: 100%; max-width: 100%; }
 .open-size-small .open-button { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 /* ADR-0028: overflow hidden clipped the descenders under the button's line-height of 1. */
 .open-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
-.open-size-small .open-status { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(260px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
+.open-size-small .open-status { position: absolute; left: 0; top: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(360px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
+
+/* ADR-0028: the action of an opened leader card (it spans the grid) puts the state beside the button, so it never
+   covers the nested titles under it; up to 600px there is no room beside, and it stays below. */
+@media (min-width: 601px) {
+  .open-size-small.open-beside { display: inline-flex; width: auto; }
+  .open-size-small.open-beside .open-status { left: calc(100% + 8px); top: 0; bottom: auto; width: max-content; max-width: 300px; }
+}
 
 /* icon (Sessions row, Dashboard inbox): the icon alone; the state opens below it, to the left. */
 .open-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 7px; border: 1px solid var(--border-control); background: var(--surface); color: var(--muted); flex: none; cursor: pointer; font: inherit; }
