@@ -338,7 +338,7 @@ describe('Mural: a tela montada', () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
       await ate(() => sessionsOf(area).length > 0);
-      assert.match(area.textContent, /^Mural ao vivo2 sessões precisam de você\. 1 trabalhando, 1 em pausa e 1 concluída\./);
+      assert.match(area.textContent, /^Mural ao vivo2 sessões precisam de você\. 1 ativa, 1 ociosa e 1 concluída\./);
       const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
       assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 5', 'Precisam de você 2', 'Ativas 1', 'Ociosas 1'], 'the name of each segment reads "Ativas 1", with a real space');
       assert.equal(filtros[0]!.getAttribute('aria-pressed'), 'true');
@@ -517,7 +517,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(calm[0]!, 'icon').length, 1, 'the check icon');
       assert.deepEqual(comClasse(area, 'wall-sec-blocked')[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent), ['Precisam de você 0']);
       assert.equal(area.todos((e) => e.getAttribute('aria-live') !== null || e.getAttribute('role') === 'status' || e.getAttribute('role') === 'alert').filter((e) => calm[0]!.contains(e) || e.contains(calm[0])).length, 0, 'neither the block nor what holds it is a live region');
-      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^Nada precisa de você agora\. 1 trabalhando e 1 em pausa\.$/);
+      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^Nada precisa de você agora\. 1 ativa e 1 ociosa\.$/);
     } finally {
       await sair();
     }

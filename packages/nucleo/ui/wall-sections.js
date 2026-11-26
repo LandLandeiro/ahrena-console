@@ -32,7 +32,7 @@ const many = (n, one, other) => `${n} ${n === 1 ? one : other}`;
 export function summaryOf(counts) {
   if (!counts) return { lead: '', rest: '' };
   const lead = counts.blocked > 0 ? `${many(counts.blocked, 'sessão precisa', 'sessões precisam')} de você.` : 'Nada precisa de você agora.';
-  const parts = [counts.active > 0 ? `${counts.active} trabalhando` : null, counts.idle > 0 ? `${counts.idle} em pausa` : null, counts.completed > 0 ? many(counts.completed, 'concluída', 'concluídas') : null].filter(Boolean);
+  const parts = [counts.active > 0 ? many(counts.active, 'ativa', 'ativas') : null, counts.idle > 0 ? many(counts.idle, 'ociosa', 'ociosas') : null, counts.completed > 0 ? many(counts.completed, 'concluída', 'concluídas') : null].filter(Boolean);
   const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} e ${parts.at(-1)}` : (parts[0] ?? '');
   return { lead, rest: text ? `${text}.` : '' };
 }
