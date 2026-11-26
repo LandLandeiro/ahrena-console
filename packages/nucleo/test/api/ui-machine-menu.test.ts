@@ -400,28 +400,28 @@ describe('#752: the sheet of the menu', () => {
 
 describe('#752: the open menu aligns again when the window changes size', () => {
   type Win = { sizes: Map<string, Set<(ev: unknown) => void>>; visible: number };
-  const doc = documentoFalso as unknown as { documentElement?: unknown };
-  const g = globalThis as unknown as Record<string, unknown>;
-  const saved = { add: g.addEventListener, remove: g.removeEventListener, element: doc.documentElement };
+  const setDoc = (value: unknown) => Reflect.set(documentoFalso, 'documentElement', value);
+  const setGlobal = (name: string, value: unknown) => Reflect.set(globalThis, name, value);
+  const saved = { add: Reflect.get(globalThis, 'addEventListener'), remove: Reflect.get(globalThis, 'removeEventListener'), element: Reflect.get(documentoFalso, 'documentElement') };
   const win: Win = { sizes: new Map(), visible: 1000 };
   const count = () => win.sizes.get('resize')?.size ?? 0;
-  const resize = (visible: number) => ((win.visible = visible), (doc.documentElement = { clientWidth: visible }), [...(win.sizes.get('resize') ?? [])].forEach((f) => f({ type: 'resize' })));
+  const resize = (visible: number) => ((win.visible = visible), setDoc({ clientWidth: visible }), [...(win.sizes.get('resize') ?? [])].forEach((f) => f({ type: 'resize' })));
   afterEach(() => {
-    g.addEventListener = saved.add;
-    g.removeEventListener = saved.remove;
-    doc.documentElement = saved.element;
+    setGlobal('addEventListener', saved.add);
+    setGlobal('removeEventListener', saved.remove);
+    setDoc(saved.element);
   });
   /** #752: a panel 300px wide that starts at `from` when left aligned and ends at `to` when right aligned. */
   function build(from: number, to: number) {
     win.sizes = new Map();
-    g.addEventListener = (t: string, f: (ev: unknown) => void) => void (win.sizes.get(t) ?? win.sizes.set(t, new Set()).get(t)!).add(f);
-    g.removeEventListener = (t: string, f: (ev: unknown) => void) => void win.sizes.get(t)?.delete(f);
-    doc.documentElement = { clientWidth: 1000 };
+    setGlobal('addEventListener', (t: string, f: (ev: unknown) => void) => void (win.sizes.get(t) ?? win.sizes.set(t, new Set()).get(t)!).add(f));
+    setGlobal('removeEventListener', (t: string, f: (ev: unknown) => void) => void win.sizes.get(t)?.delete(f));
+    setDoc({ clientWidth: 1000 });
     const m = make();
     m.answer([LOCAL, WS], cards('local'));
-    const panel = m.panel() as unknown as { getBoundingClientRect: () => unknown; classList: { contains: (c: string) => boolean } };
+    const panel = m.panel();
     let reads = 0;
-    panel.getBoundingClientRect = () => (reads++, panel.classList.contains('mf-menu-end') ? { left: to - 300, right: to } : { left: from, right: from + 300 });
+    Object.defineProperty(panel, 'getBoundingClientRect', { value: () => (reads++, panel.classList.contains('mf-menu-end') ? { left: to - 300, right: to } : { left: from, right: from + 300 }), configurable: true, writable: true });
     return { m, end: () => panel.classList.contains('mf-menu-end'), reads: () => reads };
   }
 
