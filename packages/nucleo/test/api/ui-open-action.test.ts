@@ -215,7 +215,7 @@ describe('open action: the click', () => {
     assert.equal(byClass(root, 'open-close').length, 0, 'only the icon popover has Fechar');
   });
 
-  test('with `reveal` the notice scrolls itself into view when it changes after the action is on the page, never on a build and never without the option (#751)', async () => {
+  test('with `reveal` a failure scrolls the notice into view once the action is on the page, and never without the option (#751)', async () => {
     const seen: unknown[] = [];
     const attach = (root: ElementoFalso, on = true) => {
       const status = root.querySelector('.open-status') as ElementoFalso & { isConnected?: boolean; scrollIntoView?: (o: unknown) => void };
@@ -235,10 +235,6 @@ describe('open action: the click', () => {
       await settle();
       assert.ok(seen.length >= 1, `${size}: the notice scrolls into view`);
       assert.deepEqual(seen[0], { block: 'nearest' }, `${size}: the least scroll that shows it`);
-      const quiet = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
-      const before = seen.length;
-      attach(quiet, false);
-      assert.equal(seen.length, before, `${size}: a redraw that only builds the action does not scroll`);
     }
     seen.length = 0;
     resetOpenStates();
@@ -249,6 +245,94 @@ describe('open action: the click', () => {
     plain.querySelector('button')!.click();
     await settle();
     assert.equal(seen.length, 0, 'the other screens never scroll');
+  });
+
+  describe('the notice scroll of `reveal` (#751)', () => {
+    type Probe = ElementoFalso & { isConnected?: boolean; scrollIntoView: (o: unknown) => void; getBoundingClientRect?: () => unknown };
+    const VIEW = { innerHeight: 800, innerWidth: 1200 };
+    const saved = Object.fromEntries(Object.keys(VIEW).map((k) => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+    beforeEach(() => Object.entries(VIEW).forEach(([k, value]) => Object.defineProperty(globalThis, k, { value, configurable: true, writable: true })));
+    afterEach(() => {
+      for (const [k, d] of Object.entries(saved)) {
+        if (d) Object.defineProperty(globalThis, k, d);
+        else delete (globalThis as Record<string, unknown>)[k];
+      }
+    });
+    const session = { id: UUID, open: { target: 'terminal-live', command: COMMAND } };
+    const rect = (top: number) => ({ top, bottom: top + 32, left: 40, right: 240, width: 200, height: 32 });
+    /** #751: puts the action on the page, connected, counting scrolls, the button at `top`. */
+    const place = (root: ElementoFalso, seen: unknown[], top: number | null) => {
+      const status = root.querySelector('.open-status') as Probe;
+      status.isConnected = true;
+      status.scrollIntoView = (o) => seen.push(o);
+      if (top !== null) (root.querySelector('button') as Probe).getBoundingClientRect = () => rect(top);
+    };
+    const failing = () => stubWriter(writeError('Nenhum terminal respondeu', 502, { error: 'Nenhum terminal respondeu', command: COMMAND }));
+
+    for (const size of ['small', 'icon']) {
+      test(`${size}: no scroll while it is busy or after a success`, async () => {
+        const seen: unknown[] = [];
+        const w = stubWriter({ ok: true, opened: 'terminal' });
+        const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+        place(root, seen, 100);
+        root.querySelector('button')!.click();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'busy');
+        assert.equal(seen.length, 0, 'busy');
+        w.release();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'ok');
+        assert.equal(seen.length, 0, 'ok');
+      });
+
+      test(`${size}: one scroll on a failure with the button on screen, none with it off screen`, async () => {
+        for (const [top, expected] of [[100, 1], [-200, 0], [900, 0], [-20, 1], [790, 1]] as const) {
+          resetOpenStates();
+          const seen: unknown[] = [];
+          const w = failing();
+          w.release();
+          const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+          place(root, seen, top);
+          root.querySelector('button')!.click();
+          await settle();
+          assert.equal(openStateOf(UUID).kind, 'fail');
+          assert.deepEqual(seen, expected ? [{ block: 'nearest' }] : [], `button at ${top}`);
+        }
+      });
+
+      test(`${size}: a build with a failure already in the state does not scroll`, async () => {
+        const w = failing();
+        w.release();
+        const first = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+        first.querySelector('button')!.click();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'fail');
+        const seen: unknown[] = [];
+        const proto = ElementoFalso.prototype as unknown as Record<string, unknown>;
+        const had = Object.getOwnPropertyDescriptor(proto, 'scrollIntoView');
+        Object.defineProperty(proto, 'isConnected', { value: false, configurable: true, writable: true });
+        proto.scrollIntoView = (o: unknown) => seen.push(o);
+        try {
+          const rebuilt = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+          assert.equal(texto(rebuilt.querySelector('.open-fail')), 'Nenhum terminal respondeu', 'the redraw shows the failure');
+        } finally {
+          delete proto.isConnected;
+          if (had) Object.defineProperty(proto, 'scrollIntoView', had);
+        }
+        assert.deepEqual(seen, []);
+      });
+    }
+
+    test('a button without getBoundingClientRect (a fake DOM) is taken as on screen', async () => {
+      const seen: unknown[] = [];
+      const w = failing();
+      w.release();
+      const root = openAction(session, { size: 'small', write: w.write, reveal: true }) as ElementoFalso;
+      place(root, seen, null);
+      root.querySelector('button')!.click();
+      await settle();
+      assert.equal(seen.length, 1);
+    });
   });
 
   test('the state survives a redraw: a second action for the same id shows the busy, refuses the click, then shows the failure with its copy', async () => {
@@ -387,6 +471,21 @@ test('open-action.css: the card notice opens below the button, over the card, an
   assert.match(rule('.open-size-small'), /display:\s*flex/);
   assert.match(rule('.open-size-small'), /(^|[;\s])width:\s*100%/, 'the action spans the act area, so the notice is not as narrow as the button');
   assert.match(rule('.open-size-icon .open-status'), /top:\s*calc\(100% \+ 6px\)/);
+});
+
+test('open-action.css: above 600px the notice of an opened leader card sits beside the button, as wide as the button, away from the titles (#751)', () => {
+  const css = readFileSync(`${UI_FOLDER}open-action.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const media = css.match(/@media \(min-width: 601px\) \{([\s\S]*?\n)\}/)?.[1] ?? '';
+  const rule = (selector: string) => media.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+  assert.match(rule('.open-size-small.open-beside'), /display:\s*inline-flex/);
+  assert.match(rule('.open-size-small.open-beside'), /width:\s*auto/);
+  const status = rule('.open-size-small.open-beside .open-status');
+  assert.match(status, /left:\s*calc\(100% \+ 8px\)/, 'to the right of the button');
+  assert.match(status, /top:\s*0/);
+  assert.match(status, /bottom:\s*auto/);
+  assert.match(status, /width:\s*max-content/);
+  assert.match(status, /max-width:\s*300px/);
+  assert.doesNotMatch(css.replace(media, ''), /open-beside/, 'only above 600px: below it there is no room');
 });
 
 test('open-action.css: only open- classes, no colour by hand, loaded once by index.html', () => {

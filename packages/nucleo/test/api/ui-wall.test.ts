@@ -1092,6 +1092,32 @@ describe('Wall: nested children and Paradas (#333)', () => {
     }
   });
 
+  test('an opened leader card puts its notice beside the button; a closed one and an opened leader row keep it below (#751)', async () => {
+    const open = { target: 'terminal', command: 'claude --resume x' };
+    const tree = { total: 1, blocked: 0, active: 1, parked: 0 };
+    const cards = [
+      cardDeExemplo('lcard', { open, tree, children: [child('k1')], status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } }),
+      cardDeExemplo('lrow', { open, tree, children: [child('k2')] }),
+    ];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      const beside = () => comClasse(area, 'open-beside').length;
+      const toggle = (id: string) => area.todos((e) => e.getAttribute('data-tree') === id)[0]!.click();
+      assert.equal(beside(), 0, 'closed');
+      toggle('lrow');
+      assert.equal(beside(), 0, 'an opened leader row');
+      toggle('lcard');
+      const opened = comClasse(area, 'wall-card').find((e) => e.getAttribute('data-session') === 'lcard')!;
+      assert.equal(comClasse(opened, 'open-beside').length, 1, 'the opened leader card');
+      assert.equal(beside(), 1, 'no other action');
+      toggle('lcard');
+      assert.equal(beside(), 0, 'closed again');
+    } finally {
+      await sair();
+    }
+  });
+
   test('the child that needs you is a card of its own and says whose it is', async () => {
     const { area, sair } = await montarTela(async () => WALL_WITH_CHILDREN);
     try {
