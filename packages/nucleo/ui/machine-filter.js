@@ -329,12 +329,13 @@ function createMenu({ pick, signal, fallbackFocus }) {
     if (!root.contains(ev.target)) close(false);
   };
 
-  // ADR-0028: left aligned when the panel fits in the visible width (minus 16px), else right aligned.
+  // ADR-0028: left aligned when the panel fits in the visible width (minus 16px), else right aligned; right aligned only while that keeps it 16px inside on the left.
   function align() {
     panel.classList.remove('mf-menu-end');
-    const right = panel.getBoundingClientRect?.()?.right;
     const visible = document.documentElement?.clientWidth;
-    if (typeof right === 'number' && typeof visible === 'number' && right > visible - 16) panel.classList.add('mf-menu-end');
+    if (typeof visible !== 'number' || !(panel.getBoundingClientRect?.()?.right > visible - 16)) return;
+    panel.classList.add('mf-menu-end');
+    if (panel.getBoundingClientRect().left < 16) panel.classList.remove('mf-menu-end');
   }
 
   function close(returnFocus) {
@@ -343,6 +344,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
     button.setAttribute('aria-expanded', 'false');
     button.removeAttribute('aria-controls');
     document.removeEventListener('pointerdown', outside, true);
+    globalThis.removeEventListener?.('resize', align);
     if (returnFocus) button.focus({ preventScroll: true });
   }
 
@@ -353,6 +355,8 @@ function createMenu({ pick, signal, fallbackFocus }) {
       button.setAttribute('aria-controls', id);
       // ADR-0028: capturing, because a control inside the page stops the event before it reaches the document.
       document.addEventListener('pointerdown', outside, true);
+      // ADR-0028 (#752): a change of the window size aligns the open menu again; the listener lives only while it is open.
+      globalThis.addEventListener?.('resize', align);
       align();
     }
     const list = [...items.values()].map((v) => v.node);

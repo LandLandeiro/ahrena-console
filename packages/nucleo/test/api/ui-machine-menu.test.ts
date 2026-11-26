@@ -397,3 +397,95 @@ describe('#752: the sheet of the menu', () => {
     assert.match(sheet, /\.mf-menu-item\[aria-checked="true"\] \.mf-menu-check \{ visibility: visible/);
   });
 });
+
+describe('#752: the open menu aligns again when the window changes size', () => {
+  type Win = { sizes: Map<string, Set<(ev: unknown) => void>>; visible: number };
+  const doc = documentoFalso as unknown as { documentElement?: unknown };
+  const g = globalThis as unknown as Record<string, unknown>;
+  const saved = { add: g.addEventListener, remove: g.removeEventListener, element: doc.documentElement };
+  const win: Win = { sizes: new Map(), visible: 1000 };
+  const count = () => win.sizes.get('resize')?.size ?? 0;
+  const resize = (visible: number) => ((win.visible = visible), (doc.documentElement = { clientWidth: visible }), [...(win.sizes.get('resize') ?? [])].forEach((f) => f({ type: 'resize' })));
+  afterEach(() => {
+    g.addEventListener = saved.add;
+    g.removeEventListener = saved.remove;
+    doc.documentElement = saved.element;
+  });
+  /** #752: a panel 300px wide that starts at `from` when left aligned and ends at `to` when right aligned. */
+  function build(from: number, to: number) {
+    win.sizes = new Map();
+    g.addEventListener = (t: string, f: (ev: unknown) => void) => void (win.sizes.get(t) ?? win.sizes.set(t, new Set()).get(t)!).add(f);
+    g.removeEventListener = (t: string, f: (ev: unknown) => void) => void win.sizes.get(t)?.delete(f);
+    doc.documentElement = { clientWidth: 1000 };
+    const m = make();
+    m.answer([LOCAL, WS], cards('local'));
+    const panel = m.panel() as unknown as { getBoundingClientRect: () => unknown; classList: { contains: (c: string) => boolean } };
+    let reads = 0;
+    panel.getBoundingClientRect = () => (reads++, panel.classList.contains('mf-menu-end') ? { left: to - 300, right: to } : { left: from, right: from + 300 });
+    return { m, end: () => panel.classList.contains('mf-menu-end'), reads: () => reads };
+  }
+
+  test('a resize while it is open moves it to the right edge when it would pass the window, and back to the left when it fits', () => {
+    const { m, end } = build(600, 900);
+    m.button().click();
+    assert.equal(end(), false, 'at 1000 it ends at 900 of 984 visible');
+    resize(800);
+    assert.equal(end(), true, 'at 800 it would end at 900 of 784 visible: the right edge');
+    resize(1200);
+    assert.equal(end(), false, 'back to 1200 it fits at the left again');
+  });
+
+  test('the right edge is taken only while the panel stays 16px inside on the left', () => {
+    const { m, end } = build(600, 250);
+    resize(800);
+    m.button().click();
+    assert.equal(end(), false, 'opened at 800: right aligned it would start at -50, out of the window, so it stays left aligned');
+    resize(700);
+    assert.equal(end(), false, 'right aligned it would start at -50: out of the window, so it stays left aligned');
+  });
+
+  test('left of the right aligned panel inside the window keeps the right edge, and 16px exactly is inside', () => {
+    const a = build(600, 316);
+    resize(800);
+    a.m.button().click();
+    assert.equal(a.end(), true, 'its left is 16: inside');
+    const b = build(600, 315);
+    resize(800);
+    b.m.button().click();
+    assert.equal(b.end(), false, 'its left is 15: out, so it stays left aligned, which starts at its own root');
+  });
+
+  test('closing takes the listener off, and a second opening adds one, not two', () => {
+    const { m } = build(100, 400);
+    assert.equal(count(), 0);
+    m.button().click();
+    assert.equal(count(), 1);
+    m.button().click();
+    assert.equal(count(), 0, 'closed by the button');
+    m.button().click();
+    m.button().click();
+    m.button().click();
+    assert.equal(count(), 1, 'three openings and two closings: one listener');
+    m.key(m.item('all'), 'Escape');
+    assert.equal(count(), 0, 'closed by Escape');
+  });
+
+  test('a menu that is not open does not measure on a resize, neither before it opens nor after an option closed it', () => {
+    const { m, reads } = build(600, 900);
+    resize(800);
+    assert.equal(reads(), 0, 'never opened: nobody listens');
+    m.button().click();
+    const open = reads();
+    m.item('ws').click();
+    resize(700);
+    assert.equal(reads(), open, 'closed by the choice: nothing measured by the resize');
+  });
+
+  test('leaving the screen with the menu open takes the listener off', () => {
+    const { m } = build(100, 400);
+    m.button().click();
+    assert.equal(count(), 1);
+    m.leave.abort();
+    assert.equal(count(), 0);
+  });
+});
