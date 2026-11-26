@@ -312,7 +312,7 @@ describe('#28 a tela Sessões', () => {
     const corte = css.indexOf('@media (max-width: 900px)');
     assert.ok(mid > 0 && corte > mid, 'faltam as faixas de 1240 e de 900 px');
     const larguras = (trecho: string) => Object.fromEntries([...trecho.matchAll(/\.table \.(c-[a-z]+) \{ width: ([\d.]+)%; \}/g)].map(([, c, w]) => [c!, Number(w)]));
-    const soma = (cols: string[], w: Record<string, number>) => Math.round(cols.reduce((t, c) => t + w[c]!, 0) * 100) / 100;
+    const sum = (cols: string[], w: Record<string, number>) => Math.round(cols.reduce((t, c) => t + w[c]!, 0) * 100) / 100;
     const largas = larguras(css.slice(0, mid));
     const midWidths = { ...largas, ...larguras(css.slice(mid, corte)) };
     const estreitas = { ...midWidths, ...larguras(css.slice(corte)) };
@@ -320,9 +320,9 @@ describe('#28 a tela Sessões', () => {
     const withoutDir = classes.filter((c: string) => c !== 'c-dir');
     const narrowColumns = withoutDir.filter((c: string) => c !== 'c-message');
     assert.deepEqual(Object.keys(largas).sort(), [...classes].sort(), 'toda coluna tem largura');
-    assert.equal(soma(classes, largas), 100);
-    assert.equal(soma(withoutDir, midWidths), 100, 'sem o Diretório, o resto soma 100');
-    assert.equal(soma(narrowColumns, estreitas), 100, 'abaixo de 900 px, sem a Mensagem, também');
+    assert.equal(sum(classes, largas), 100);
+    assert.equal(sum(withoutDir, midWidths), 100, 'sem o Diretório, o resto soma 100');
+    assert.equal(sum(narrowColumns, estreitas), 100, 'abaixo de 900 px, sem a Mensagem, também');
     assert.match(css, /\.table \{ table-layout: fixed; \}/);
     assert.match(css.slice(mid, corte), /\.table \.c-dir, \.table \.dir \{ display: none; \}/);
     assert.match(css.slice(corte), /\.table \.c-message, \.table \.msg \{ display: none; \}/);

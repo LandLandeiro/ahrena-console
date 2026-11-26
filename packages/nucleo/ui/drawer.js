@@ -14,12 +14,12 @@ export function createDrawer({ button, side, scrim, background, closeButton = nu
     button.setAttribute('aria-expanded', String(opened));
   }
 
-  function open() {
+  function open({ keyboard = false } = {}) {
     if (!media.matches || opened) return;
     opened = true;
     paint();
-    // ADR-0028: a pointer open keeps the list where it was; whoever came by keyboard gets the first item in view.
-    firstItem()?.focus({ preventScroll: !button.matches?.(':focus-visible') });
+    // ADR-0028: a pointer open keeps the list where it was; whoever opened by keyboard (a click with detail 0) gets the first item in view.
+    firstItem()?.focus({ preventScroll: !keyboard });
   }
 
   function close() {
@@ -39,7 +39,7 @@ export function createDrawer({ button, side, scrim, background, closeButton = nu
     button.setAttribute('aria-label', text ? `Menu, ${text}` : 'Menu');
   }
 
-  button.addEventListener('click', () => (opened ? close() : open()));
+  button.addEventListener('click', (ev) => (opened ? close() : open({ keyboard: ev.detail === 0 })));
   closeButton?.addEventListener('click', () => close());
   scrim.addEventListener('click', () => close());
   side.addEventListener('click', (ev) => {

@@ -296,17 +296,33 @@ describe('#750: the close button', () => {
 });
 
 describe('#750: the list keeps its scroll when the drawer opens', () => {
-  test('a pointer open focuses the first item without scrolling; a keyboard open (focus ring on the button) lets it scroll', () => {
+  test('the event that opened decides: a mouse click (detail 1) focuses without scrolling; a keyboard click (detail 0) lets it scroll', () => {
     for (const keyboard of [false, true]) {
       const { button, first, drawer } = rig(true);
       const seen: unknown[] = [];
       const real = first.focus.bind(first);
       first.focus = (options?: unknown) => (seen.push(options), real());
-      button.matches = (q: string) => keyboard && q === ':focus-visible';
-      drawer.open();
+      button.dispatchEvent({ type: 'click', detail: keyboard ? 0 : 1 });
+      assert.equal(drawer.isOpen(), true);
       assert.deepEqual(seen, [{ preventScroll: !keyboard }], keyboard ? 'keyboard' : 'pointer');
       assert.equal(documentoFalso.activeElement, first);
     }
+  });
+
+  test('closed with Escape, a mouse click on the menu button still opens without scrolling the list', () => {
+    const { button, first, drawer } = rig(true);
+    const escape = createEscape(documentoFalso, [drawer]);
+    const seen: unknown[] = [];
+    const real = first.focus.bind(first);
+    first.focus = (options?: unknown) => (seen.push(options), real());
+    button.dispatchEvent({ type: 'click', detail: 0 });
+    documentoFalso.dispatchEvent({ type: 'keydown', key: 'Escape' });
+    assert.equal(drawer.isOpen(), false);
+    seen.length = 0;
+    button.dispatchEvent({ type: 'click', detail: 1 });
+    assert.equal(drawer.isOpen(), true);
+    assert.deepEqual(seen, [{ preventScroll: true }]);
+    escape.stop();
   });
 
   const rule = (css: string, selector: string) => css.match(new RegExp(`^\\s*${selector.replace(/[.#\[\]="()>:+-]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
