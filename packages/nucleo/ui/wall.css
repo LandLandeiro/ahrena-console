@@ -138,6 +138,7 @@
 @media (min-width: 1280px) {
   .wall-list.wall-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wall-duo > .wall-filler { display: block; }
+  .wall-duo > .wall-filler:not(.wall-last) { border-bottom: 1px solid var(--border); }
   .wall-duo > .wall-full, .wall-duo > .wall-span { grid-column: 1 / -1; }
   .wall-list.wall-duo > .wall-row, .wall-list.wall-duo > .wall-row:first-child, .wall-list.wall-duo > .wall-row:last-child, .wall-list.wall-duo > .wall-row:only-child { border-radius: 0; border-bottom: 1px solid var(--border); }
   .wall-list.wall-duo > .wall-row.wall-last { border-bottom: 0; }

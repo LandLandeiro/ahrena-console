@@ -1674,6 +1674,13 @@ describe('#752: Argos round 1, the sheet of the header, the columns and the laye
     assert.equal(declaredIn(wide, '.wall-list.wall-duo > .wall-row.wall-last.wall-left, .wall-list.wall-duo > .wall-row.wall-last.wall-full', 'border-bottom-right-radius'), undefined, 'the left cell beside the filler keeps a square bottom-right corner');
   });
 
+  test('the filler beside a left cell draws the divider of its grid row unless it is the last one, so the line above a full-width leader runs edge to edge (#752)', () => {
+    const wide = block('(min-width: 1280px)');
+    assert.equal(declaredIn(wide, '.wall-duo > .wall-filler:not(.wall-last)', 'border-bottom'), '1px solid var(--border)');
+    assert.equal(declaredIn(wide, '.wall-duo > .wall-filler:not(.wall-last)', 'border-right'), undefined);
+    assert.doesNotMatch(outside, /wall-filler[^{]*\{[^}]*border/, 'the filler is hidden outside the block and draws nothing there');
+  });
+
   test('the row with an open failure popover goes over the rows and the trees below it, like the controls of its own side', () => {
     const z = (selector: string) => Number(declaredIn(outside, selector, 'z-index'));
     const over = z('.wall-row:has(.wall-act [role="status"]:not(:empty))');
