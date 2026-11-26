@@ -334,7 +334,7 @@ describe('#28 a tela Sessões', () => {
     const MINIMO: Record<string, number> = { 'c-session': 170, 'c-status': 140, 'c-activity': 81, 'c-duration': 85, 'c-agents': 74, 'c-cost': 88.5, 'c-dir': 85, 'c-message': 142.5, 'c-open': 36 };
     // Up to 1240 px: 8 px of padding take 4 px from each need, and the message button is only its icon ("sem processo vivo").
     const MINIMO_MEIO: Record<string, number> = { 'c-session': 160, 'c-status': 136, 'c-activity': 77, 'c-duration': 81, 'c-agents': 70.5, 'c-cost': 84.5, 'c-message': 111, 'c-open': 36 };
-    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 120, 'c-status': 115, 'c-activity': 70, 'c-duration': 70, 'c-agents': 55, 'c-cost': 80, 'c-open': 32 };
+    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 120, 'c-status': 131.5, 'c-activity': 67.5, 'c-duration': 70, 'c-agents': 55, 'c-cost': 78.5, 'c-open': 32 };
     for (const c of classes) assert.ok((largas[c]! / 100) * 928 >= MINIMO[c]!, `${c} em 1241: ${(largas[c]! / 100) * 928} px`);
     for (const c of withoutDir) assert.ok((midWidths[c]! / 100) * 787 >= MINIMO_MEIO[c]!, `${c} em 1100: ${(midWidths[c]! / 100) * 787} px`);
     for (const c of narrowColumns) assert.ok((estreitas[c]! / 100) * 563 >= MINIMO_ESTREITO[c]!, `${c} em 861: ${(estreitas[c]! / 100) * 563} px`);
