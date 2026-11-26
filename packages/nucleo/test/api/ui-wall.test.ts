@@ -1001,7 +1001,9 @@ describe('#751: the sheet of the wall', () => {
     const bare = times(side![1], 'the side without a machine');
     const withMachine = times(declared('.wall-side:has(.wall-mach)', 'flex-basis'), 'the side with a machine');
     assert.ok(withMachine > bare, 'the machine adds room, so the same side width holds in every row of a list');
-    assert.ok(times(text![1], 'the text basis') > 0);
+    const textBasis = times(text![1], 'the text basis');
+    // 15px is the title's size (.wall-rt); 7px a character is the mean of the Latin letters at that size, spaces and narrow letters included.
+    assert.ok(textBasis * 13 >= 40 * 7, `the text basis of ${textBasis} times --text-sm (13px) holds a title of 40 characters at 15px: it is not cut from 600px up (docs/design.md)`);
     const code = css('screens/wall.js');
     assert.match(code, /\{ class: 'wall-side' \},\n\s+tagOver\(stateTag\(/, 'the state tag is the first of the side: its icon starts where the side starts');
   });
