@@ -981,11 +981,29 @@ describe('#751: the sheet of the wall', () => {
     const small = css('wall.css').match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
     assert.match(declared('.wall-main', 'flex-wrap') ?? '', /wrap/);
     assert.match(small, /\.wall-row \.wall-mach \{[^}]*display:\s*none/);
-    assert.equal(declared('.wall-text', 'flex'), '1000 1 auto', 'the text takes the width first, so the side wraps only when it does not fit');
-    assert.equal(declared('.wall-side', 'flex'), '1 0 auto');
+    assert.match(declared('.wall-text', 'flex') ?? '', /^1000 1 /, 'the text takes the width first, so the side wraps only when it does not fit');
+    assert.match(declared('.wall-side', 'flex') ?? '', /^1 0 /);
     assert.equal(declared('.wall-side .wall-act', 'margin-left'), 'auto', 'at any width the action sits at the right edge, so the failure notice opens inside the row (#752)');
     assert.doesNotMatch(small, /wall-act/, 'the action rule is outside the media query');
     assert.doesNotMatch(sheet, /wall-row \.wall-bar/, 'the row has no bar, so no rule for it');
+  });
+
+  test('the state column of a row starts at the same x with or without "3 de 6", the time or the machine: the side has a width of its own, not its content\'s (#752)', () => {
+    const times = (value: string | undefined, label: string) => {
+      const m = value?.match(/^calc\(var\(--text-sm\) \* (\d+)\)$/);
+      assert.ok(m, `${label} is derived from --text-sm, never a px or a new token: ${value}`);
+      return Number(m![1]);
+    };
+    const text = declared('.wall-text', 'flex')?.match(/^1000 1 (.+)$/);
+    assert.ok(text, 'the text keeps its grow of 1000 and has a basis of its own, so the side wraps by the width and not by the length of a title');
+    const side = declared('.wall-side', 'flex')?.match(/^1 0 (.+)$/);
+    assert.ok(side, 'the side takes a basis of its own, not its content');
+    const bare = times(side![1], 'the side without a machine');
+    const withMachine = times(declared('.wall-side:has(.wall-mach)', 'flex-basis'), 'the side with a machine');
+    assert.ok(withMachine > bare, 'the machine adds room, so the same side width holds in every row of a list');
+    assert.ok(times(text![1], 'the text basis') > 0);
+    const code = css('screens/wall.js');
+    assert.match(code, /\{ class: 'wall-side' \},\n\s+tagOver\(stateTag\(/, 'the state tag is the first of the side: its icon starts where the side starts');
   });
 
   test('a long machine name or state label never pushes a card or a row sideways: everything on the line shrinks and cuts with an ellipsis (#751)', () => {
