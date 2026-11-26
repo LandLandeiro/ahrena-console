@@ -204,7 +204,7 @@ const MURAL = {
   ],
 };
 
-async function montarTela(read: (rota: string) => Promise<unknown>, write: (rota: string, corpo: unknown) => Promise<unknown> = async () => ({})) {
+async function montarTela(read: (rota: string) => Promise<unknown>, write: (route: string, body: unknown) => Promise<unknown> = async () => ({})) {
   const area = new Elemento('main');
   const sair = new AbortController();
   const ouvintes = { mudar: [] as ((m: unknown[]) => void)[], reiniciar: [] as (() => void)[] };

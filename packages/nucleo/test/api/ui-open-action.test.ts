@@ -308,16 +308,15 @@ describe('open action: the click', () => {
         await settle();
         assert.equal(openStateOf(UUID).kind, 'fail');
         const seen: unknown[] = [];
-        const proto = ElementoFalso.prototype as unknown as Record<string, unknown>;
-        const had = Object.getOwnPropertyDescriptor(proto, 'scrollIntoView');
-        Object.defineProperty(proto, 'isConnected', { value: false, configurable: true, writable: true });
-        proto.scrollIntoView = (o: unknown) => seen.push(o);
+        const had = Object.getOwnPropertyDescriptor(ElementoFalso.prototype, 'scrollIntoView');
+        Object.defineProperty(ElementoFalso.prototype, 'isConnected', { value: false, configurable: true, writable: true });
+        Object.defineProperty(ElementoFalso.prototype, 'scrollIntoView', { value: (o: unknown) => seen.push(o), configurable: true, writable: true });
         try {
           const rebuilt = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
           assert.equal(texto(rebuilt.querySelector('.open-fail')), 'Nenhum terminal respondeu', 'the redraw shows the failure');
         } finally {
-          delete proto.isConnected;
-          if (had) Object.defineProperty(proto, 'scrollIntoView', had);
+          Reflect.deleteProperty(ElementoFalso.prototype, 'isConnected');
+          if (had) Object.defineProperty(ElementoFalso.prototype, 'scrollIntoView', had);
         }
         assert.deepEqual(seen, []);
       });
