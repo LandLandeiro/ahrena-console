@@ -355,7 +355,7 @@ function createMenu({ pick, signal, fallbackFocus }) {
       button.setAttribute('aria-controls', id);
       // ADR-0028: capturing, because a control inside the page stops the event before it reaches the document.
       document.addEventListener('pointerdown', outside, true);
-      // ADR-0028 (#752): a change of the window size aligns the open menu again; the listener lives only while it is open.
+      // ADR-0028: a change of the window size aligns the open menu again; the listener lives only while it is open.
       globalThis.addEventListener?.('resize', align);
       align();
     }
