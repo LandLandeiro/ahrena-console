@@ -127,7 +127,7 @@ function setState(id, st) {
  * The action for one session (`{ id, open }`), or `null` when there is nothing to open.
  * `size`: 'full' | 'small' | 'icon'. `write` swaps the transport (tests, the screen's `ctx.write`).
  * `label` replaces the text of the button and `primary` draws it with the primary fill (ADR-0028); a
- * session of another machine keeps its own text and its outline, since it never opens from here. `reveal` scrolls the notice into view when it changes (ADR-0028). `primary` is also the
+ * session of another machine keeps its own text and its outline, since it never opens from here. `reveal` scrolls the notice into view when the open fails and the button is on screen (ADR-0028). `primary` is also the
  * 32px button of the kit (`md`) in every size, the remote one included; the screen never sets a button's height.
  */
 export function openAction(session, { size = 'full', write = defaultWrite, machine = null, className = null, successMs = SUCCESS_MS, failMs = FAIL_MS, label: customLabel = null, primary = false, reveal = false } = {}) {
@@ -201,7 +201,7 @@ export async function requestOpen(key, id, { write = defaultWrite, successMs = S
  * "Abrindo…", the success or the failure with "Copiar comando", and keeps `button` aria-busy while the open is in flight.
  * It follows the state of `key` across redraws, as the action of `openAction` does; `iconOnly` makes the copy a bare icon,
  * `closable` adds "Fechar", `restoreDisabled` keeps a button that never opens aria-disabled and `reveal` scrolls the notice into view
- * (the least scroll) when it changes on a page that already shows it (ADR-0028).
+ * (the least scroll) when the open fails, the page already shows it and the button is on screen (ADR-0028).
  */
 export function openStatusView(key, button, { iconOnly = false, closable = false, restoreDisabled = false, reveal = false } = {}) {
   const status = el('span', { class: 'open-status', role: 'status', 'aria-live': 'polite' });
@@ -225,7 +225,7 @@ export function openStatusView(key, button, { iconOnly = false, closable = false
     const copy = st.kind === 'fail' && st.command ? copyButton(st.command, iconOnly) : null;
     const close = st.kind === 'fail' && closable ? closeButton(() => setState(key, null)) : null;
     status.replaceChildren(...[msg, copy, close].filter(Boolean));
-    if (reveal && status.isConnected === true) status.scrollIntoView?.({ block: 'nearest' });
+    if (reveal && st.kind === 'fail' && status.isConnected === true && onScreen(button)) status.scrollIntoView?.({ block: 'nearest' });
     if (st.until !== null) {
       timer = setTimeout(draw, Math.max(0, st.until - Date.now()));
       // In node (the tests) a pending fade does not hold the process open; browsers return a number.
@@ -243,6 +243,15 @@ export function openStatusView(key, button, { iconOnly = false, closable = false
   views.get(key).add(draw);
   draw();
   return status;
+}
+
+/** Whether `node` is at least partly inside the viewport now; a DOM without geometry counts as inside (ADR-0028). */
+function onScreen(node) {
+  const r = node.getBoundingClientRect?.();
+  if (!r) return true;
+  const h = globalThis.innerHeight ?? globalThis.document?.documentElement?.clientHeight;
+  const w = globalThis.innerWidth ?? globalThis.document?.documentElement?.clientWidth;
+  return r.bottom > 0 && r.right > 0 && (typeof h !== 'number' || r.top < h) && (typeof w !== 'number' || r.left < w);
 }
 
 /** "Fechar": the icon's failure popover goes away. */
