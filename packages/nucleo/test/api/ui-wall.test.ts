@@ -1006,6 +1006,15 @@ describe('#751: the sheet of the wall', () => {
     assert.match(code, /\{ class: 'wall-side' \},\n\s+tagOver\(stateTag\(/, 'the state tag is the first of the side: its icon starts where the side starts');
   });
 
+  test('the reason of a concluded row fits whole in the half-width column, and what gives way on the side is the machine before the state (#752)', () => {
+    const basis = Number(declared('.wall-text', 'flex')?.match(/\* (\d+)\)$/)?.[1]);
+    const reason = 'Terminou sem erro';
+    assert.ok(basis * 13 >= reason.length * 8, `the text keeps ${basis} times --text-sm, room for "${reason}" at 8 px a letter`);
+    assert.match(css('screens/wall.js'), /'Terminou sem erro'/, 'the reason this test measures is the one the row writes');
+    assert.equal(declared('.wall-side .wall-mach', 'flex-shrink'), '100', 'the machine shrinks first when the side is tight');
+    assert.doesNotMatch(sheet, /\.wall-text \{[^}]*min-width:\s*[1-9]/, 'no minimum on the text: a row of 320px has no horizontal scroll (#751)');
+  });
+
   test('a long machine name or state label never pushes a card or a row sideways: everything on the line shrinks and cuts with an ellipsis (#751)', () => {
     const rule = (file: string, selector: string) => css(file).replace(/\/\*[\s\S]*?\*\//g, '').match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
     assert.match(rule('open-action.css', '.open-size-small .open-button'), /max-width:\s*100%/);
