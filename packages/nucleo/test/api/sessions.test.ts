@@ -303,7 +303,7 @@ describe('#28 a tela Sessões', () => {
   });
 
   // A janela do app abre com 1100 px (#150). With the bar at 248 px (#750) and the 2 × 24 + 2 of breath, the table has 802 px,
-  // 787 with a classic 15 px scrollbar; from 1241 px up to 971, 928 with it; at 861 px, 563 with it. Each column needs what its widest text
+  // 787 with a classic 15 px scrollbar; from 1241 px up to 971, 928 with it; at 861 px, 548 with it. Each column needs what its widest text
   // asks for (measured in the browser, padding included), or the text is cut. #61 (C53): the Mensagem column takes the room of the
   // Diretório up to 1240 px of window, with only the icon of its button beside the open icon (#285); below 900 px it leaves too.
   test('the table fits 1100 px without horizontal scroll; up to 1240 px Mensagem takes the room of Diretório, and below 900 px it leaves', () => {
@@ -334,10 +334,10 @@ describe('#28 a tela Sessões', () => {
     const MINIMO: Record<string, number> = { 'c-session': 170, 'c-status': 140, 'c-activity': 81, 'c-duration': 85, 'c-agents': 74, 'c-cost': 88.5, 'c-dir': 85, 'c-message': 142.5, 'c-open': 36 };
     // Up to 1240 px: 8 px of padding take 4 px from each need, and the message button is only its icon ("sem processo vivo").
     const MINIMO_MEIO: Record<string, number> = { 'c-session': 160, 'c-status': 136, 'c-activity': 77, 'c-duration': 81, 'c-agents': 70.5, 'c-cost': 84.5, 'c-message': 111, 'c-open': 36 };
-    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 120, 'c-status': 131.5, 'c-activity': 67.5, 'c-duration': 70, 'c-agents': 55, 'c-cost': 78.5, 'c-open': 32 };
+    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 115, 'c-status': 131.5, 'c-activity': 65.5, 'c-duration': 71, 'c-agents': 54.5, 'c-cost': 76.5, 'c-open': 32 };
     for (const c of classes) assert.ok((largas[c]! / 100) * 928 >= MINIMO[c]!, `${c} em 1241: ${(largas[c]! / 100) * 928} px`);
     for (const c of withoutDir) assert.ok((midWidths[c]! / 100) * 787 >= MINIMO_MEIO[c]!, `${c} em 1100: ${(midWidths[c]! / 100) * 787} px`);
-    for (const c of narrowColumns) assert.ok((estreitas[c]! / 100) * 563 >= MINIMO_ESTREITO[c]!, `${c} em 861: ${(estreitas[c]! / 100) * 563} px`);
+    for (const c of narrowColumns) assert.ok((estreitas[c]! / 100) * 548 >= MINIMO_ESTREITO[c]!, `${c} em 861: ${(estreitas[c]! / 100) * 548} px`);
   });
 
   // O CSS de cada tela fica carregado quando se troca de tela: uma classe com o mesmo nome em duas
