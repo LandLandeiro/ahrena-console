@@ -20,7 +20,7 @@ const CONTROLS = [
   '.sm-input', '.dk-find', '.fwi-input', '.fwi-issue', '.wb-select',
   '.wb-edit-title', '.wb-edit-input', '.wb-edit-textarea', '.wb-edit-select',
   '.field',
-  '.fwi-box', '.fwi-plat',
+  '.fwi-box', '.fwi-plat', '.dk-opt',
   // #749: background-less buttons: transparent, or the same colour as the surface behind
   // #749: bare `.btn` covers every state and variant of the button (done, failed, hover), not `.btn-note`
   '.btn', '.btn.outline', '.btn.danger', '.pp-chip', '.kb-more', '.wb-done-more',

@@ -163,7 +163,7 @@ button { font: inherit; cursor: pointer; }
 .attention-chip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-semibold); white-space: nowrap; flex: none; vertical-align: middle;
   background: color-mix(in srgb, var(--status-waiting-text) 16%, transparent); color: var(--status-waiting-text); }
 .attention-chip-light { font-weight: var(--weight-medium); background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
-.attention-chip-error { background: color-mix(in srgb, var(--status-error-text) 16%, transparent); color: var(--status-error-text); }
+.attention-chip-error { background: var(--status-error-badge); color: var(--status-error-text); }
 .attention-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .attention-dot-blocked { background: var(--status-waiting-dot); }
 .attention-dot-idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
