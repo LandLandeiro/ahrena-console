@@ -20,10 +20,10 @@
 .up-banner.up-ok .up-ic { background: color-mix(in srgb, var(--status-completed-badge) 90%, var(--surface)); color: var(--status-completed-text); }
 
 /* The version in the sidebar footer opens the panel; the dot says there is a new one. */
-.up-version { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: 99px; background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 11px; }
+.up-version { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: 99px; background: transparent; color: var(--muted); border: 1px solid var(--border-control); font-size: 11px; }
 .up-version:hover, .up-version[aria-expanded="true"] { background: var(--raised); color: var(--text); }
 .up-version:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.up-version[data-new] { color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.up-version[data-new] { color: var(--accent-text); border-color: var(--accent-line); }
 .up-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
 
 .up-pop { position: fixed; left: 206px; bottom: 16px; width: 360px; max-width: calc(100vw - 32px); z-index: 20; border-radius: 12px; box-shadow: 0 14px 44px color-mix(in srgb, var(--mono-black) 45%, transparent); }

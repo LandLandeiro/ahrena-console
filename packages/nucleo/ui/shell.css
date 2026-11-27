@@ -83,7 +83,7 @@ button { font: inherit; cursor: pointer; }
 .live[data-state="connecting"] { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
 
 /* ---------- peças comuns ---------- */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 /* Cards in the same row have the same height (UI rule 9, issue 255): a card in a screen stretches to its
    grid row, even when the grid says align-items: start. :where() keeps the specificity of one class,
    so a screen can still place one card on purpose. */
@@ -99,14 +99,14 @@ button { font: inherit; cursor: pointer; }
    States: :hover, :active, :focus-visible, [aria-busy="true"], [data-state="done"|"failed"] and one
    disabled look for :disabled and [aria-disabled="true"] (say why in `title` or in text beside it).
    Busy keeps the focus: the button stays enabled and ignores repeated clicks (ui/button-action.js). */
-.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: 8px; font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; }
+.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; }
 .btn.sm { --btn-h: 28px; padding: 0 10px; gap: 6px; font-size: 12px; }
 .btn.lg { --btn-h: 40px; padding: 0 18px; gap: 8px; font-size: 14px; }
 .btn.icon-only { width: var(--btn-h); padding: 0; }
-.btn.outline { border-color: var(--border); background: var(--surface); }
+.btn.outline { border-color: var(--border-control); background: var(--surface); }
 .btn.filled { background: var(--accent); color: var(--on-accent); font-weight: var(--weight-semibold); }
 .btn.ghost { color: var(--muted); }
-.btn.danger { color: var(--status-error-text); border-color: color-mix(in srgb, var(--status-error-dot) 45%, var(--border)); background: var(--surface); }
+.btn.danger { color: var(--status-error-text); border-color: color-mix(in srgb, var(--status-error-dot) 45%, var(--border-control)); background: var(--surface); }
 .btn.danger.filled { background: var(--status-error-dot); border-color: transparent; color: var(--on-accent); }
 .btn.outline:hover:not(:disabled):not([aria-disabled="true"]), .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--raised); }
 .btn.ghost:hover:not(:disabled):not([aria-disabled="true"]) { color: var(--text); }
@@ -118,7 +118,7 @@ button { font: inherit; cursor: pointer; }
 .btn.filled:active:not(:disabled):not([aria-disabled="true"]) { filter: brightness(.86); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 30%, transparent); }
 .btn.danger:active:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--status-error-badge) 60%, var(--bg)); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 28%, transparent); }
 .btn.danger.filled:active:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-dot); }
-.btn[data-state="done"] { color: var(--status-completed-text); border-color: color-mix(in srgb, var(--status-completed-dot) 55%, var(--border)); background: color-mix(in srgb, var(--status-completed-badge) 70%, var(--surface)); }
+.btn[data-state="done"] { color: var(--status-completed-text); border-color: color-mix(in srgb, var(--status-completed-dot) 55%, var(--border-control)); background: color-mix(in srgb, var(--status-completed-badge) 70%, var(--surface)); }
 .btn[data-state="failed"] { color: var(--status-error-text); border-color: var(--status-error-dot); background: color-mix(in srgb, var(--status-error-badge) 70%, var(--surface)); }
 .btn:disabled, .btn[aria-disabled="true"]:not([aria-busy="true"]) { opacity: .5; cursor: not-allowed; }
 .btn[aria-busy="true"] { cursor: progress; }
@@ -141,7 +141,7 @@ button { font: inherit; cursor: pointer; }
 .attention-chip { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-semibold); white-space: nowrap; flex: none; vertical-align: middle;
   background: color-mix(in srgb, var(--status-waiting-text) 16%, transparent); color: var(--status-waiting-text); }
 .attention-chip-light { font-weight: var(--weight-medium); background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
-.attention-chip-error { background: color-mix(in srgb, var(--status-error-text) 16%, transparent); color: var(--status-error-text); }
+.attention-chip-error { background: var(--status-error-badge); color: var(--status-error-text); }
 .attention-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 .attention-dot-blocked { background: var(--status-waiting-dot); }
 .attention-dot-idle { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }

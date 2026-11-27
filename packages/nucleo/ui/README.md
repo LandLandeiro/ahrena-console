@@ -170,7 +170,7 @@ Sessões, Mural ao vivo, Kanban (as duas visões), Feed, Histórico e Dashboard 
 
 ## Regras
 
-- **Só 127.0.0.1.** A política de conteúdo do núcleo (`src/api/ui.ts`) bloqueia scripts, estilos, fontes e `fetch` de fora. Por isso a fonte é a do sistema quando a Poppins não está instalada.
+- **Só 127.0.0.1.** A política de conteúdo do núcleo (`src/api/ui.ts`) bloqueia scripts, estilos, fontes e `fetch` de fora. Por isso a fonte é a do sistema (`--font-sans` e `--font-mono`), sem arquivo de fonte.
 - **Toda leitura passa por `read()`, toda escrita por `write()`**, nunca por `fetch` direto: é o que deixa a mesma página rodar no artefato.
 - **As escritas com o `Origin` da página**: o abrir a sessão onde ela roda (`POST /api/sessions/<uuid>/open`, com o caminho exato), o mover card do Kanban do projeto, o `POST /api/agent-config/skill` da Agent Config e, da issue 241, as quatro da conexão com o GitHub (`/api/connections/github/…`) e a escolha do Project (`POST /api/project/selection`), estas só da própria `/ui`.
 - **Texto do núcleo entra por `textContent`** (`el()` já faz isso). Nada de `innerHTML` com dado.
