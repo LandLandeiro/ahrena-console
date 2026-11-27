@@ -26,8 +26,10 @@ const port = document.getElementById('port');
 
 port.textContent = location.host;
 
-// Issue 750 (M4): a shell read of a route that is already in flight shares its promise; the screen's own reads (`ctx.read`)
-// go through the plain `read`, with their own signal. The shell reads start once the first screen has asked for its data.
+/**
+ * #750: a shell read of a route that is already in flight shares its promise; the screen's own reads (`ctx.read`)
+ * go through the plain `read`, with their own signal. The shell reads start once the first screen has settled (mounted or failed).
+ */
 const shellRead = shareReads(read);
 const gate = createScreenGate();
 
@@ -51,10 +53,10 @@ const counts = createCounts({ read: shellRead, nav: { tag: (id, next) => { tag(i
 const writeCounted = afterWrite(write, counts);
 // A remote's state also changes without an alert (another version over there): re-read now and then.
 setInterval(readMachines, 60_000);
-// The Conexões dot (issue 277): on boot, on every `connector` change, on restart and every minute (an expiry is no event).
+// The Conexões dot (#277): on boot, on every `connector` change, on restart and every minute (an expiry is no event).
 setInterval(readConnectors, 60_000);
 
-// The GitHub connection in the footer (ghFooter, issue 241): read on boot, on every `connections` change and on restart.
+// The GitHub connection in the footer (ghFooter, #241): read on boot, on every `connections` change and on restart.
 const githubFooter = createGithubFooter({ node: document.getElementById('github'), read: shellRead });
 
 // The app's update notice (issue 330): the card above the screens, and the panel the footer's version opens.
@@ -84,9 +86,11 @@ let version = null;
 let liveState = { state: 'connecting', error: null, nextAttempt: null };
 const listeners = { change: new Set(), restart: new Set() };
 
-// Boot reads the shell once, after the first screen has asked for its data (or after 1 s). The first `restart` is the
-// connection's: the screen has just read and so has the shell, so it reads nothing. After it (or after a drop), every
-// `restart` reads the shell again and makes the screen re-read.
+/**
+ * #750: boot reads the shell once, after the first screen has settled (or after 1 s). The first `restart` is the
+ * connection's: the screen has just read and so has the shell, so it reads nothing. After it (or after a drop), every
+ * `restart` that comes once boot has read reads the shell again and makes the screen re-read.
+ */
 const shell = createShellLoad({
   gate,
   loaders: [readVersion, readMachines, readConnectors, githubFooter.refresh, () => appUpdate.refresh().then(drawLive), counts.refresh],
@@ -133,7 +137,7 @@ startLive({
   },
   onRestart: restart,
   onChange(changes) {
-    // The dot blinks once for each batch of events (at most every 2 s); a restart or a reset is not an event.
+    // #750: the dot blinks once for each batch of events (at most every 2 s); a restart or a reset is not an event.
     live.blink();
     // A machine that goes down or comes back (`<id>:machine-unreachable`) changes its dot.
     if (changes.some((c) => c.type === 'alert')) readMachines();
@@ -158,7 +162,7 @@ function navigate(route, state = null) {
   open();
 }
 
-// The shell reads wait for the first screen: it opens the gate whether it mounted or failed.
+// #750: the shell reads wait for the first screen: it opens the gate whether it mounted or failed.
 async function open() {
   try {
     await showScreen();

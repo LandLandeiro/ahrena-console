@@ -594,6 +594,21 @@ describe('#750 M4: the shell reads each route once on cold load, after the scree
     assert.equal(loaded, 2);
   });
 
+  test('#750: a drop and a reconnect before the gate opens read nothing yet, and boot reads once, after the screen', async () => {
+    const t = manualTimers();
+    const gate = createScreenGate({ setTimer: t.setTimer, clearTimer: t.clearTimer });
+    let loaded = 0;
+    const shell = createShellLoad({ gate, loaders: [() => void loaded++] });
+    const booted = shell.boot();
+    shell.dropped();
+    assert.equal(shell.restart(), true, 'the screens still re-read');
+    await flushPromises();
+    assert.equal(loaded, 0, 'the shell waits for the screen, even after a drop');
+    gate.open();
+    await booted;
+    assert.equal(loaded, 1, 'boot reads once');
+  });
+
   test('one loader that throws does not stop the others', async () => {
     const gate = { ready: Promise.resolve() };
     const ran: number[] = [];
@@ -628,14 +643,14 @@ describe('#750 M4: the shell reads each route once on cold load, after the scree
       loaders: [() => shared('/api/overview'), nav.readMachines, nav.readConnectors, () => shared('/api/connections'), () => shared('/api/app-update'), counts.refresh],
     });
     const booted = shell.boot();
-    // The screen's own reads go out first, through the raw read.
+    // #750: the screen's own reads go out first, through the raw read.
     raw('/api/wall?machine=all');
     await flushPromises();
     assert.deepEqual(asked, ['/api/wall?machine=all']);
-    // The connection's first restart arrives, and so does the screen.
+    // #750: the connection's first restart arrives, and so does the screen.
     assert.equal(shell.restart(), false);
     gate.open();
-    // A second shell read of a route still in flight (the interval of the machines, the connectors...) shares it.
+    // #750: a second shell read of a route still in flight (the interval of the machines, the connectors...) shares it.
     nav.readMachines();
     nav.readConnectors();
     await flushPromises();
@@ -654,7 +669,7 @@ describe('#750 M4: the shell reads each route once on cold load, after the scree
     assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read: shellRead \}\)/);
     assert.match(app, /createAppUpdate\(\{ read: shellRead,/);
     assert.match(app, /await shellRead\('\/api\/overview'\)/);
-    // The screen's own reads are not shared: they carry the signal that leaving the screen aborts.
+    // #750: the screen's own reads are not shared: they carry the signal that leaving the screen aborts.
     assert.match(app, /read: \(route, options\) => read\(route, \{ signal: leave\.signal, \.\.\.options \}\)/);
     const restart = /function restart\(\) \{([^]*?)\n\}/.exec(app)![1]!;
     assert.doesNotMatch(restart, /read(Version|Machines|Connectors)|refresh\(\)/, 'the restart reads through the shell load, not by itself');

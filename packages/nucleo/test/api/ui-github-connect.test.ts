@@ -127,7 +127,7 @@ describe('github-connect.js: the pure parts', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read: shellRead \}\)/);
     assert.match(app, /if \(connectionChanged\(changes\)\) githubFooter\.refresh\(\);/);
-    // Boot and restart read it through the shell load (one list, M4); a `connections` change reads it by itself.
+    // Boot and restart read it through the shell load (#750, one list); a `connections` change reads it by itself.
     assert.match(app, /loaders: \[[^\]]*githubFooter\.refresh,/);
     assert.equal((app.match(/githubFooter\.refresh/g) ?? []).length, 2);
   });

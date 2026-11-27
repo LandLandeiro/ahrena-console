@@ -148,7 +148,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}${a}`, 'utf8');
       const urls = externalUrls(a, text);
       assert.deepEqual(urls, [], `${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
+      // #750: a comment may carry an issue pointer such as `#750`, which reads like a short hex color; only code is checked.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
       assert.doesNotMatch(text, /\sstyle\s*=|setAttribute\(\s*['"]style/, `${a} usa estilo inline`);
       if (a !== 'api.js') assert.doesNotMatch(text, /\bfetch\(/, `${a} chama fetch: só api.js fala com o núcleo`);
       // `innerHTML` only in the icons (dom.js constants), never with data.

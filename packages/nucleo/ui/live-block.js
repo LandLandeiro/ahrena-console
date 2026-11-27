@@ -4,7 +4,7 @@ import { el } from './dom.js';
 
 export const LIVE_LABELS = { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conexão' };
 
-/** Two blinks of the dot are at least this far apart. */
+/** #750: two blinks of the dot are at least this far apart. */
 const BLINK_EVERY_MS = 2000;
 
 export const machinesText = (n) => (n === 1 ? '1 máquina' : `${n} máquinas`);
@@ -63,7 +63,7 @@ export function createLiveBlock({ node, onVersion = () => {}, doc = document, no
   }
 
   /**
-   * The dot blinks once for an event of the live stream (motion 11), at most one blink every `BLINK_EVERY_MS`, and only
+   * #750: the dot blinks once for an event of the live stream (motion 11), at most one blink every `BLINK_EVERY_MS`, and only
    * while live. The mark is taken off and put back after a layout read, so a second blink restarts the animation even when
    * the first left its mark (under reduced motion there is no animation, so no `animationend` to clean up).
    */
