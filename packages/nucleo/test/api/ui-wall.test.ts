@@ -1002,8 +1002,8 @@ describe('#751: the sheet of the wall', () => {
     const withMachine = times(declared('.wall-side:has(.wall-mach)', 'flex-basis'), 'the side with a machine');
     assert.ok(withMachine > bare, 'the machine adds room, so the same side width holds in every row of a list');
     const textBasis = times(text![1], 'the text basis');
-    // ADR-0028: 15px is the title's size, and 7px a character is its mean width.
-    assert.ok(textBasis * 13 >= 40 * 7, `the text basis of ${textBasis} times --text-sm (13px) holds a title of 40 characters at 15px: it is not cut from 600px up (docs/design.md)`);
+    // #752: measured in Chrome at 15px weight 500, the widest 40-character title is 303px, 7.6px a character; 7.8 leaves a margin.
+    assert.ok(textBasis * 13 >= 40 * 7.8, `the text basis of ${textBasis} times --text-sm (13px) is ${textBasis * 13}px, under the ${40 * 7.8}px a title of 40 characters at 15px needs: it would be cut from 600px up`);
     const code = css('screens/wall.js');
     assert.match(code, /\{ class: 'wall-side' \},\n\s+tagOver\(stateTag\(/, 'the state tag is the first of the side: its icon starts where the side starts');
   });
