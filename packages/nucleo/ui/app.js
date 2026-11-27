@@ -133,6 +133,8 @@ startLive({
   onRestart: restart,
   onChange(changes) {
     // A machine that goes down or comes back (`<id>:machine-unreachable`) changes its dot.
+    // The dot blinks once for each batch of events (at most every 2 s); a restart or a reset is not an event.
+    live.blink();
     if (changes.some((c) => c.type === 'alert')) readMachines();
     counts.changed(changes);
     if (connectionChanged(changes)) githubFooter.refresh();

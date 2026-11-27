@@ -4,13 +4,16 @@ import { el } from './dom.js';
 
 export const LIVE_LABELS = { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conexão' };
 
+/** Two blinks of the dot are at least this far apart. */
+const BLINK_EVERY_MS = 2000;
+
 export const machinesText = (n) => (n === 1 ? '1 máquina' : `${n} máquinas`);
 
 /**
  * `onVersion` is the click of the version button. `draw({ state, machines, version })` takes the state of the live
  * stream, the machine count (or null) and the version button's `{ label, title, fresh, expanded }` (or null).
  */
-export function createLiveBlock({ node, onVersion = () => {}, doc = document }) {
+export function createLiveBlock({ node, onVersion = () => {}, doc = document, now = Date.now }) {
   const dot = el('span', { class: 'cc-live-dot', 'aria-hidden': 'true' });
   const region = el('b', { 'aria-live': 'polite' }, LIVE_LABELS.connecting);
   const machinesNode = el('span');
@@ -20,6 +23,7 @@ export function createLiveBlock({ node, onVersion = () => {}, doc = document }) 
   const note = el('div', { class: 'cc-live-note', hidden: true });
   node.replaceChildren(el('div', { class: 'cc-live-line' }, dot, region), note);
   let shape = '';
+  let blinkedAt = -Infinity;
 
   function setText(target, text) {
     if (target.textContent !== text) target.textContent = text;
@@ -58,5 +62,19 @@ export function createLiveBlock({ node, onVersion = () => {}, doc = document }) 
     }
   }
 
-  return { draw, focusVersion: () => hasVersion && button.focus() };
+  /**
+   * The dot blinks once for an event of the live stream (motion 11), at most one blink every `BLINK_EVERY_MS`, and only
+   * while live. The mark is taken off and put back after a layout read, so a second blink restarts the animation even when
+   * the first left its mark (under reduced motion there is no animation, so no `animationend` to clean up).
+   */
+  function blink() {
+    if (node.dataset.state !== 'live' || now() - blinkedAt < BLINK_EVERY_MS) return false;
+    blinkedAt = now();
+    dot.removeAttribute('data-blink');
+    void dot.offsetWidth;
+    dot.setAttribute('data-blink', '');
+    return true;
+  }
+
+  return { draw, blink, focusVersion: () => hasVersion && button.focus() };
 }
