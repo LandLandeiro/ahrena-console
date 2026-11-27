@@ -1014,6 +1014,7 @@ describe('#751: the sheet of the wall', () => {
     assert.ok(basis * 13 >= reason.length * 8, `the text keeps ${basis} times --text-sm, room for "${reason}" at 8 px a letter`);
     assert.match(css('screens/wall.js'), /'Terminou sem erro'/, 'the reason this test measures is the one the row writes');
     assert.equal(declared('.wall-side .wall-mach', 'flex-shrink'), '100', 'the machine shrinks first when the side is tight');
+    assert.equal(declared('.wall-side .wall-tag', 'flex-shrink'), '0', 'the state keeps its whole width: the machine yields, not the state');
     assert.doesNotMatch(sheet, /\.wall-text \{[^}]*min-width:\s*[1-9]/, 'no minimum on the text: a row of 320px has no horizontal scroll (#751)');
   });
 
