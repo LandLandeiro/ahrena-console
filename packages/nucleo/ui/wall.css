@@ -40,7 +40,7 @@
 .wall-ask { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; color: var(--text); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 
 .wall-act { position: relative; z-index: 1; }
-/* Issue 751: "Ver sessão" is a link drawn as the kit's primary button; no underline. */
+/* ADR-0028, issue 751: "Ver sessão" is a link drawn as the kit's primary button; no underline. */
 .wall-see { text-decoration: none; }
 /* ADR-0028: an open failure goes over the rows below, their trees and the Paradas band. */
 .wall-act:has([role="status"]:not(:empty)) { z-index: 3; }
@@ -67,7 +67,7 @@
 .wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
 .wall-row:hover { background: var(--raised); }
 .wall-main { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, auto); gap: 12px; align-items: center; min-width: 0; }
-/* Issue 751: without the monogram (one agent on screen) the 28px column goes away. */
+/* ADR-0028, issue 751: without the monogram (one agent on screen) the 28px column goes away. */
 .wall-main-solo { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
 .wall-text { display: flex; flex-direction: column; min-width: 0; }
 .wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

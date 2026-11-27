@@ -1370,7 +1370,7 @@ describe('Wall: the agent monogram only where it tells agents apart (#751)', () 
     }
   });
 
-  test('the filter decides: what is drawn counts, so Ativas with only Claude rows hides the monogram', async () => {
+  test('the filter decides: what is drawn counts, so Precisam de você with only the Claude card hides the monogram', async () => {
     const cards = [cardDeExemplo('f1', needs), cardDeExemplo('f2', codex)];
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
     try {

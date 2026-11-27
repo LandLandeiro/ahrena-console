@@ -170,7 +170,7 @@ const machineOf = (c, known) => (known || isRemote(c) ? el('span', { class: 'wal
 function spotsOf(nest, key, link, action, see = null) {
   nest.spot('link', key, link);
   if (action) nest.spot('open', key, action.children[0]);
-  // Issue 751: "Ver sessão" is its own spot, so a redraw puts the focus back on it by the session key.
+  // ADR-0028, issue 751: "Ver sessão" is its own spot, so a redraw puts the focus back on it by the session key.
   if (see) nest.spot('see', key, see);
 }
 
@@ -196,7 +196,7 @@ function card(c, write, nest, known, mono) {
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel, reveal: true, className: opened ? 'open-beside' : null });
-  // Issue 751: a card that cannot open still goes somewhere: "Ver sessão" is a link to the Detail, drawn as the primary button.
+  // ADR-0028, issue 751: a card that cannot open still goes somewhere: "Ver sessão" is a link to the Detail, drawn as the primary button.
   const see = action ? null : el('a', { class: 'btn primary md wall-see', href: v.href, 'data-see': v.key }, SEE_SESSION);
   spotsOf(nest, v.key, link, action, see);
   const node = el(
@@ -460,7 +460,7 @@ export async function mount(area, ctx) {
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
-    // Issue 751: the monogram paints an identity, so it shows only when the sessions drawn have two or more agents.
+    // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
     const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known, mono));
     const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known, mono));
