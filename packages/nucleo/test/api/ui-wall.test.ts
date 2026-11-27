@@ -1290,7 +1290,7 @@ describe('Wall: "Ver sessão" on a card that cannot open (#751)', () => {
         assert.equal(see[0]!.getAttribute('href'), `/ui/sessions/${id}`);
         for (const c of ['btn', 'primary', 'md']) assert.ok(see[0]!.classes.includes(c), `${id}: class ${c}`);
         assert.ok(!see[0]!.classes.includes('sm'), 'the kit 32px button, not the small one');
-        assert.equal(see[0]!.parent!.classes.includes('wall-act'), true, 'in the same slot as the open button');
+        assert.equal(comClasse(box, 'wall-act').some((slot) => slot.children.includes(see[0]!)), true, 'in the same slot as the open button');
         assert.equal(comClasse(box, 'open-button').length, 0);
         assert.equal(see[0]!.todos((e) => e.tag === 'button').length, 0, 'no button inside a link');
       }
