@@ -57,6 +57,8 @@
 .wall-ask { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; color: var(--text); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 
 .wall-act { position: relative; z-index: 1; }
+/* ADR-0028, issue 751: "Ver sessão" is a link drawn as the kit's primary button; no underline. */
+.wall-see { text-decoration: none; }
 /* ADR-0028: an open failure goes over the rows below, their trees and the Paradas band. */
 .wall-act:has([role="status"]:not(:empty)) { z-index: 3; }
 
@@ -86,6 +88,9 @@
 /* ADR-0028: the text and the side each have a basis of their own, so every row of a list wraps or not together and the state starts at the same x; the title cuts. */
 .wall-main { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-left: 40px; min-width: 0; }
 .wall-main > :first-child { position: absolute; left: 0; top: 7px; }
+/* ADR-0028, issue 751: without the monogram (one agent on screen) the 40px it takes and its absolute place go away, so the text starts at the left edge in every section and width. */
+.wall-main-solo { padding-left: 0; }
+.wall-main-solo > :first-child { position: static; }
 .wall-text { display: flex; flex-direction: column; flex: 1000 1 calc(var(--text-sm) * 24); min-width: 0; }
 .wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
