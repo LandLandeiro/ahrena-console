@@ -96,8 +96,8 @@ export function gerarCss(tokens: Tokens): string {
   for (const [nome, v] of Object.entries(tipo.size)) fixas.push(variavel(`text-${nome}`, v as string))
   for (const [name, v] of Object.entries(limpo(tokens.spacing))) fixas.push(variavel(`space-${name}`, v as string))
   for (const [nome, v] of Object.entries(limpo(tokens.radius))) fixas.push(variavel(`radius-${kebab(nome)}`, v as string))
-  const duracoes = ['fast', 'base', 'move']
-  for (const [nome, v] of Object.entries(limpo(tokens.motion))) fixas.push(variavel(duracoes.includes(nome) ? `motion-${nome}` : kebab(nome), v as string))
+  const durations = ['fast', 'base', 'move']
+  for (const [name, v] of Object.entries(limpo(tokens.motion))) fixas.push(variavel(durations.includes(name) ? `motion-${name}` : kebab(name), v as string))
   for (const [nome, v] of Object.entries(limpo(tipo.tracking))) fixas.push(variavel(`tracking-${nome}`, v as string))
   for (const [nome, v] of Object.entries(tipo.weight)) fixas.push(variavel(`weight-${nome}`, v as number))
 
@@ -130,7 +130,7 @@ export function gerarCss(tokens: Tokens): string {
     '/* Movimento reduzido: as três durações viram 0ms, nos dois temas. Vem depois dos blocos de tema. */',
     '@media (prefers-reduced-motion: reduce) {',
     '  :root {',
-    ...duracoes.map(nome => `    --motion-${nome}: 0ms;`),
+    ...durations.map(name => `    --motion-${name}: 0ms;`),
     '  }',
     '}',
     '',
