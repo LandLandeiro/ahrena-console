@@ -18,7 +18,12 @@ export const WALL_ROUTE = '/api/wall';
 export const DEBOUNCE_MS = 400;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
-const AGENT = 'Claude';
+// ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
+const AGENTS = { codex: 'Codex' };
+const SEE_SESSION = 'Ver sessão';
+
+/** The agent's name on screen: 'Codex' for a codex session, 'Claude' for the rest (ADR-0028, issue 751). */
+export const agentOf = (c) => AGENTS[c?.identity?.provider] ?? 'Claude';
 
 /** C85: the "Paradas" band shows this many rows at first; "Mostrar mais" asks for all of them (the core stops at 100). */
 export const PARKED_PAGE = 7;
@@ -58,6 +63,7 @@ const base = (c) => ({
   machine: c.machine ?? null,
   href: itemHref(c),
   open: c.open ?? null,
+  agent: agentOf(c),
   title: titled(c.title),
   state: stateOfSession({ attention: c.attention, status: c.status }),
 });
@@ -153,17 +159,19 @@ function bar({ valor: value, max, rotulo: label, alto: high = false, tipo: type 
   return el('progress', { class: `wall-bar${high ? ' wall-high' : ''}`, 'data-bar': type, max: max > 0 ? max : 1, value: max > 0 ? Math.min(value, max) : 0, 'aria-label': label });
 }
 
-/** The monogram, the name and since when, with the state on the right (ADR-0028). */
-function who(tag, since) {
-  return el('div', { class: 'wall-who' }, agentMonogram(AGENT), el('b', { class: 'wall-name' }, AGENT), el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
+/** The monogram (only where agents differ on screen, issue 751), the name and since when, with the state on the right (ADR-0028). */
+function who(tag, since, agent, mono) {
+  return el('div', { class: 'wall-who' }, mono ? agentMonogram(agent) : null, el('b', { class: 'wall-name' }, agent), el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
 }
 
 const machineOf = (c, known) => (known || isRemote(c) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
 
 // ADR-0028: what the keyboard can be on, by session key: the link and the open button; a redraw puts the focus back by it.
-function spotsOf(nest, key, link, action) {
+function spotsOf(nest, key, link, action, see = null) {
   nest.spot('link', key, link);
   if (action) nest.spot('open', key, action.children[0]);
+  // Issue 751: "Ver sessão" is its own spot, so a redraw puts the focus back on it by the session key.
+  if (see) nest.spot('see', key, see);
 }
 
 // ADR-0028: the tag sits above the stretched link so its `title` shows; a click on it goes to the link, modifiers and all.
@@ -181,27 +189,29 @@ function tree(c, summary, opened, nest) {
   return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids' }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
 }
 
-function card(c, write, nest, known) {
+function card(c, write, nest, known, mono) {
   const v = cardContent(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
   const link = el('a', { class: 'wall-tt wall-link', href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'small', write, machine: v.machine?.label ?? null, primary: true, label: v.actionLabel, reveal: true, className: opened ? 'open-beside' : null });
-  spotsOf(nest, v.key, link, action);
+  // Issue 751: a card that cannot open still goes somewhere: "Ver sessão" is a link to the Detail, drawn as the primary button.
+  const see = action ? null : el('a', { class: 'btn primary md wall-see', href: v.href, 'data-see': v.key }, SEE_SESSION);
+  spotsOf(nest, v.key, link, action, see);
   const node = el(
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
-    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since),
+    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
-    action ? el('div', { class: 'wall-act' }, action) : null,
+    action || see ? el('div', { class: 'wall-act' }, action ?? see) : null,
     ...tree(c, summary, opened, nest),
     foot(v, machineOf(c, known)),
   );
   return { node, link };
 }
 
-function row(c, write, nest, known) {
+function row(c, write, nest, known, mono) {
   const v = rowContent(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
@@ -215,8 +225,8 @@ function row(c, write, nest, known) {
     { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, 'data-session': v.id, 'data-key': v.key },
     el(
       'div',
-      { class: 'wall-main' },
-      agentMonogram(AGENT),
+      { class: `wall-main${mono ? '' : ' wall-main-solo'}` },
+      mono ? agentMonogram(v.agent) : null,
       el('div', { class: 'wall-text' }, titleLine(link, parentTitle), v.phrase ? el('span', { class: `wall-phrase${working ? ' wall-phrase-work' : ''}`, title: v.phrase }, v.phrase) : null),
       el(
         'div',
@@ -450,8 +460,10 @@ export async function mount(area, ctx) {
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
-    const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known));
-    const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known));
+    // Issue 751: the monogram paints an identity, so it shows only when the sessions drawn have two or more agents.
+    const mono = new Set(cards.map(agentOf)).size > 1;
+    const needs = cards.filter((c) => isBlocked(c.attention)).map((c) => card(c, ctx.write, nest, known, mono));
+    const rest = cards.filter((c) => !isBlocked(c.attention)).map((c) => row(c, ctx.write, nest, known, mono));
     const body = cards.length
       ? el(
           'div',

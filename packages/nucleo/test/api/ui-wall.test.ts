@@ -129,7 +129,7 @@ Object.assign(globalThis, {
 const tela = await import('../../ui/screens/wall.js');
 // @ts-expect-error: idem
 const { findScreen } = await import('../../ui/screens.js');
-const { mount, cardContent, rowContent } = tela;
+const { mount, cardContent, rowContent, agentOf } = tela;
 
 const comClasse = (raiz: No, c: string) => raiz.todos((e) => e.classes.includes(c));
 // #751: a blocked session is a card, the others are rows of one list; both carry data-session.
@@ -338,8 +338,8 @@ describe('Mural: a tela montada', () => {
 
       const [permissionCard, errorCard] = cards;
       const whoBox = comClasse(permissionCard!, 'wall-who')[0]!;
-      assert.match(whoBox.textContent, /^CClaudehá \d+ (min|h|d)Pede permissão$/, 'monogram, name, since, state');
-      assert.equal(comClasse(whoBox, 'agent-monogram').length, 1);
+      assert.match(whoBox.textContent, /^Claudehá \d+ (min|h|d)Pede permissão$/, 'name, since, state: every session is Claude, so no monogram (#751)');
+      assert.equal(comClasse(whoBox, 'agent-monogram').length, 0);
       assert.equal(comClasse(whoBox, 'state-tag')[0]!.getAttribute('data-state-kind'), 'permission');
       assert.equal(comClasse(permissionCard!, 'wall-tt')[0]!.textContent, 'Sessão espera-1');
       assert.equal(comClasse(permissionCard!, 'wall-ask')[0]!.textContent, 'Bash: npm run migrate');
@@ -1271,5 +1271,123 @@ describe('Wall: the failure notice of the open action is brought into view (#751
     } finally {
       await sair();
     }
+  });
+});
+
+describe('Wall: "Ver sessão" on a card that cannot open (#751)', () => {
+  const needs = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  const seeOf = (box: No) => box.todos((e) => e.tag === 'a' && e.getAttribute('data-see') !== null);
+
+  test('a blocked card without open shows "Ver sessão" to its Detail, as the primary 32px button in the action slot', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('see-1', { ...needs, open: null }), cardDeExemplo('see-2', needs)] }));
+    try {
+      await ate(() => cardsOf(area).length === 2);
+      for (const [i, id] of ['see-1', 'see-2'].entries()) {
+        const box = cardsOf(area)[i]!;
+        const see = seeOf(box);
+        assert.equal(see.length, 1, `${id}: one "Ver sessão"`);
+        assert.equal(see[0]!.textContent, 'Ver sessão');
+        assert.equal(see[0]!.getAttribute('href'), `/ui/sessions/${id}`);
+        for (const c of ['btn', 'primary', 'md']) assert.ok(see[0]!.classes.includes(c), `${id}: class ${c}`);
+        assert.ok(!see[0]!.classes.includes('sm'), 'the kit 32px button, not the small one');
+        assert.equal(see[0]!.parent!.classes.includes('wall-act'), true, 'in the same slot as the open button');
+        assert.equal(comClasse(box, 'open-button').length, 0);
+        assert.equal(see[0]!.todos((e) => e.tag === 'button').length, 0, 'no button inside a link');
+      }
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a remote card without open goes to its Detail with ?machine=', async () => {
+    const WS = { id: 'ws', label: 'Workstation', state: 'connected' };
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, machines: [{ id: 'local', label: 'Esta máquina', state: 'connected' }, WS], cards: [cardDeExemplo('rem-see', { ...needs, machine: WS, open: null })] }));
+    try {
+      await ate(() => cardsOf(area).length === 1);
+      assert.equal(seeOf(cardsOf(area)[0]!)[0]!.getAttribute('href'), '/ui/sessions/rem-see?machine=ws');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a card with open keeps today\'s button and labels, and no "Ver sessão"; a row never gets one', async () => {
+    const cards = [
+      cardDeExemplo('has-open', { ...needs, open: { target: 'desktop', command: null } }),
+      cardDeExemplo('has-err', { status: 'error', state: 'error', attention: { level: 'blocked', reason: 'error' }, open: { target: 'desktop', command: null } }),
+      cardDeExemplo('a-row', { open: null }),
+    ];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 3);
+      const [ok, failed] = cardsOf(area);
+      assert.deepEqual(comClasse(ok!, 'open-button').map((b) => b.textContent), ['Responder no Claude']);
+      assert.deepEqual(comClasse(failed!, 'open-button').map((b) => b.textContent), ['Abrir para retomar']);
+      assert.equal(seeOf(area).length, 0, 'no "Ver sessão" on a card with open, nor on a row');
+      assert.equal(comClasse(rowsOf(area)[0]!, 'open-icon').length, 0, 'the row keeps today\'s nothing');
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('Wall: the agent monogram only where it tells agents apart (#751)', () => {
+  const needs = { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+  const codex = { identity: { provider: 'codex', providerSessionId: 'x', profileId: null, machineId: null, environmentId: null } };
+  const claude = { identity: { provider: 'claude', providerSessionId: 'y', profileId: null, machineId: null, environmentId: null } };
+
+  test('the agent of a session is its identity provider; no identity is the legacy Claude', () => {
+    assert.equal(agentOf(cardDeExemplo('a')), 'Claude');
+    assert.equal(agentOf(cardDeExemplo('a', claude)), 'Claude');
+    assert.equal(agentOf(cardDeExemplo('a', codex)), 'Codex');
+    assert.equal(cardContent(cardDeExemplo('a', { ...needs, ...codex })).agent, 'Codex');
+    assert.equal(rowContent(cardDeExemplo('a', codex)).agent, 'Codex');
+  });
+
+  test('one agent on screen: no monogram on cards nor rows, the name stays, and the rows take the solo grid', async () => {
+    const cards = [cardDeExemplo('m1', needs), cardDeExemplo('m2', claude), cardDeExemplo('m3', { ...needs, ...claude })];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 3);
+      assert.equal(comClasse(area, 'agent-monogram').length, 0);
+      assert.match(comClasse(cardsOf(area)[0]!, 'wall-who')[0]!.textContent, /^Claudehá \d+ (min|h|d)/, 'name, age, state');
+      assert.equal(comClasse(rowsOf(area)[0]!, 'wall-main')[0]!.classes.includes('wall-main-solo'), true);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('two agents on screen: the monogram on every card and row, as before, and the grid keeps its column', async () => {
+    const cards = [cardDeExemplo('d1', needs), cardDeExemplo('d2', { ...needs, ...codex }), cardDeExemplo('d3'), cardDeExemplo('d4', codex)];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 4);
+      for (const box of sessionsOf(area)) assert.equal(comClasse(box, 'agent-monogram').length, 1, box.getAttribute('data-session')!);
+      assert.deepEqual(comClasse(cardsOf(area)[1]!, 'wall-name').map((n) => n.textContent), ['Codex']);
+      assert.deepEqual(comClasse(area, 'agent-monogram').map((m) => m.textContent), ['C', 'C', 'C', 'C']);
+      assert.equal(comClasse(area, 'wall-main-solo').length, 0);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('the filter decides: what is drawn counts, so Ativas with only Claude rows hides the monogram', async () => {
+    const cards = [cardDeExemplo('f1', needs), cardDeExemplo('f2', codex)];
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards }));
+    try {
+      await ate(() => sessionsOf(area).length === 2);
+      assert.equal(comClasse(area, 'agent-monogram').length, 2);
+      area.todos((e) => e.getAttribute('data-filter') === 'blocked')[0]!.click();
+      assert.equal(comClasse(area, 'agent-monogram').length, 0, 'only the Claude card is drawn');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('the CSS: the solo modifier drops the 28px column, and below 600px keeps the side under the text', () => {
+    const text = css('wall.css');
+    assert.match(text, /\.wall-main-solo \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) minmax\(0, auto\)/);
+    const small = text.match(/@media \(max-width: 600px\) \{([\s\S]*?)\n\}/)![1]!;
+    assert.match(small, /\.wall-main-solo \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)[;\s}]/);
+    assert.match(small, /\.wall-main-solo \.wall-side \{[^}]*grid-column:\s*1/);
   });
 });

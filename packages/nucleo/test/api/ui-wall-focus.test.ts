@@ -608,3 +608,46 @@ describe('#751: the focus follows a session that became a nested child, a parked
     assert.equal(active(), s.area.querySelector('[data-parked-row="p7"] a'));
   });
 });
+
+describe('#751: "Ver sessão" keeps the focus through a redraw', () => {
+  const noOpen = (id: string, extra: Card = {}) => blocked(id, { open: null, ...extra });
+
+  test('the focus on "Ver sessão" goes back to the same one of the same session key after a re-read', async () => {
+    const s = await mountWith(wallOf([noOpen('c1'), noOpen('c2')]));
+    const second = one(s.area, '[data-key="local:c2"] a[data-see]');
+    assert.equal(second.getAttribute('href'), '/ui/sessions/c2');
+    second.focus();
+    s.state.wall = wallOf([noOpen('c0'), noOpen('c1'), noOpen('c2')]);
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:c2"] a[data-see]'), 'the "Ver sessão" of c2, not another');
+    assert.equal(s.area.querySelectorAll('a[data-see]').length, 3);
+  });
+
+  test('a filter that keeps the card keeps the focus on its "Ver sessão"; one that drops it leaves no focus on a missing node', async () => {
+    const s = await mountWith(wallOf([noOpen('c1'), session('r1')]));
+    const see = one(s.area, '[data-key="local:c1"] a[data-see]');
+    see.focus();
+    one(s.area, '[data-filter="blocked"]').click();
+    assert.equal(active(), one(s.area, '[data-key="local:c1"] a[data-see]'));
+    one(s.area, '[data-filter="active"]').click();
+    assert.ok(!active() || s.area.contains(active()!), 'the focus is on a node still on screen, or nowhere');
+  });
+
+  test('the session gets an open: the focus on its "Ver sessão" falls back to the link of the same key, never lost', async () => {
+    const s = await mountWith(wallOf([noOpen('c1')]));
+    one(s.area, '[data-key="local:c1"] a[data-see]').focus();
+    s.state.wall = wallOf([blocked('c1')]);
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:c1"] a.wall-link'));
+  });
+
+  test('the neighbours still restore by key: the open button, the link and the Ver sessão of another card in the same redraw', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), noOpen('c2')]));
+    one(s.area, '[data-key="local:c1"] .open-button').focus();
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:c1"] .open-button'));
+    one(s.area, '[data-key="local:c2"] a.wall-link').focus();
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:c2"] a.wall-link'));
+  });
+});
