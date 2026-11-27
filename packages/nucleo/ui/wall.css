@@ -86,7 +86,7 @@
 /* ADR-0028: the text and the side each have a basis of their own, so every row of a list wraps or not together and the state starts at the same x; the title cuts. */
 .wall-main { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-left: 40px; min-width: 0; }
 .wall-main > :first-child { position: absolute; left: 0; top: 7px; }
-.wall-text { display: flex; flex-direction: column; flex: 1000 1 calc(var(--text-sm) * 23); min-width: 0; }
+.wall-text { display: flex; flex-direction: column; flex: 1000 1 calc(var(--text-sm) * 24); min-width: 0; }
 .wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-rt-work { font-weight: 500; }
 .wall-phrase { display: block; contain: inline-size; font-size: 13.5px; line-height: 1.5; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
