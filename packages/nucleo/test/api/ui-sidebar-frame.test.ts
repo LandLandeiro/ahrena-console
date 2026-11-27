@@ -120,13 +120,24 @@ describe('issue 750: the bar', () => {
     assert.match(rule(shell, '.cc-live-note'), /color: var\(--subtle\)/);
   });
 
-  test('offline is not told by color alone: the word and a hollow dot; the pulse stops under reduced motion', () => {
+  test('offline is not told by color alone: the word and a hollow dot; the dot is still, and blinks once per event, not at all under reduced motion', () => {
     const off = rule(shell, '.cc-live[data-state="offline"] .cc-live-dot');
     assert.match(off, /background: transparent/);
     assert.match(off, /border: 2px solid var\(--status-error-dot\)/);
-    assert.match(rule(shell, '.cc-live[data-state="live"] .cc-live-dot'), /animation: cc-pulse/);
-    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.cc-live\[data-state=\"live\"\] \.cc-live-dot \{ animation: none; \}/);
-    assert.match(shell, /@keyframes cc-pulse/);
+    assert.doesNotMatch(rule(shell, '.cc-live[data-state="live"] .cc-live-dot'), /animation/, 'the dot is still at rest');
+    assert.doesNotMatch(shell, /cc-pulse/);
+    assert.doesNotMatch(shell, /@keyframes cc-blink[^}]*\}[^}]*box-shadow/);
+    const blink = rule(shell, '.cc-live-dot[data-blink]');
+    assert.match(blink, /animation: cc-blink calc\(var\(--motion-fast\) \* 5\) var\(--ease-out\) 1;/, '600 ms from the token, one iteration');
+    assert.doesNotMatch(blink, /infinite/);
+    assert.match(shell, /@keyframes cc-blink \{ 50% \{ opacity: \.4; \} \}/);
+    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{[^@]*\.cc-live-dot\[data-blink\] \{ animation: none; \}/);
+  });
+
+  test('the loading skeleton is still: no pulse, no keyframes', () => {
+    assert.doesNotMatch(rule(shell, '.bone'), /animation/);
+    assert.doesNotMatch(shell, /pulsar/);
+    assert.doesNotMatch(shell, /\.bone[^{]*\{[^}]*animation/);
   });
 
   test('the person: a 32 px avatar', () => {

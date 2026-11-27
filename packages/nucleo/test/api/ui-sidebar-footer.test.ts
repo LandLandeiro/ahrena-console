@@ -79,6 +79,69 @@ describe('issue 750: the "Ao vivo" block', () => {
     assert.equal(node.querySelector('svg'), null);
   });
 
+  describe('the dot blinks once for an event (motion 11)', () => {
+    function clocked() {
+      let t = 10_000;
+      const node = new ElementoFalso('div');
+      const live = createLiveBlock({ node, now: () => t });
+      live.draw({ state: 'live', machines: 1, version: null });
+      const dot = node.querySelector('.cc-live-dot')!;
+      const log: string[] = [];
+      const setAttribute = dot.setAttribute.bind(dot);
+      const removeAttribute = dot.removeAttribute.bind(dot);
+      dot.setAttribute = (k: string, v: string) => (log.push(`set ${k}`), setAttribute(k, v));
+      dot.removeAttribute = (k: string) => (log.push(`remove ${k}`), removeAttribute(k));
+      Object.defineProperty(dot, 'offsetWidth', { get: () => (log.push('reflow'), 8) });
+      return { node, live, dot, log, at: (ms: number) => (t = ms) };
+    }
+
+    test('the dot is still until an event arrives, and a blink marks it with data-blink', () => {
+      const { live, dot, log } = clocked();
+      assert.equal(dot.getAttribute('data-blink'), null);
+      assert.equal(live.blink(), true);
+      assert.notEqual(dot.getAttribute('data-blink'), null);
+      assert.deepEqual(log.filter((l) => l.endsWith('data-blink')), ['remove data-blink', 'set data-blink']);
+    });
+
+    test('at most one blink every 2 s: a second event inside the window does nothing, one at 2 s blinks again', () => {
+      const { live, dot, log, at } = clocked();
+      assert.equal(live.blink(), true);
+      log.length = 0;
+      at(11_999);
+      assert.equal(live.blink(), false);
+      assert.deepEqual(log, [], 'a throttled event touches nothing');
+      at(12_000);
+      assert.equal(live.blink(), true);
+      assert.notEqual(dot.getAttribute('data-blink'), null);
+    });
+
+    test('the second blink restarts the animation: the mark is taken off, the layout is read, and the mark goes back, even if animationend never fired', () => {
+      const { live, log, at } = clocked();
+      live.blink();
+      log.length = 0;
+      at(12_500);
+      live.blink();
+      assert.deepEqual(log, ['remove data-blink', 'reflow', 'set data-blink']);
+    });
+
+    test('only a live connection blinks: offline and connecting stay still and do not spend the window', () => {
+      const { node, live, dot, at } = clocked();
+      live.draw({ state: 'offline', machines: 1, version: null });
+      assert.equal(live.blink(), false);
+      assert.equal(dot.getAttribute('data-blink'), null);
+      live.draw({ state: 'live', machines: 1, version: null });
+      at(10_001);
+      assert.equal(live.blink(), true, 'the refused blink took no part of the window');
+      assert.equal(node.querySelector('.cc-live-dot'), dot, 'the dot is the same node');
+      assert.equal(dot.getAttribute('aria-hidden'), 'true');
+    });
+
+    test('app.js blinks for each batch of changes, and not on a restart or a reset', () => {
+      assert.match(app, /onChange\(changes\) \{[^}]*live\.blink\(\)/s);
+      assert.doesNotMatch(/function restart\(\) \{([^]*?)\n\}/.exec(app)![1]!, /blink/);
+    });
+  });
+
   test('one machine is singular, and an unread count says nothing', () => {
     assert.equal(machinesText(1), '1 máquina');
     assert.equal(machinesText(3), '3 máquinas');
