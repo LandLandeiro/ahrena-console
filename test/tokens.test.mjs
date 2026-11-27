@@ -535,3 +535,12 @@ test('#749: error text reaches 4.5:1 on the background set in its own rule or in
   }
   assert.deepEqual(low, [], 'error text is under 4.5:1: paint it with the opaque pair --status-error-badge')
 })
+
+test('#749: the motion group has three durations in ms, two easings and a note on reduced motion', () => {
+  const names = Object.keys(tokens.motion).filter((k) => !k.startsWith('_'))
+  assert.deepEqual(names, ['fast', 'base', 'move', 'easeOut', 'easeIn'])
+  assert.deepEqual(['fast', 'base', 'move'].map((n) => tokens.motion[n]), ['120ms', '180ms', '220ms'])
+  assert.equal(tokens.motion.easeOut, 'cubic-bezier(0.2, 0, 0, 1)')
+  assert.equal(tokens.motion.easeIn, 'cubic-bezier(0.4, 0, 1, 1)')
+  assert.match(tokens.motion._note, /prefers-reduced-motion/)
+})

@@ -45,7 +45,7 @@ const cabecalho = (comentario: string) =>
 
 export function gerarTs(tokens: Tokens): string {
   for (const escala of Object.keys(tokens)) {
-    if (!escala.startsWith('_') && !FORA.has(escala) && !PALETA.includes(escala) && !['ci', 'themes', 'status', 'typography', 'spacing', 'agent', 'radius', 'shadow'].includes(escala)) {
+    if (!escala.startsWith('_') && !FORA.has(escala) && !PALETA.includes(escala) && !['ci', 'themes', 'status', 'typography', 'spacing', 'agent', 'radius', 'shadow', 'motion'].includes(escala)) {
       throw new Error(`escala nova no tokens.json: ${escala}. Decida se entra na paleta (PALETA) ou fica de fora (FORA).`)
     }
   }
@@ -62,6 +62,7 @@ export function gerarTs(tokens: Tokens): string {
     ['agent', limpo(tokens.agent)],
     ['radius', limpo(tokens.radius)],
     ['shadow', limpo(tokens.shadow)],
+    ['motion', limpo(tokens.motion)],
   ] as const
   const corpo = partes.map(([nome, valor]) => `export const ${nome} = ${JSON.stringify(valor, null, 2)} as const\n`).join('\n')
   return `${cabecalho('//')}\n${corpo}\nexport type Tema = keyof typeof temas\nexport type StatusId = (typeof ordemStatus)[number]\n`
@@ -95,6 +96,8 @@ export function gerarCss(tokens: Tokens): string {
   for (const [nome, v] of Object.entries(tipo.size)) fixas.push(variavel(`text-${nome}`, v as string))
   for (const [name, v] of Object.entries(limpo(tokens.spacing))) fixas.push(variavel(`space-${name}`, v as string))
   for (const [nome, v] of Object.entries(limpo(tokens.radius))) fixas.push(variavel(`radius-${kebab(nome)}`, v as string))
+  const durations = ['fast', 'base', 'move']
+  for (const [name, v] of Object.entries(limpo(tokens.motion))) fixas.push(variavel(durations.includes(name) ? `motion-${name}` : kebab(name), v as string))
   for (const [nome, v] of Object.entries(limpo(tipo.tracking))) fixas.push(variavel(`tracking-${nome}`, v as string))
   for (const [nome, v] of Object.entries(tipo.weight)) fixas.push(variavel(`weight-${nome}`, v as number))
 
@@ -122,6 +125,13 @@ export function gerarCss(tokens: Tokens): string {
     ':root[data-theme="light"] {',
     '  color-scheme: light;',
     ...claro,
+    '}',
+    '',
+    '/* Movimento reduzido: as três durações viram 0ms, nos dois temas. Vem depois dos blocos de tema. */',
+    '@media (prefers-reduced-motion: reduce) {',
+    '  :root {',
+    ...durations.map(name => `    --motion-${name}: 0ms;`),
+    '  }',
     '}',
     '',
   ].join('\n')

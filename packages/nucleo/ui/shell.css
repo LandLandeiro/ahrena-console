@@ -105,7 +105,7 @@ button { font: inherit; cursor: pointer; }
 .live[data-state="connecting"] { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
 
 /* ---------- peças comuns ---------- */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 /* Cards in the same row have the same height (UI rule 9, issue 255): a card in a screen stretches to its
    grid row, even when the grid says align-items: start. :where() keeps the specificity of one class,
    so a screen can still place one card on purpose. */
@@ -121,7 +121,7 @@ button { font: inherit; cursor: pointer; }
    States: :hover, :active, :focus-visible, [aria-busy="true"], [data-state="done"|"failed"] and one
    disabled look for :disabled and [aria-disabled="true"] (say why in `title` or in text beside it).
    Busy keeps the focus: the button stays enabled and ignores repeated clicks (ui/button-action.js). */
-.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: 8px; font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; }
+.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; }
 .btn.sm { --btn-h: 28px; padding: 0 10px; gap: 6px; font-size: 12px; }
 .btn.lg { --btn-h: 40px; padding: 0 18px; gap: 8px; font-size: 14px; }
 .btn.icon-only { width: var(--btn-h); padding: 0; }

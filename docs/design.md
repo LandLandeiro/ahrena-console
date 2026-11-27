@@ -110,6 +110,10 @@ Escala em `radius`, que vira `--radius-*`. Não muda com o tema.
 | `segment` / `segmentItem` | 8px / 6px | Filtro segmentado e seus itens (`--radius-segment`, `--radius-segment-item`) |
 | `full` | 999px | Só monogramas e pontos. Nada mais é pílula |
 
+#### Movimento
+
+Escala em `motion`, que vira `--motion-fast` (120ms: resposta a clique, troca de número), `--motion-base` (180ms: entradas, popover, gaveta), `--motion-move` (220ms: algo que muda de lugar), `--ease-out` (o que entra) e `--ease-in` (o que sai). Não muda com o tema. Com `prefers-reduced-motion: reduce` as três durações viram `0ms`, nos dois temas, e as curvas ficam; por isso a animação sempre usa a variável, nunca um valor solto.
+
 #### Cores de agente
 
 Pintam só o monograma de um agente com nome. São identidade, nunca estado: nenhuma é cor de status. Cada uma tem texto e fundo por tema (`--agent-violet-text`, `--agent-violet-bg`…).
