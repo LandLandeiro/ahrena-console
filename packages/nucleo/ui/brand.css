@@ -59,6 +59,11 @@
   --radius-segment: 8px;
   --radius-segment-item: 6px;
   --radius-full: 999px;
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-move: 220ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --tracking-title: -0.02em;
   --weight-regular: 400;
   --weight-medium: 500;
@@ -210,4 +215,13 @@
   --agent-indigo-text: #3b4594;
   --agent-indigo-bg: #e8eaf8;
   --shadow-float: 0 12px 32px rgba(0,0,0,0.14);
+}
+
+/* Movimento reduzido: as três durações viram 0ms, nos dois temas. Vem depois dos blocos de tema. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-move: 0ms;
+  }
 }

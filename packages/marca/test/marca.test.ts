@@ -142,3 +142,25 @@ test('the new theme roles and the two status borders exist in both themes of the
   }
   for (const id of ['completed', 'error', 'abandoned']) assert.ok(!(`status-${id}-border` in escuro), `${id} has no border`)
 })
+
+// #749: the motion tokens reach the CSS; reduced motion zeroes the three durations and leaves the easings alone.
+test('the CSS has the five motion variables in :root and the module carries them', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const raizCss = bloco(css, ':root')
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(raizCss).filter(([k]) => k.startsWith('motion-') || k.startsWith('ease-'))),
+    { 'motion-fast': '120ms', 'motion-base': '180ms', 'motion-move': '220ms', 'ease-out': 'cubic-bezier(0.2, 0, 0, 1)', 'ease-in': 'cubic-bezier(0.4, 0, 1, 1)' },
+  )
+  assert.deepEqual(marca.motion, semNotas(tokens.motion))
+  assert.ok(!Object.keys(bloco(css, ':root[data-theme="light"]')).some(k => k.startsWith('motion-') || k.startsWith('ease-')), 'motion is not theme-dependent')
+})
+
+test('reduced motion zeroes exactly the three durations, after every theme block', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const inicio = css.indexOf('@media (prefers-reduced-motion: reduce)')
+  assert.ok(inicio >= 0, 'falta o bloco prefers-reduced-motion')
+  const reduzido = css.slice(inicio)
+  assert.deepEqual(bloco(reduzido, ':root'), { 'motion-fast': '0ms', 'motion-base': '0ms', 'motion-move': '0ms' })
+  assert.ok(inicio > css.indexOf(':root[data-theme="light"] {'), 'the reduced-motion block comes after the light theme blocks, so it wins in both themes')
+  assert.ok(inicio > css.indexOf('@media (prefers-color-scheme: light)'))
+})
