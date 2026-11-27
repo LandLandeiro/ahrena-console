@@ -136,7 +136,8 @@ describe('issue 750: the drawer', () => {
   });
 
   test('a route change of the shell closes it: open() (navigate and popstate) closes the drawer', () => {
-    const body = /async function open\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '';
+    assert.match(/async function open\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '', /await showScreen\(\)/);
+    const body = /async function showScreen\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '';
     assert.match(body, /drawer\.close\(\)/);
     assert.match(app, /addEventListener\('popstate', open\)/);
   });
@@ -369,7 +370,7 @@ describe('#750: the waiting count on the menu button', () => {
   });
 
   test('app.js feeds it from the counts the Mural tag reads: the wrapped tag function, no read of its own', () => {
-    assert.match(app, /createCounts\(\{ read, nav: \{ tag: \(id, next\) => \{[^}]*tag\(id, next\);[^}]*id === 'wall'[^}]*drawer\.waiting\(next\)/);
+    assert.match(app, /createCounts\(\{ read: shellRead, nav: \{ tag: \(id, next\) => \{[^}]*tag\(id, next\);[^}]*id === 'wall'[^}]*drawer\.waiting\(next\)/);
     assert.equal((app.match(/api\/attention/g) ?? []).length, 0, 'no second read of /api/attention in the shell');
   });
 });

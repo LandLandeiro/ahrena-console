@@ -436,7 +436,7 @@ describe('screen registry', () => {
   // The drawing itself (nav.js) is tested on the fake DOM in ui-machines.test.ts; here, the wiring.
   test('#178 criterion 1: the shell draws the sidebar through nav.js and re-reads the machines on an alert', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createNav\(\{\s*nav,\s*read,/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read: shellRead,/);
     assert.match(app, /highlight\(litItem\(screen, params\)\)/);
     assert.match(app, /changes\.some\(\(c\) => c\.type === 'alert'\)\) readMachines\(\)/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
