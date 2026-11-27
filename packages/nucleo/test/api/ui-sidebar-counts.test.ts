@@ -15,6 +15,8 @@ import { apiPath } from '../../ui/screens/work-board-state.js';
 import { createNav } from '../../ui/nav.js';
 // @ts-expect-error: idem
 import { SCREENS, SECTIONS } from '../../ui/screens.js';
+// @ts-expect-error: idem
+import { createScreenGate, createShellLoad, shareReads } from '../../ui/shell-load.js';
 
 type Tag = { tone: string; text: string; note?: string } | null;
 
@@ -486,5 +488,197 @@ describe('#750 the orange number does not go stale', () => {
     await time.advance(2000);
     assert.equal(total(reads, '/api/work') - before, 0);
     assert.equal(total(reads, '/api/attention'), 2);
+  });
+});
+
+describe('#750 M4: the shell reads each route once on cold load, after the screen has asked for its own', () => {
+  const deferred = <T,>() => {
+    let resolve!: (v: T) => void;
+    let reject!: (e: unknown) => void;
+    const promise = new Promise<T>((a, b) => ((resolve = a), (reject = b)));
+    return { promise, resolve, reject };
+  };
+
+  test('a shell read of a route already in flight shares its promise; once it settles the next one asks again', async () => {
+    const asked: string[] = [];
+    const pending = [deferred<string>(), deferred<string>(), deferred<string>()];
+    const shared = shareReads((route: string) => (asked.push(route), pending[asked.length - 1]!.promise));
+    const a = shared('/api/connectors');
+    const b = shared('/api/connectors');
+    assert.equal(a, b);
+    assert.deepEqual(asked, ['/api/connectors']);
+    const other = shared('/api/connections');
+    assert.notEqual(other, a);
+    assert.equal(asked.length, 2);
+    pending[0]!.resolve('x');
+    assert.equal(await a, 'x');
+    const again = shared('/api/connectors');
+    assert.notEqual(again, a);
+    assert.equal(asked.length, 3);
+  });
+
+  test('a failure is shared by whoever was waiting, and does not stay in the table', async () => {
+    let calls = 0;
+    const boom = new Error('offline');
+    const shared = shareReads(async () => {
+      calls++;
+      if (calls === 1) throw boom;
+      return 'back';
+    });
+    const a = shared('/api/machines');
+    const b = shared('/api/machines');
+    await assert.rejects(a, (e: unknown) => e === boom);
+    await assert.rejects(b, (e: unknown) => e === boom);
+    assert.equal(await shared('/api/machines'), 'back');
+  });
+
+  test('a read that carries options (a screen with its own signal) is never shared', () => {
+    const asked: unknown[] = [];
+    const shared = shareReads((route: string, options: unknown) => (asked.push(options), Promise.resolve(route)));
+    const signal = new AbortController().signal;
+    shared('/api/attention', { signal });
+    shared('/api/attention', { signal });
+    assert.equal(asked.length, 2);
+  });
+
+  test('the gate opens when the first screen settles, or after 1 s at the most, whichever comes first', async () => {
+    const t = manualTimers();
+    const waits: number[] = [];
+    const settle = (f: () => void, ms: number) => (waits.push(ms), t.setTimer(f));
+    const byScreen = createScreenGate({ setTimer: settle, clearTimer: t.clearTimer });
+    assert.deepEqual(waits, [1000]);
+    let open = false;
+    void byScreen.ready.then(() => (open = true));
+    await flushPromises();
+    assert.equal(open, false);
+    byScreen.open();
+    await flushPromises();
+    assert.equal(open, true);
+    assert.equal(t.waiting, 0, 'the 1 s timer is cleared');
+    byScreen.open();
+
+    const slow = createScreenGate({ setTimer: t.setTimer, clearTimer: t.clearTimer });
+    let late = false;
+    void slow.ready.then(() => (late = true));
+    await flushPromises();
+    assert.equal(late, false);
+    t.flush();
+    await flushPromises();
+    assert.equal(late, true, 'a screen that never settles holds the shell for 1 s only');
+  });
+
+  test('the shell loads nothing before the gate, loads once at boot, and the connection\'s first restart does not load again', async () => {
+    const t = manualTimers();
+    const gate = createScreenGate({ setTimer: t.setTimer, clearTimer: t.clearTimer });
+    let loaded = 0;
+    const shell = createShellLoad({ gate, loaders: [() => void loaded++, () => Promise.resolve(void loaded++)] });
+    const booted = shell.boot();
+    await flushPromises();
+    assert.equal(loaded, 0);
+    assert.equal(shell.restart(), false, 'the first restart is the connection\'s: the screen has just read');
+    assert.equal(loaded, 0);
+    gate.open();
+    await booted;
+    assert.equal(loaded, 2);
+    assert.equal(shell.restart(), true, 'a later restart makes the screens re-read');
+    assert.equal(loaded, 4, 'and the shell reads everything again');
+  });
+
+  test('after a drop the next restart, even the first, reads everything again', async () => {
+    const gate = { ready: Promise.resolve() };
+    let loaded = 0;
+    const shell = createShellLoad({ gate, loaders: [() => void loaded++] });
+    await shell.boot();
+    shell.dropped();
+    assert.equal(shell.restart(), true);
+    assert.equal(loaded, 2);
+  });
+
+  test('#750: a drop and a reconnect before the gate opens read nothing yet, and boot reads once, after the screen', async () => {
+    const t = manualTimers();
+    const gate = createScreenGate({ setTimer: t.setTimer, clearTimer: t.clearTimer });
+    let loaded = 0;
+    const shell = createShellLoad({ gate, loaders: [() => void loaded++] });
+    const booted = shell.boot();
+    shell.dropped();
+    assert.equal(shell.restart(), true, 'the screens still re-read');
+    await flushPromises();
+    assert.equal(loaded, 0, 'the shell waits for the screen, even after a drop');
+    gate.open();
+    await booted;
+    assert.equal(loaded, 1, 'boot reads once');
+  });
+
+  test('one loader that throws does not stop the others', async () => {
+    const gate = { ready: Promise.resolve() };
+    const ran: number[] = [];
+    const shell = createShellLoad({ gate, loaders: [() => { throw new Error('x'); }, () => Promise.reject(new Error('y')), () => void ran.push(1)] });
+    await shell.boot();
+    assert.deepEqual(ran, [1]);
+  });
+
+  test('a cold load of the shell with the real sidebar and counts asks each route once, and only after the screen asked', async () => {
+    const asked: string[] = [];
+    const answer: Record<string, unknown> = {
+      '/api/machines': [],
+      '/api/connectors': [],
+      '/api/connections': {},
+      '/api/app-update': { app: false },
+      '/api/overview': { version: '0.0.22' },
+      '/api/attention': { blocked: 0 },
+      '/api/work?level=item': work(0),
+    };
+    const slow = deferred<unknown>();
+    const raw = (route: string) => {
+      asked.push(route);
+      return route === '/api/attention' ? slow.promise : Promise.resolve(answer[route]);
+    };
+    const shared = shareReads(raw);
+    const nav = createNav({ nav: new ElementoFalso('nav'), read: shared });
+    const counts = createCounts({ read: shared, nav: { tag() {} } });
+    const t = manualTimers();
+    const gate = createScreenGate({ setTimer: t.setTimer, clearTimer: t.clearTimer });
+    const shell = createShellLoad({
+      gate,
+      loaders: [() => shared('/api/overview'), nav.readMachines, nav.readConnectors, () => shared('/api/connections'), () => shared('/api/app-update'), counts.refresh],
+    });
+    const booted = shell.boot();
+    // #750: the screen's own reads go out first, through the raw read.
+    raw('/api/wall?machine=all');
+    await flushPromises();
+    assert.deepEqual(asked, ['/api/wall?machine=all']);
+    // #750: the connection's first restart arrives, and so does the screen.
+    assert.equal(shell.restart(), false);
+    gate.open();
+    // #750: a second shell read of a route still in flight (the interval of the machines, the connectors...) shares it.
+    nav.readMachines();
+    nav.readConnectors();
+    await flushPromises();
+    slow.resolve({ blocked: 0 });
+    await booted;
+    const shellReads = asked.slice(1);
+    assert.equal(new Set(shellReads).size, shellReads.length, `each route once: ${shellReads.join(', ')}`);
+    assert.deepEqual([...shellReads].sort(), ['/api/app-update', '/api/attention', '/api/connections', '/api/connectors', '/api/machines', '/api/overview', '/api/work?level=item']);
+  });
+
+  test('app.js: the shell reads go through the shared read, the live loop starts before the screen, and the timers stay', () => {
+    const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
+    assert.match(app, /const shellRead = shareReads\(read\)/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read: shellRead,/);
+    assert.match(app, /createCounts\(\{ read: shellRead,/);
+    assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read: shellRead \}\)/);
+    assert.match(app, /createAppUpdate\(\{ read: shellRead,/);
+    assert.match(app, /await shellRead\('\/api\/overview'\)/);
+    // #750: the screen's own reads are not shared: they carry the signal that leaving the screen aborts.
+    assert.match(app, /read: \(route, options\) => read\(route, \{ signal: leave\.signal, \.\.\.options \}\)/);
+    const restart = /function restart\(\) \{([^]*?)\n\}/.exec(app)![1]!;
+    assert.doesNotMatch(restart, /read(Version|Machines|Connectors)|refresh\(\)/, 'the restart reads through the shell load, not by itself');
+    assert.match(restart, /if \(!shell\.restart\(\)\) return;/);
+    assert.ok(app.indexOf('startLive({') < app.lastIndexOf('\nopen();'), 'the cursor is taken before the screen reads');
+    assert.match(app, /setInterval\(readMachines, 60_000\)/);
+    assert.match(app, /setInterval\(readConnectors, 60_000\)/);
+    assert.match(app, /setInterval\(\(\) => appUpdate\.tick\(\), 30_000\)/);
+    assert.match(app, /if \(next\.state === 'offline'\) shell\.dropped\(\)/);
+    assert.match(app, /gate\.open\(\)/);
   });
 });

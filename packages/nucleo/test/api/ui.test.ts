@@ -148,7 +148,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}${a}`, 'utf8');
       const urls = externalUrls(a, text);
       assert.deepEqual(urls, [], `${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
+      // #750: a comment may carry an issue pointer such as `#750`, which reads like a short hex color; only code is checked.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
       assert.doesNotMatch(text, /\sstyle\s*=|setAttribute\(\s*['"]style/, `${a} usa estilo inline`);
       if (a !== 'api.js') assert.doesNotMatch(text, /\bfetch\(/, `${a} chama fetch: só api.js fala com o núcleo`);
       // `innerHTML` only in the icons (dom.js constants), never with data.
@@ -436,7 +438,7 @@ describe('screen registry', () => {
   // The drawing itself (nav.js) is tested on the fake DOM in ui-machines.test.ts; here, the wiring.
   test('#178 criterion 1: the shell draws the sidebar through nav.js and re-reads the machines on an alert', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createNav\(\{\s*nav,\s*read,/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read: shellRead,/);
     assert.match(app, /highlight\(litItem\(screen, params\)\)/);
     assert.match(app, /changes\.some\(\(c\) => c\.type === 'alert'\)\) readMachines\(\)/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');

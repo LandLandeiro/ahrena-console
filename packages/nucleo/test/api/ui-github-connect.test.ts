@@ -122,12 +122,14 @@ describe('github-connect.js: the pure parts', () => {
     assert.doesNotMatch(readFileSync(`${UI_FOLDER}shell.css`, 'utf8'), /\.cc-gh \.icon:first-child/);
   });
 
-  test('the shell wires the footer: index.html has the card, app.js refreshes it on start, restart and connections', () => {
+  test('the shell wires the footer: index.html has the card, app.js refreshes it on boot, restart and connections', () => {
     assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="cc-gh" id="github" hidden><\/a>/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read \}\)/);
+    assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read: shellRead \}\)/);
     assert.match(app, /if \(connectionChanged\(changes\)\) githubFooter\.refresh\(\);/);
-    assert.equal((app.match(/githubFooter\.refresh\(\)/g) ?? []).length, 3);
+    // Boot and restart read it through the shell load (#750, one list); a `connections` change reads it by itself.
+    assert.match(app, /loaders: \[[^\]]*githubFooter\.refresh,/);
+    assert.equal((app.match(/githubFooter\.refresh/g) ?? []).length, 2);
   });
 
   test('the write refusals are phrased in pt-BR, never the raw code', () => {
