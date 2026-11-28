@@ -230,7 +230,8 @@ describe('popoverShell: a redraw of the same popover does not play the entrance 
   test('the second drawing of the same kind, title and trigger is settled; the first is not (#762)', () => {
     const trigger = withRect(el('button'), rect(900, 300, 160, 28));
     const first = draw('plan-settle', trigger);
-    el().append(first); // the screen puts the node on the page before it draws the next one (#762)
+    el().append(first);
+    (first as ElementoFalso & { isConnected?: boolean }).isConnected = true; // the screen puts the node on the page before it draws the next one (#762)
     const second = draw('plan-settle', trigger);
     assert.equal(first.hasAttribute('data-settled'), false);
     assert.equal(second.hasAttribute('data-settled'), true);
@@ -249,19 +250,29 @@ describe('popoverShell: a redraw of the same popover does not play the entrance 
     assert.equal(draw('plan-reopen', trigger).hasAttribute('data-settled'), false);
   });
 
+  // On the screen the popover is not a direct child of the node the redraw replaces: it sits in a `wb-anchor` or in the
+  // panel actions, so the old node leaves the page with its parent still set. The fake DOM marks the presence by hand (#762).
+  type Presence = ElementoFalso & { isConnected?: boolean };
+
   test('after Cancelar in the footer the same popover opens with the entrance again (#762)', () => {
     const trigger = withRect(el('button'), rect(900, 300, 160, 28));
     const page = el();
-    const first = planConfirm({ repo: 'a/b', number: 12, trigger, onCancel: () => page.replaceChildren() }) as ElementoFalso;
-    page.append(first);
+    const anchor = el();
+    const first = planConfirm({ repo: 'a/b', number: 12, trigger, onCancel: () => { page.replaceChildren(); (first as Presence).isConnected = false; } }) as Presence;
+    anchor.append(first);
+    page.append(anchor);
+    first.isConnected = true;
     one(first, '[data-action="cancel"]').click();
     assert.equal(planConfirm({ repo: 'a/b', number: 12, trigger }).hasAttribute('data-settled'), false);
   });
 
   test('after Fechar of the missing folder of one card, the one of another card opens with the entrance (#762)', () => {
     const page = el();
-    const first = missingFolder({ repo: 'a/b', trigger: withRect(el('button'), rect(900, 300, 160, 28)), onClose: () => page.replaceChildren() }) as ElementoFalso;
-    page.append(first);
+    const acts = el();
+    const first = missingFolder({ repo: 'a/b', trigger: withRect(el('button'), rect(900, 300, 160, 28)), onClose: () => { page.replaceChildren(); (first as Presence).isConnected = false; } }) as Presence;
+    acts.append(first);
+    page.append(acts);
+    first.isConnected = true;
     one(first, '[data-action="close"]').click();
     const other = missingFolder({ repo: 'c/d', trigger: withRect(el('button'), rect(900, 500, 160, 28)) }) as ElementoFalso;
     assert.equal(other.hasAttribute('data-settled'), false);
