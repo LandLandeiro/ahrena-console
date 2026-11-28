@@ -188,3 +188,7 @@
   .repo-chips { padding-left: 0; }
   .repo-head-dir { margin-left: 0; }
 }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.repo-back { position: relative; }
+.repo-back::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

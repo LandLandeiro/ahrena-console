@@ -44,3 +44,7 @@
 /* Issue 750: below 860 px the bar is a drawer; the panel opens from the left edge, above it. */
 @media (max-width: 859px) { .up-pop { left: 16px; } .cc-notice { padding: 12px 16px 0; } }
 @media (prefers-reduced-motion: reduce) { .up-st .icon { animation: none; } }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.up-version { position: relative; }
+.up-version::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

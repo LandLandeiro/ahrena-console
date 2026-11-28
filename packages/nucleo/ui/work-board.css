@@ -204,3 +204,7 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-orgs-empty { gap: 10px; }
 @media (max-width: 1279px) { .wb-fields.wb-fields-origin { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .wb-fields.wb-fields-origin { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.wb-chip-remove { position: relative; }
+.wb-chip-remove::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
