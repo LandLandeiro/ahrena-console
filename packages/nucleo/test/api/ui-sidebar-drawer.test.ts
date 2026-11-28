@@ -221,6 +221,30 @@ describe('issue 750: the markup and the rules of the drawer', () => {
   });
 });
 
+describe('#754: the tab row is part of the inert background', () => {
+  test('app.js puts the tab row, between the notice and the content, in the background of the drawer', () => {
+    const list = /createDrawer\(\{[^}]*background: \[([^\]]*)\]/.exec(app)?.[1] ?? '';
+    for (const id of ['update-notice', 'screen-tabs', 'content']) assert.match(list, new RegExp(`document\\.getElementById\\('${id}'\\)`), id);
+    assert.ok(html.includes('id="screen-tabs"'), 'the host exists in the page');
+  });
+
+  test('opening the drawer makes the host of the tabs inert, and closing gives it back', () => {
+    const button = new ElementoFalso('button');
+    const side = new ElementoFalso('aside');
+    const first = new ElementoFalso('a');
+    side.append(first);
+    const scrim = new ElementoFalso('div');
+    const closeButton = new ElementoFalso('button');
+    const [notice, tabs, content] = [new ElementoFalso('div'), new ElementoFalso('div'), new ElementoFalso('main')];
+    const media = { matches: true, addEventListener: () => {} };
+    createDrawer({ button, side, scrim, background: [notice, tabs, content], closeButton, count: null, media });
+    button.click();
+    assert.equal(tabs.inert, true);
+    button.click();
+    assert.equal(tabs.inert, false);
+  });
+});
+
 describe('#750: the Conexões link of the account menu inside the drawer', () => {
   test('the account menu closes and the focus ends on the menu button of the drawer, as the drawer closes', () => {
     const { button, side, drawer } = rig(true);

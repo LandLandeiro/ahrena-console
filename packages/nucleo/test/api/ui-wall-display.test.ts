@@ -163,6 +163,36 @@ describe('#754: the stored value (display.js)', () => {
     display.chooseDensity('compact');
     assert.equal(display.getDisplay().density, 'compact');
   });
+
+  test('a full storage (getItem works, setItem throws) still changes the page: the choice is read back from memory (#754)', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: () => null,
+        setItem: () => {
+          throw new Error('QuotaExceededError');
+        },
+      },
+    });
+    display.chooseDensity('compact');
+    assert.equal(display.getDisplay().density, 'compact');
+    display.setField('agent', false);
+    assert.equal(display.getDisplay().show.agent, false);
+    assert.equal(display.getDisplay().density, 'compact', 'the density stays');
+  });
+
+  test('a localStorage whose getter throws still changes the page: the choice lasts in memory (#754)', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('SecurityError');
+      },
+    });
+    display.chooseDensity('compact');
+    assert.equal(display.getDisplay().density, 'compact');
+    display.setField('branch', false);
+    assert.equal(display.getDisplay().show.branch, false);
+  });
 });
 
 describe('#754: what the wall draws from it (wall-display.js)', () => {
@@ -190,10 +220,11 @@ describe('#754: what the wall draws from it (wall-display.js)', () => {
     assert.equal(machineShown({ ...base, remote: true, show: { ...show, machine: false } }), false, 'the field off hides it');
   });
 
-  test('the machine on a card: this one is named once a remote is known (#751), whatever the density and mode; the field off hides it', () => {
+  test('the machine on a card: this one is named once a remote is known (#751), in Dev whatever the density, and never in Projeto; the field off hides it', () => {
     const base = { place: 'card', show: on, density: 'comfortable', mode: 'dev', remote: false, known: true };
     assert.equal(machineShown(base), true, 'this machine on a card, a remote known, comfortable');
-    assert.equal(machineShown({ ...base, mode: 'project' }), true);
+    assert.equal(machineShown({ ...base, mode: 'project' }), false, 'Projeto does not name this machine on a card, even with a remote known (#754)');
+    assert.equal(machineShown({ ...base, mode: 'project', remote: true }), true, 'a remote one is still named in Projeto');
     assert.equal(machineShown({ ...base, known: false }), false, 'with no remote known there is nothing to tell apart');
     assert.equal(machineShown({ ...base, remote: true, known: false }), true, 'a remote one always');
     assert.equal(machineShown({ ...base, show: { ...on, machine: false } }), false, 'the field off hides it');

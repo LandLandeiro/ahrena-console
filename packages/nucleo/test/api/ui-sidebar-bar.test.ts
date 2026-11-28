@@ -134,6 +134,23 @@ describe('#754 C: the Projeto bar', () => {
     ]);
   });
 
+  test('Decisões opens the product decisions in Projeto and the ones of the conversations in Dev; the routes stay (#754)', () => {
+    const href = (m: 'dev' | 'project') => (sidebarSections(SCREENS, SECTIONS, m) as (Block & { items: { id: string; route: string }[] })[]).flatMap((s) => s.items).find((t) => t.id === 'decisions')!.route;
+    assert.equal(href('dev'), '/ui/decisions');
+    assert.equal(href('project'), '/ui/pdrs');
+    assert.ok(findScreen('/ui/pdrs'), 'the route exists');
+    assert.equal(SCREENS.find((s: { id: string }) => s.id === 'decisions').route, '/ui/decisions', 'the registry is not changed');
+    const { nav } = (() => {
+      const node = new ElementoFalso('nav');
+      createNav({ nav: node, read: async () => [], screens: SCREENS });
+      return { nav: node };
+    })();
+    mode('project');
+    assert.equal((nav.querySelector('[data-screen="decisions"]') as ElementoFalso).getAttribute('href'), '/ui/pdrs');
+    mode('dev');
+    assert.equal((nav.querySelector('[data-screen="decisions"]') as ElementoFalso).getAttribute('href'), '/ui/decisions');
+  });
+
   test('the labels of the bar have the voice limits: at most 4 words and 28 characters, no "!", no em dash', () => {
     // The brief asked "O que precisa de você" (5 words); the voice rules (4 words) refuse it and "Precisa de você" is a state label (state-labels.js), so the Mural is "Sua atenção".
     for (const s of sidebarSections(SCREENS, SECTIONS, 'project') as Block[]) {
@@ -278,7 +295,7 @@ describe('#754 C: the tab row', () => {
     );
     assert.deepEqual(map, {
       Sessões: ['Sessões=/ui/sessions', 'Encerradas=/ui/history', 'Por estado=/ui/kanban', 'Eventos=/ui/feed(dev)'],
-      'Uso e custo': ['Uso=/ui/analytics', 'Orquestração=/ui/workflows', 'Resumo=/ui'],
+      'Uso e custo': ['Uso=/ui/analytics', 'Orquestração=/ui/workflows(dev)', 'Resumo=/ui'],
       'Quadro do trabalho': ['Quadro=/ui/work', 'Por status do Project=/ui/project'],
       Repositórios: ['Repositórios=/ui/repos', 'Do contexto=/ui/dev-console'],
       Decisões: ['Nas sessões=/ui/decisions', 'Técnicas=/ui/adrs', 'Produto=/ui/pdrs'],
@@ -315,6 +332,32 @@ describe('#754 C: the tab row', () => {
   test('Eventos is Dev only; if it is the screen open, its tab stays', () => {
     assert.deepEqual(tabsFor('history', 'project').tabs.map((t: { label: string }) => t.label), ['Sessões', 'Encerradas', 'Por estado']);
     assert.deepEqual(tabsFor('feed', 'project').tabs.map((t: { label: string }) => t.label), ['Sessões', 'Encerradas', 'Por estado', 'Eventos']);
+  });
+
+  test('Orquestração is Dev only; in Projeto the usage row is Custo, Resumo (#754)', () => {
+    assert.deepEqual(tabsFor('analytics', 'dev').tabs.map((t: { label: string }) => t.label), ['Uso', 'Orquestração', 'Resumo']);
+    assert.deepEqual(tabsFor('analytics', 'project').tabs.map((t: { label: string }) => t.label), ['Uso', 'Resumo']);
+    assert.deepEqual(tabsFor('workflows', 'project').tabs.map((t: { label: string }) => t.label), ['Uso', 'Orquestração', 'Resumo'], 'the open screen keeps its tab');
+    assert.equal(findScreen('/ui/workflows').screen.id, 'workflows', 'the route still opens');
+  });
+
+  test('the row uses the term of the mode: Dev says Sessões, Uso e custo and Nas sessões; Projeto says Conversas, Custo and Nas conversas (#754)', () => {
+    const names = (id: string, m: 'dev' | 'project') => {
+      const row = tabsFor(id, m);
+      return [row.label, ...row.tabs.map((t: { label: string }) => t.label)];
+    };
+    assert.deepEqual(names('sessions', 'dev'), ['Sessões', 'Sessões', 'Encerradas', 'Por estado', 'Eventos']);
+    assert.deepEqual(names('sessions', 'project'), ['Conversas', 'Conversas', 'Encerradas', 'Por estado']);
+    assert.deepEqual(names('analytics', 'dev'), ['Uso e custo', 'Uso', 'Orquestração', 'Resumo']);
+    assert.deepEqual(names('analytics', 'project'), ['Custo', 'Uso', 'Resumo']);
+    assert.deepEqual(names('decisions', 'dev'), ['Decisões', 'Nas sessões', 'Técnicas', 'Produto']);
+    assert.deepEqual(names('decisions', 'project'), ['Decisões', 'Nas conversas', 'Técnicas', 'Produto']);
+    const host = new ElementoFalso('div');
+    const row = createScreenTabs({ host });
+    row.draw(tabsFor('history', 'project'));
+    assert.equal((host.querySelector('nav') as ElementoFalso).getAttribute('aria-label'), 'Abas de Conversas');
+    row.draw(tabsFor('history', 'dev'));
+    assert.equal((host.querySelector('nav') as ElementoFalso).getAttribute('aria-label'), 'Abas de Sessões');
   });
 
   test('every merged screen is in a set whose first tab is the item that receives it', () => {
