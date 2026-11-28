@@ -613,9 +613,9 @@ export async function mount(area, ctx) {
   }
 
   // ADR-0028, #758-wall-polish: what this read changed against the last one: highlight the sessions that moved, say the two things that matter.
-  function follow(cards, machinesOf) {
+  function follow(cards, byMachine) {
     const { moved: now, notices: news } = liveChanges(seen, cards);
-    seen = snapshotOf(cards, machinesOf);
+    seen = snapshotOf(cards, byMachine);
     for (const key of now) moved.add(key);
     if (now.size) {
       clearTimeout(movedTimer);
@@ -641,7 +641,7 @@ export async function mount(area, ctx) {
       machines.update(fresh);
       wall = fresh;
       failure = null;
-      follow(fresh.cards ?? [], fresh.machines);
+      follow(fresh.cards ?? [], fresh.byMachine);
     } catch (e) {
       if (e?.name === 'AbortError' || mine !== request) return;
       if (machines.recover(e)) return;
