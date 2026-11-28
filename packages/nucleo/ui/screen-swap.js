@@ -6,8 +6,8 @@ import { skeleton as shapeSkeleton } from './skeletons.js';
 
 export const SWAP_DELAY_MS = 300;
 
-/** #765: anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data. */
-const hasData = (area) => area.children.length > 0 && !area.querySelector('[aria-busy="true"]');
+/** #765: anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data, unless the screen marks what it painted with `data-swap-ready` (the seeded header of Detalhe). */
+const hasData = (area) => area.children.length > 0 && (area.querySelector('[data-swap-ready]') !== null || !area.querySelector('[aria-busy="true"]'));
 
 function watchArea(area, check) {
   if (typeof MutationObserver !== 'function') return () => {};
@@ -16,8 +16,8 @@ function watchArea(area, check) {
   return () => observer.disconnect();
 }
 
-/** `begin(screenId)` when a screen starts to open; `settle()` when it has mounted or failed. */
-export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = setTimeout, clearTimer = clearTimeout, delayMs = SWAP_DELAY_MS, observe = watchArea }) {
+/** `begin(screenId)` when a screen starts to open; `mounted()` when its mount returned (it settles only if the area has data); `settle()` when it failed. `held()` says something else (the drawer) keeps the area inert. */
+export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = setTimeout, clearTimer = clearTimeout, delayMs = SWAP_DELAY_MS, observe = watchArea, held = () => false }) {
   let ghost = null;
   let timer = null;
   let stopWatching = () => {};
@@ -28,7 +28,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
     clearTimer(timer);
     stopWatching();
     ghost.remove();
-    area.inert = false;
+    area.inert = held();
     ghost = timer = null;
     stopWatching = () => {};
   }
@@ -52,5 +52,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
     stopWatching = observe(area, () => hasData(area) && settle());
   }
 
-  return { begin, settle };
+  const mounted = () => { if (hasData(area)) settle(); };
+
+  return { begin, settle, mounted };
 }

@@ -298,6 +298,7 @@ export async function mount(area, ctx) {
     const seed = headData ? null : seedOf(id);
     if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
     const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
+    top.setAttribute('data-swap-ready', '');
     top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
     area.replaceChildren(noticeSlot, top, body);

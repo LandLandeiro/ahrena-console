@@ -259,7 +259,7 @@ describe('Each screen has its own shape (#765, M1)', () => {
 describe('The shell uses the swap (#765)', () => {
   const app = ui('app.js');
   test('the area goes through createScreenSwap, begun before the screen module loads and settled when it mounts or fails', () => {
-    assert.match(app, /createScreenSwap\(\{ area \}\)/);
+    assert.match(app, /createScreenSwap\(\{ area/);
     const begin = app.indexOf('swap.begin(screen.id)');
     assert.ok(begin > 0, 'begins with the screen id');
     assert.ok(begin < app.indexOf('await import(screen.file)'), 'before the module loads');

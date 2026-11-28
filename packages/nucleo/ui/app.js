@@ -36,7 +36,7 @@ port.textContent = location.host;
 const shellRead = shareReads(read);
 const gate = createScreenGate();
 // #765: the screen that was open stays until the new one has its data or 300 ms pass; then a skeleton with its shape.
-const swap = createScreenSwap({ area });
+const swap = createScreenSwap({ area, held: () => drawer.isOpen() });
 // #765: until the first screen has settled the shell takes the answers the screen read, so a route is not asked twice.
 let coldLoad = true;
 gate.ready.then(() => {
@@ -262,7 +262,7 @@ async function showScreen() {
     area.replaceChildren();
     const cleanup = await module.mount(area, ctx);
     if (typeof cleanup === 'function') leave.signal.addEventListener('abort', cleanup);
-    if (!leave.signal.aborted) swap.settle();
+    if (!leave.signal.aborted) swap.mounted();
     drawLive();
   } catch (e) {
     if (leave.signal.aborted || e?.name === 'AbortError') return;
