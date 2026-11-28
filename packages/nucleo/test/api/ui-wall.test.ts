@@ -282,7 +282,7 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.deepEqual([noCurrent.fraction, noCurrent.ratio], [0.6, 'passo 3 de 5']);
     assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 5, total: 5, current: 'x' } })).ratio, 'passo 5 de 5', 'never above the total');
     assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.toLowerCase(), 'the row and the card say the same step, the row in lower case');
-    const idleWithPlan = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } }));
+    const idleWithPlan = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' }, plan: { done: 12, total: 14, current: null } }));
     assert.equal(idleWithPlan.ratio, null, 'an idle row is the icon, the written label and the time: no "X de Y" (#751)');
     const completed = rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } }));
     assert.equal(completed.ratio, null, 'a completed row shows the time of its last activity, no "X de Y" (#752)');
@@ -292,7 +292,7 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     const bare = rowContent(cardDeExemplo('r', { plan: null }));
     assert.equal(bare.fraction, 0);
     assert.equal(bare.ratio, null);
-    const idle = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' } }));
+    const idle = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } }));
     assert.equal(idle.state.label, 'Ociosa');
     assert.equal(idle.idle, true);
     assert.equal(r.idle, false);
@@ -613,7 +613,7 @@ describe('Mural: a tela montada', () => {
   });
 
   test('an idle row with a plan draws no ratio; the working one still does (#751)', async () => {
-    const idleWithPlan = cardDeExemplo('i1', { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } });
+    const idleWithPlan = cardDeExemplo('i1', { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'interrupted' }, plan: { done: 12, total: 14, current: null } });
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [idleWithPlan, cardDeExemplo('w1')] }));
     try {
       await ate(() => rowsOf(area).length === 2);
@@ -1220,7 +1220,7 @@ const WALL_WITH_CHILDREN = {
     cardDeExemplo('lider', {
       tree: { total: 4, blocked: 1, active: 2, parked: 1 },
       children: [
-        child('tl', { status: 'waiting', state: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, children: [child('neta', { children: [child('bisneta')] })] }),
+        child('tl', { status: 'waiting', state: 'waiting', attention: { level: 'idle', reason: 'interrupted' }, children: [child('neta', { children: [child('bisneta')] })] }),
         child('pede', { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' } }),
         child('velha', { status: 'completed', state: 'completed', parked: true }),
       ],
@@ -1937,7 +1937,8 @@ describe('#761: "Sua vez" in "Precisam de você" as a row, below the cards', () 
       assert.ok(kids.indexOf(grid) < kids.indexOf(list), 'the list comes after the cards');
       assert.equal(list.getAttribute('role'), 'list');
       const h2 = comClasse(section, 'wall-h')[0]!;
-      assert.equal(list.getAttribute('aria-labelledby'), h2.getAttribute('id'), 'the list carries the name of the section');
+      assert.equal(list.getAttribute('aria-label'), 'Sua vez, 2', 'the rows list has its own name: the screen reader does not hear the section name twice');
+      assert.equal(list.getAttribute('aria-labelledby'), null);
       assert.equal(grid.getAttribute('aria-labelledby'), h2.getAttribute('id'));
       assert.ok(comClasse(list, 'wall-row').every((r) => r.getAttribute('role') === 'listitem'));
       const idleList = comClasse(area, 'wall-sec-idle')[0]!;

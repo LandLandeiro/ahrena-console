@@ -169,7 +169,7 @@ describe('scoreboard and merged', () => {
     const s = buildScoreboard({
       queue: buildMergeQueue(prs),
       openPullRequests: prs,
-      sessions: [contextSession('a'), contextSession('b', { working: false, waitingOnYou: true }), contextSession('c', { working: false, attention: { level: 'idle', reason: 'turn_ended' } })],
+      sessions: [contextSession('a'), contextSession('b', { working: false, waitingOnYou: true }), contextSession('c', { working: false, attention: { level: 'idle', reason: 'interrupted' } })],
       dependsOnYou: 2,
     });
     assert.deepEqual(s, { ready: 1, ciRunning: 1, ciFailingOrConflict: 2, sessionsWorking: 1, waitingOnYou: 2, idle: 1 });

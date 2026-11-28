@@ -646,7 +646,7 @@ describe('#751: the focus follows a session that became a nested child, a parked
 });
 
 describe('#752: the focus when the state filter hides the session it was on', () => {
-  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' } });
+  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'interrupted' } });
   const pressed = (s: Awaited<ReturnType<typeof mountWith>>) => one(s.area, '.wall-seg button[aria-pressed="true"]');
 
   test('the link, the open button and the popover controls of a hidden session hand the focus to the pressed segment', async () => {
@@ -693,7 +693,7 @@ describe('#752: the focus when the state filter hides the session it was on', ()
 });
 
 describe('#752: a session that changes section keeps the focus on the same kind of control', () => {
-  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'turn_ended' } });
+  const idle = (id: string) => session(id, { status: 'waiting', state: 'idle', attention: { level: 'idle', reason: 'interrupted' } });
   const done = (id: string) => session(id, { status: 'completed', state: 'completed', activity: { type: 'completed', text: '' } });
   const shapes: [string, (id: string) => Card][] = [['active', (id) => session(id)], ['idle', idle], ['completed', done], ['blocked', (id) => blocked(id)]];
 

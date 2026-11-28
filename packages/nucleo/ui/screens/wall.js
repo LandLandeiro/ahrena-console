@@ -540,7 +540,7 @@ export async function mount(area, ctx) {
       const h = el('h2', { class: 'wall-h', id: `wall-h-${id}` }, `${title} `, el('span', { class: 'wall-h-n' }, String(count)));
       return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content.filter(Boolean));
     };
-    const list = (id, nodes, extra = '') => el('div', { class: `wall-list${extra}`, role: 'list', 'aria-labelledby': `wall-h-${id}` }, ...nodes);
+    const list = (id, nodes, extra = '', name = null) => el('div', { class: `wall-list${extra}`, role: 'list', ...(name ? { 'aria-label': name } : { 'aria-labelledby': `wall-h-${id}` }) }, ...nodes);
     const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known, mono).node);
     const calm = (filter === 'all' || filter === 'blocked') && total > 0 && !machines.chosenDown();
     if (by.blocked.length) {
@@ -553,7 +553,7 @@ export async function mount(area, ctx) {
           ATTENTION_PLURAL.blocked,
           by.blocked.length,
           asked.length ? el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...asked.map((c) => card(c, ctx.write, nest, known, mono).node)) : null,
-          turns.length ? list('blocked', turns.map((c) => row(c, ctx.write, nest, known, mono).node)) : null,
+          turns.length ? list('blocked', turns.map((c) => row(c, ctx.write, nest, known, mono).node), '', `Sua vez, ${turns.length}`) : null,
         ),
       );
     } else if (calm) {
