@@ -6,13 +6,13 @@ import { skeleton as shapeSkeleton } from './skeletons.js';
 
 export const SWAP_DELAY_MS = 300;
 
-/** A direct child that says it is still loading is not data. */
-const hasData = (area) => area.children.length > 0 && ![...area.children].some((c) => c.getAttribute('aria-busy') === 'true');
+/** Anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data. */
+const hasData = (area) => area.children.length > 0 && !area.querySelector('[aria-busy="true"]');
 
 function watchArea(area, check) {
   if (typeof MutationObserver !== 'function') return () => {};
   const observer = new MutationObserver(check);
-  observer.observe(area, { childList: true });
+  observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
   return () => observer.disconnect();
 }
 
@@ -28,6 +28,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
     clearTimer(timer);
     stopWatching();
     ghost.remove();
+    area.inert = false;
     ghost = timer = null;
     stopWatching = () => {};
   }
@@ -39,6 +40,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
       area.replaceChildren();
       return;
     }
+    area.inert = true;
     ghost = document.createElement('div');
     ghost.setAttribute('class', 'cc-ghost');
     ghost.setAttribute('aria-hidden', 'true');
