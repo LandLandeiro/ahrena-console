@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import { UI_FOLDER } from '../../src/api/ui.ts';
-import { ElementoFalso, documentoFalso, instalarDomFalso, querySelectorAllComoNodeList } from './fake-dom.ts';
+import { ElementoFalso, documentoFalso, instalarDomFalso, useNodeListQueries } from './fake-dom.ts';
 
 instalarDomFalso();
 Object.assign(globalThis, {
@@ -52,7 +52,7 @@ const store = new Map<string, string>();
 const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) };
 
 beforeEach(() => {
-  querySelectorAllComoNodeList(true);
+  useNodeListQueries(true);
   store.clear();
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage });
   documentoFalso.activeElement = null;
@@ -60,7 +60,7 @@ beforeEach(() => {
   store.clear();
 });
 afterEach(() => {
-  querySelectorAllComoNodeList(false);
+  useNodeListQueries(false);
   delete (globalThis as Record<string, unknown>).localStorage;
   modeModule.setAppMode('dev', { root: new ElementoFalso('html'), storage });
 });

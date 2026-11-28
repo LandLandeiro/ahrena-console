@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, test } from 'node:test';
-import { ElementoFalso, documentoFalso, instalarDomFalso, querySelectorAllComoNodeList } from './fake-dom.ts';
+import { ElementoFalso, documentoFalso, instalarDomFalso, useNodeListQueries } from './fake-dom.ts';
 
 instalarDomFalso();
 Object.assign(globalThis, {
@@ -41,14 +41,14 @@ const useStorage = () =>
   });
 
 beforeEach(() => {
-  querySelectorAllComoNodeList(true);
+  useNodeListQueries(true);
   storage.clear();
   useStorage();
   display.setDisplayMode('dev');
   documentoFalso.activeElement = null;
 });
 afterEach(() => {
-  querySelectorAllComoNodeList(false);
+  useNodeListQueries(false);
   delete (globalThis as Record<string, unknown>).localStorage;
   display.setDisplayMode('dev');
 });
