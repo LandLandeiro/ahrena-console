@@ -39,7 +39,7 @@ describe('issue 750: the markup of the footer', () => {
   });
 
   test('the notice stays right before the main area, and nothing is inline', () => {
-    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content">/);
+    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content" tabindex="-1">/);
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>|\sstyle="|\sonclick=/);
   });
 
@@ -222,10 +222,10 @@ describe('issue 750: the "Ao vivo" block', () => {
     assert.equal(documentoFalso.activeElement, node.querySelector('.up-version'));
   });
 
-  test('the labels are the ones app.js writes in the headers: one table', () => {
+  test('the labels are one table, owned by the block: app.js writes none (issue 764: the headers have no pill)', () => {
     assert.deepEqual(LIVE_LABELS, { connecting: 'Conectando', live: 'Ao vivo', offline: 'Sem conexão' });
     assert.doesNotMatch(app, /const LABELS = /);
-    assert.match(app, /LIVE_LABELS\[state\]/);
+    assert.doesNotMatch(app, /LIVE_LABELS/);
   });
 
   test('Escape on the version panel gives the focus back to the version button', () => {

@@ -8,11 +8,10 @@ import { UI_FOLDER } from '../../src/api/ui.ts';
 const MIN = 24;
 const files = [...readdirSync(UI_FOLDER).filter((f) => f.endsWith('.css')).map((f) => `${UI_FOLDER}${f}`), ...readdirSync(`${UI_FOLDER}screens`).filter((f) => f.endsWith('.css')).map((f) => `${UI_FOLDER}screens/${f}`)];
 const css = files.map((f) => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')).join('\n');
-const shell = readFileSync(`${UI_FOLDER}shell.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 type Rule = { selectors: string[]; body: string };
 const rulesOf = (source: string): Rule[] => [...source.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selectors: m[1]!.split(',').map((s) => s.trim()), body: m[2]! }));
-const shellRules = rulesOf(shell);
+const allRules = rulesOf(css);
 
 // Every control that drew under 24 px (or whose height is the text's), by the selector the CSS uses for it.
 const SMALL_TARGETS = [
@@ -35,10 +34,10 @@ const SMALL_TARGETS = [
 describe('issue 764: the touch area of a control is 24 px at least', () => {
   for (const selector of SMALL_TARGETS) {
     test(`${selector} is positioned and carries a transparent ::after of max(100%, ${MIN}px) both ways`, () => {
-      const holder = shellRules.find((r) => r.selectors.includes(selector) && /position:\s*relative/.test(r.body));
-      assert.ok(holder, `${selector} needs position: relative in shell.css`);
-      const area = shellRules.find((r) => r.selectors.includes(`${selector}::after`));
-      assert.ok(area, `${selector}::after is missing in shell.css`);
+      const holder = allRules.find((r) => r.selectors.includes(selector) && /position:\s*relative/.test(r.body));
+      assert.ok(holder, `${selector} needs position: relative in the CSS of its screen`);
+      const area = allRules.find((r) => r.selectors.includes(`${selector}::after`));
+      assert.ok(area, `${selector}::after is missing in the CSS of its screen`);
       assert.match(area!.body, /content:\s*""/);
       assert.match(area!.body, /position:\s*absolute/);
       assert.match(area!.body, new RegExp(`width:\\s*max\\(100%,\\s*${MIN}px\\)`));

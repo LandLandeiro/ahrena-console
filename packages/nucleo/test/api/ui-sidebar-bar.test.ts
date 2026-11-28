@@ -420,7 +420,7 @@ describe('#754 C: the tab row', () => {
 
   test('the shell mounts the row above the screen and redraws it on a switch of the mode', () => {
     const html = read('index.html');
-    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content">/);
+    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content" tabindex="-1">/);
     assert.match(html, /<link rel="stylesheet" href="\/ui\/screen-tabs\.css">/);
     const app = read('app.js');
     assert.match(app, /createScreenTabs\(\{ host: document\.getElementById\('screen-tabs'\) \}\)/);
