@@ -151,7 +151,7 @@ Object.assign(globalThis, {
 const tela = await import('../../ui/screens/wall.js');
 // @ts-expect-error: idem
 const { findScreen } = await import('../../ui/screens.js');
-const { mount, cardContent, rowContent, agentOf } = tela;
+const { mount, cardContent, rowContent, agentOf, DEBOUNCE_MS } = tela;
 
 const comClasse = (raiz: No, c: string) => raiz.todos((e) => e.classes.includes(c));
 // #751: a blocked session is a card, the others are rows of one list; both carry data-session.
@@ -273,14 +273,14 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.deepEqual(cardContent(blocked({ attention: { level: 'blocked', reason: 'permission' } })).state, { kind: 'permission', label: 'Pede permissão' });
     assert.deepEqual(rowContent(cardDeExemplo('r')).state, { kind: 'working', label: 'Ativa' });
   });
-  test('the row: the slice is done/total with no minimum plan, "X de Y" with a plan, the idle one carries how long ago', () => {
+  test('the row: the slice is done/total with no minimum plan, "passo X de Y" with a plan, the idle one carries how long ago', () => {
     const r = rowContent(cardDeExemplo('r'));
     assert.equal(r.fraction, 0.8, 'the same step as the card: done + 1 with a current step');
-    assert.equal(r.ratio, '4 de 5');
+    assert.equal(r.ratio, 'passo 4 de 5');
     const noCurrent = rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: null } }));
-    assert.deepEqual([noCurrent.fraction, noCurrent.ratio], [0.6, '3 de 5']);
-    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 5, total: 5, current: 'x' } })).ratio, '5 de 5', 'never above the total');
-    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.replace('Passo ', ''));
+    assert.deepEqual([noCurrent.fraction, noCurrent.ratio], [0.6, 'passo 3 de 5']);
+    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 5, total: 5, current: 'x' } })).ratio, 'passo 5 de 5', 'never above the total');
+    assert.equal(rowContent(cardDeExemplo('r', { plan: { done: 3, total: 5, current: 'x' } })).ratio, cardContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' }, plan: { done: 3, total: 5, current: 'x' } })).plan!.label.toLowerCase(), 'the row and the card say the same step, the row in lower case');
     const idleWithPlan = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, plan: { done: 12, total: 14, current: null } }));
     assert.equal(idleWithPlan.ratio, null, 'an idle row is the icon, the written label and the time: no "X de Y" (#751)');
     const completed = rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } }));
@@ -385,7 +385,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(workingRow, 'wall-phrase')[0]!.textContent, 'Rodar a bateria');
       assert.equal(comClasse(workingRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
       assert.equal(comClasse(workingRow, 'state-tag')[0]!.textContent, 'Ativa');
-      assert.equal(comClasse(workingRow, 'wall-ratio')[0]!.textContent, '4 de 5');
+      assert.equal(comClasse(workingRow, 'wall-ratio')[0]!.textContent, 'passo 4 de 5');
       assert.ok(comClasse(workingRow, 'wall-rt-work').length === 1, 'working title is the medium weight one');
       assert.equal(comClasse(rowsOf(area)[1]!, 'wall-rt-work').length, 0);
       const idleRow = rowsOf(area)[1]!;
@@ -604,7 +604,7 @@ describe('Mural: a tela montada', () => {
       const byId = (id: string) => rowsOf(area).find((r) => r.getAttribute('data-session') === id)!;
       assert.equal(comClasse(byId('i1'), 'wall-ratio').length, 0);
       assert.match(comClasse(byId('i1'), 'wall-since')[0]!.textContent, /^há /);
-      assert.equal(comClasse(byId('w1'), 'wall-ratio')[0]!.textContent, '4 de 5');
+      assert.equal(comClasse(byId('w1'), 'wall-ratio')[0]!.textContent, 'passo 4 de 5');
     } finally {
       await sair();
     }
@@ -737,6 +737,81 @@ describe('Mural: a tela montada', () => {
       for (const f of ouvintes.reiniciar) f();
       await ate(() => sessionsOf(area).length === 5);
       assert.equal(rotas.length, 3);
+    } finally {
+      await sair();
+    }
+  });
+});
+
+describe('Mural: ao vivo, a releitura depois de mudanças (#752)', () => {
+  const settle = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+  const emit = (ouvintes: { mudar: ((m: unknown[]) => void)[] }, changes: unknown) => {
+    for (const f of ouvintes.mudar) f(changes as unknown[]);
+  };
+
+  test('the debounce is 120 ms', () => {
+    assert.equal(DEBOUNCE_MS, 120);
+  });
+
+  for (const type of ['needs-you', 'permission']) {
+    test(`a ${type} change reads at once, with no debounce`, async () => {
+      const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
+      try {
+        await ate(() => sessionsOf(area).length === 5);
+        const before = rotas.length;
+        emit(ouvintes, [{ type, key: 'espera-1' }]);
+        await settle(30);
+        assert.equal(rotas.length, before + 1, 'read within 30 ms, well under the debounce');
+      } finally {
+        await sair();
+      }
+    });
+  }
+
+  test('a non-attention burst reads once, after the debounce and not before', async () => {
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      const before = rotas.length;
+      emit(ouvintes, [{ type: 'session', key: 'a' }]);
+      emit(ouvintes, [{ type: 'plan', key: 'a' }]);
+      await settle(50);
+      assert.equal(rotas.length, before, 'nothing before the debounce');
+      await settle(DEBOUNCE_MS + 150);
+      assert.equal(rotas.length, before + 1, 'one read for the burst');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('an attention change during a pending debounce cancels it: one extra read, not two', async () => {
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      const before = rotas.length;
+      emit(ouvintes, [{ type: 'session', key: 'a' }]);
+      await settle(40);
+      emit(ouvintes, [{ type: 'needs-you', key: 'espera-1' }]);
+      await settle(DEBOUNCE_MS + 200);
+      assert.equal(rotas.length, before + 1);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a mixed change list with an attention change reads at once, and a non-array argument is a plain change', async () => {
+    const { area, rotas, ouvintes, sair } = await montarTela(async () => MURAL);
+    try {
+      await ate(() => sessionsOf(area).length === 5);
+      const before = rotas.length;
+      emit(ouvintes, [{ type: 'session', key: 'a' }, { type: 'permission', key: 'b' }]);
+      await settle(30);
+      assert.equal(rotas.length, before + 1, 'the mixed list is an attention one');
+      emit(ouvintes, undefined);
+      await settle(30);
+      assert.equal(rotas.length, before + 1, 'no list: debounced like any other change');
+      await settle(DEBOUNCE_MS + 150);
+      assert.equal(rotas.length, before + 2);
     } finally {
       await sair();
     }
