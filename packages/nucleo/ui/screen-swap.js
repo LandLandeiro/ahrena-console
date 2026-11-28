@@ -6,13 +6,13 @@ import { skeleton as shapeSkeleton } from './skeletons.js';
 
 export const SWAP_DELAY_MS = 300;
 
-/** #765: anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data, unless the screen marks what it painted with `data-swap-ready` (the seeded header of Detalhe). */
-const hasData = (area) => area.children.length > 0 && (area.querySelector('[data-swap-ready]') !== null || !area.querySelector('[aria-busy="true"]'));
+/** #765: the area has its data unless the first-read card of Sessões or Histórico (`data-swap-pending`) is still in it. A part that is reading, like the GitHub card of Entregas, is not a reason to keep the old screen. */
+const hasData = (area) => area.children.length > 0 && !area.querySelector('[data-swap-pending]');
 
 function watchArea(area, check) {
   if (typeof MutationObserver !== 'function') return () => {};
   const observer = new MutationObserver(check);
-  observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
+  observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-swap-pending'] });
   return () => observer.disconnect();
 }
 

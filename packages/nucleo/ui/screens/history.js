@@ -275,7 +275,9 @@ export function mount(area, ctx) {
     observer?.disconnect();
     pickLane(top, null);
     pickLane(footer, null);
-    list.replaceChildren(loading());
+    const firstRead = loading();
+    firstRead.setAttribute('data-swap-pending', '');
+    list.replaceChildren(firstRead);
     try {
       const r = await read(machines.route(historyRoute({ search })));
       if (g !== generation || ended) return;

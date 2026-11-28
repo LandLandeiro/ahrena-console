@@ -287,7 +287,9 @@ export async function mount(area, ctx) {
     statusSlot.replaceChildren(control, el('span', { class: 'sessions-status-group' }, el('span', { class: 'sessions-filter-label' }, 'Status'), pills));
   }
 
-  const body = el('div', { class: 'sessions-body' }, loading({ label: 'Carregando as sessões' }));
+  const firstRead = loading({ label: 'Carregando as sessões' });
+  firstRead.setAttribute('data-swap-pending', '');
+  const body = el('div', { class: 'sessions-body' }, firstRead);
   area.replaceChildren(head, machines.notices, filters, body);
 
   function drawFilters(directories, counts = null) {
