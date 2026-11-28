@@ -14,15 +14,31 @@ import { seedPanelScenario, PANEL_SESSION } from '../../src/simulator/panel.ts';
 
 class No {
   filhos: No[] = [];
+  pai: No | null = null;
   append(...nos: (No | string)[]) {
-    for (const n of nos) this.filhos.push(typeof n === 'string' ? new Texto(n) : n);
+    for (const n of nos) {
+      const no = typeof n === 'string' ? new Texto(n) : n;
+      no.pai = this;
+      this.filhos.push(no);
+    }
   }
   replaceChildren(...nos: No[]) {
     this.filhos = [];
     this.append(...nos);
   }
+  // #765: the screen redraws keeping the nodes that did not change (see dashboard.js `place`).
+  get childNodes(): No[] {
+    return this.filhos;
+  }
+  remove() {
+    if (this.pai) this.pai.filhos = this.pai.filhos.filter((f) => f !== this);
+    this.pai = null;
+  }
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
+  }
+  contains(outro: unknown): boolean {
+    return outro === this || this.filhos.some((f) => f.contains(outro));
   }
   /** Todos os elementos abaixo deste que passam no teste. */
   todos(teste: (e: Elemento) => boolean): Elemento[] {
@@ -58,6 +74,9 @@ class Elemento extends No {
   }
   getAttribute(k: string) {
     return this.atributos.get(k) ?? null;
+  }
+  removeAttribute(k: string) {
+    this.atributos.delete(k);
   }
   addEventListener(tipo: string, f: (e: unknown) => void) {
     this.ouvintes.set(tipo, [...(this.ouvintes.get(tipo) ?? []), f]);
@@ -125,7 +144,7 @@ describe('Dashboard: formatação', () => {
     assert.deepEqual(
       c.map((x: { rotulo: string; valor: string; extra?: string; sub: string }) => [x.rotulo, x.valor, x.extra ?? null, x.sub]),
       [
-        ['Sessões', '12', '4 ativas', '5 precisam de você · 3 ociosas'],
+        ['Sessões', '12', '4 trabalhando', '5 precisam de você · 3 em pausa'],
         ['Agentes ativos', '4', null, 'em 4 sessões'],
         ['Subagentes ativos', '7', null, 'em 3 sessões'],
         ['Eventos hoje', '3,2 mil', null, '+412 na última hora'],
@@ -136,7 +155,7 @@ describe('Dashboard: formatação', () => {
   });
   test('sessions detail: blocked and idle apart, nobody is "ninguém precisa de você" (issue 245)', () => {
     assert.equal(sessionsDetail({ blocked: 1, idle: 0 }), '1 precisa de você');
-    assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 ociosa');
+    assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 em pausa');
     assert.equal(sessionsDetail({ blocked: 0, idle: 0 }), 'ninguém precisa de você');
   });
   test('inbox: only the blocked ones, at most five, the ask and the model from the agent card; the idle ones go to their own row (issue 245)', () => {
@@ -158,16 +177,16 @@ describe('Dashboard: formatação', () => {
     assert.deepEqual(idleChips(atencao).map((x: { session: string; name: string }) => [x.session, x.name]), [['c', 'p-c'], ['h', 'p-h']]);
     assert.equal(inboxTitle(1), '1 precisa de você');
     assert.equal(inboxTitle(4), '4 precisam de você');
-    assert.equal(idleTitle(1), '1 ociosa');
-    assert.equal(idleTitle(3), '3 ociosas');
+    assert.equal(idleTitle(1), '1 em pausa');
+    assert.equal(idleTitle(3), '3 em pausa');
   });
 
-  test('waiting without attention (delegating) is "Ativa", not idle; the attention tones carry the dash- prefix (issue 245)', () => {
+  test('waiting without attention (delegating) is "Trabalhando", not idle; the attention tones carry the dash- prefix (issue 245)', () => {
     const { statusPill, cardToneClass } = tela;
     const pill = statusPill('waiting', null);
-    assert.equal(pill.textContent, 'Ativa');
+    assert.equal(pill.textContent, 'Trabalhando');
     assert.ok(pill.classes.includes('b-active'));
-    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Ociosa');
+    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Em pausa');
     assert.equal(cardToneClass('waiting', null), 'st-active');
     assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'permission' }), 'dash-st-blocked');
     assert.equal(cardToneClass('waiting', { level: 'idle', reason: 'turn_ended' }), 'dash-st-idle');
@@ -214,12 +233,13 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
     try {
       const texto = area.textContent;
       assert.match(texto, /Dashboard/);
-      assert.match(texto, /O agora das suas sessões/);
+      assert.doesNotMatch(texto, /O agora das suas sessões/);
+      assert.equal(comClasse(area, 'sub').length, 0, '#766: the cards under the header already say how many; no line explains the screen');
       assert.deepEqual(
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
         ['sessions', 'agents', 'subagents', 'events-today', 'events-total', 'cost'],
       );
-      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 ativa1 precisa de você · 1 ociosa$/);
+      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 trabalhando1 precisa de você · 1 em pausa$/);
       assert.match(comClasse(area, 'stat')[5]!.textContent, /~US\$ 1,84estimativa · 30 dias/);
 
       const inbox = comClasse(area, 'inbox')[0]!;
@@ -230,27 +250,27 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       // issue 285: the card is a div; "Abrir ›" is the link to the Detail.
       assert.deepEqual(minis.flatMap((m) => m.todos((e) => e.tag === 'a').map((a) => a.getAttribute('href'))), ['/ui/sessions/sim-panel-motor-de-regras']);
       assert.match(minis[0]!.textContent, /Pede permissão.*motor-de-regras.*Bash: npm run migrate.*Opus 5\.5.*Abrir/);
-      assert.equal(contadores.dashboard, 1, 'the sidebar number counts only who needs you');
+      assert.deepEqual(contadores, {}, 'the number of who waits is on the Mural, read by the shell (issue 750)');
 
       const idle = comClasse(area, 'dash-idle')[0]!;
-      assert.match(idle.textContent, /^1 ociosa · sem pressaInterrompidaapp-receitasVer em Sessões$/);
+      assert.match(idle.textContent, /^1 em pausa · sem pressaInterrompidaapp-receitasVer em Sessões$/);
       assert.equal(comClasse(idle, 'attention-chip-light').length, 1);
       assert.equal(idle.todos((e) => e.getAttribute('href') === '/ui/sessions?status=idle').length, 1, 'Ver em Sessões opens the idle filter');
 
       const agentes = comClasse(area, 'ac');
       assert.equal(agentes.length, 3);
       assert.equal(agentes[0]!.getAttribute('href'), `/ui/sessions/${PANEL_SESSION}`);
-      assert.match(agentes[0]!.textContent, /Agente principal · Kanban de sessões no artefato.*ahrena-demo · 2 subagentes · 18 turnos.*Ativa/);
+      assert.match(agentes[0]!.textContent, /Agente principal · Kanban de sessões no artefato.*ahrena-demo · 2 subagentes · 18 turnos.*Trabalhando/);
       assert.match(agentes[0]!.textContent, /Opus 5\.5.*~US\$ 1,84.*Rodar a bateria/);
       assert.ok(agentes[1]!.classes.includes('dash-st-blocked'));
       assert.match(agentes[1]!.textContent, /Precisa de você/);
       assert.ok(agentes[2]!.classes.includes('dash-st-idle'));
-      assert.match(agentes[2]!.textContent, /Ociosa/);
+      assert.match(agentes[2]!.textContent, /Em pausa/);
 
       const linhas = comClasse(area, 'row');
       assert.deepEqual(linhas.map((l) => l.getAttribute('href')), ['/ui/sessions/sim-panel-motor-de-regras', '/ui/sessions/sim-panel-app-receitas']);
       assert.match(linhas[0]!.textContent, /Precisa de você.*Pede permissão: Bash npm run migrate.*motor-de-regras/);
-      assert.match(linhas[1]!.textContent, /Ociosa.*Interrompida \(Esc\).*app-receitas/);
+      assert.match(linhas[1]!.textContent, /Em pausa.*Interrompida \(Esc\).*app-receitas/);
       assert.doesNotMatch(area.textContent, /Esperando/);
       assert.ok(comClasse(area, 'ttl').some((t) => t.todos((e) => e.getAttribute('href') === '/ui/sessions').length > 0), 'Ver tudo leva às Sessões');
     } finally {
@@ -267,7 +287,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       botao.click();
       const arvore = comClasse(area, 'tree');
       assert.equal(arvore.length, 1);
-      assert.deepEqual(comClasse(arvore[0]!, 'child').map((f) => f.textContent.replace(/\d+ (s|min)|agora/, '')), ['Explore · mapear usosAtiva', 'Plan · planoConcluída']);
+      assert.deepEqual(comClasse(arvore[0]!, 'child').map((f) => f.textContent.replace(/\d+ (s|min)|agora/, '')), ['Explore · mapear usosTrabalhando', 'Plan · planoConcluída']);
       comClasse(area, 'subs')[0]!.click();
       assert.equal(comClasse(area, 'tree').length, 0);
     } finally {
@@ -311,7 +331,9 @@ test('as rotas da tela são as do núcleo', async () => {
 test('a tela e o estilo dela não escrevem cor à mão nem chamam endereço de fora', () => {
   for (const arquivo of ['screens/dashboard.js', 'dashboard.css']) {
     const texto = readFileSync(`${UI_FOLDER}${arquivo}`, 'utf8');
-    assert.doesNotMatch(texto, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
+    // #765: only code is checked for a color, as in ui.test.ts (#750); a comment may carry a pointer such as `#765`.
+    const codigo = texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.doesNotMatch(codigo, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
     assert.doesNotMatch(texto, /https?:\/\//, `${arquivo} chama endereço de fora`);
     assert.doesNotMatch(texto, /innerHTML|style=/, `${arquivo} põe HTML ou estilo inline`);
   }

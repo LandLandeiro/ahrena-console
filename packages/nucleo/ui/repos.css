@@ -41,7 +41,7 @@
 
 /* ---------- filtros ---------- */
 .repo-filters { display: flex; gap: 10px; align-items: center; padding: 10px; flex-wrap: wrap; }
-.repo-field { position: relative; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 0; }
+.repo-field { position: relative; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 0; }
 .repo-field-search { flex: 1 1 220px; }
 .repo-field input { flex: 1; min-width: 0; height: 100%; padding: 0; background: none; border: 0; color: var(--text); font: inherit; outline: none; }
 .repo-field input::placeholder { color: var(--muted); }
@@ -188,3 +188,7 @@
   .repo-chips { padding-left: 0; }
   .repo-head-dir { margin-left: 0; }
 }
+
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.repo-back { position: relative; }
+.repo-back::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

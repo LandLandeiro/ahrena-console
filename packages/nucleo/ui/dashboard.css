@@ -22,8 +22,10 @@
 .reason.soft { font-weight: var(--weight-medium); }
 
 /* ---------- títulos de bloco ---------- */
-.ttl { font-size: 13.5px; font-weight: var(--weight-semibold); display: flex; align-items: center; gap: 8px; }
+.ttl { margin: 0; font-size: 13.5px; font-weight: var(--weight-semibold); display: flex; align-items: center; gap: 8px; }
 .ttl .r { margin-left: auto; font-size: 12px; font-weight: var(--weight-medium); color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
+.ttl .r { position: relative; }
+.ttl .r::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .ttl a.r:hover { color: var(--text); }
 
 /* ---------- os seis números ---------- */
@@ -67,7 +69,7 @@
   .dash-mini-sm .dash-open-link { font-size: 0; }
 }
 
-/* ---------- ociosas (issue 245): a neutral row apart, no fill, the reason in a light chip ---------- */
+/* ---------- ADR-0028: em pausa (issue 245): a neutral row apart, no fill, the reason in a light chip ---------- */
 .dash-idle { padding: 9px 14px; display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--muted); min-width: 0; }
 .dash-idle-title { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; flex: none; }
 .dash-idle-title b { color: var(--text); font-weight: var(--weight-medium); }
@@ -76,6 +78,8 @@
 .dash-idle-link { margin-left: auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; color: var(--muted); flex: none; }
 .dash-idle-link:hover { color: var(--text); }
 .dash-idle-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dash-idle-link { position: relative; }
+.dash-idle-link::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 
 /* ---------- agentes ativos e atividade ---------- */
 .two { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
@@ -83,6 +87,8 @@
 .agent { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: start; }
 .agent .exp { color: var(--muted); margin-top: 52px; font-size: 14px; padding: 0; background: none; border: 0; display: grid; place-items: center; }
 .agent button.exp:hover { color: var(--text); }
+.agent .exp { position: relative; }
+.agent .exp::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .agent .exp.open .icon { transform: rotate(90deg); }
 .agent .column { gap: 4px; }
 .ac { padding: 12px 14px; border-left: 3px solid var(--border); display: flex; flex-direction: column; gap: 8px; min-height: 148px; overflow: hidden; }
@@ -132,3 +138,9 @@
 @media (max-width: 480px) {
   .stats, .inbox .grid4 { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.dash-mini-actions .open-icon,
+.subs { position: relative; }
+.dash-mini-actions .open-icon::after,
+.subs::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

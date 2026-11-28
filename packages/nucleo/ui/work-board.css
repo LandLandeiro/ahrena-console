@@ -16,6 +16,8 @@
 .wb-level[aria-pressed="true"] { background: var(--raised); color: var(--text); }
 .wb-level:focus-visible, .wb-path-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .wb-level:disabled { cursor: not-allowed; opacity: .5; }
+.wb-level { position: relative; }
+.wb-level::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .wb-level-note { font-size: 11.5px; color: var(--muted); }
 .wb-path { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); min-width: 0; flex-wrap: wrap; }
 .wb-path-step { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; }
@@ -31,8 +33,8 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .wb-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .wb-field-label { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wb-select { height: 30px; min-width: 0; width: 100%; padding: 0 8px; font-family: var(--font-sans); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
-.wb-field-set .wb-select { color: var(--text); border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+.wb-select { height: 30px; min-width: 0; width: 100%; padding: 0 8px; font-family: var(--font-sans); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border-control); border-radius: 8px; }
+.wb-field-set .wb-select { color: var(--text); border-color: var(--accent-line); }
 .wb-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .wb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
 .wb-chips-label { color: var(--muted); }
@@ -68,7 +70,7 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .wb-card-item { min-width: 0; }
 .wb-none { margin: 0; padding: 10px 4px; font-size: 11.5px; color: var(--muted); text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
-.wb-done-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border); border-radius: 8px; cursor: pointer; }
+.wb-done-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border-control); border-radius: 8px; cursor: pointer; }
 .wb-done-more:hover { color: var(--text); background: var(--raised); }
 .wb-done-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -98,6 +100,8 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-age + .wb-card-github { margin-left: 0; }
 .wb-card-github:hover { color: var(--text); }
 .wb-card-github:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+.wb-card-github { position: relative; }
+.wb-card-github::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .wb-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
 .wb-queue-pos { display: inline-grid; place-items: center; min-width: 24px; height: 18px; padding: 0 5px; border-radius: 6px; font-family: var(--font-mono); font-size: 10.5px; font-weight: var(--weight-semibold); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
 .wb-card-title { margin: 0; font-size: 12.5px; font-weight: var(--weight-semibold); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
@@ -117,6 +121,8 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-pr { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; text-decoration: none; }
 .wb-pr:hover { color: var(--text); }
 .wb-pr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wb-pr.wb-gh { position: relative; }
+.wb-pr.wb-gh::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .wb-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-medium); white-space: nowrap; }
 .wb-pill-active { background: var(--status-active-badge); color: var(--status-active-text); }
 .wb-pill-waiting { background: var(--status-waiting-badge); color: var(--status-waiting-text); }
@@ -204,3 +210,7 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-orgs-empty { gap: 10px; }
 @media (max-width: 1279px) { .wb-fields.wb-fields-origin { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .wb-fields.wb-fields-origin { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.wb-chip-remove { position: relative; }
+.wb-chip-remove::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

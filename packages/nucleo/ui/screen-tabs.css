@@ -1,0 +1,14 @@
+/* The tab row of the merged screens (ui/screen-tabs.js, issue 754): loaded once by index.html; every class carries `cc-tab`.
+   Every value comes from brand.css. The current tab is told by weight and a line, not by color alone. */
+
+.cc-tabs-host { flex: none; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.cc-tabs-host[hidden] { display: none; }
+.cc-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.cc-tabs::-webkit-scrollbar { display: none; }
+.cc-tab { flex: none; display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-bottom: 2px solid transparent; color: var(--muted); font-size: var(--text-sm); text-decoration: none; white-space: nowrap; transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out); }
+.cc-tab:hover { color: var(--text); }
+.cc-tab[aria-current="page"] { color: var(--text); font-weight: var(--weight-medium); border-bottom-color: var(--accent-line); }
+.cc-tab:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -2px; border-radius: var(--radius-control); }
+
+@media (max-width: 599px) { .cc-tabs-host { padding: 0 12px; } }
+@media (prefers-reduced-motion: reduce) { .cc-tab { transition: none; } }
