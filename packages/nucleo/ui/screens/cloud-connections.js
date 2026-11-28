@@ -432,6 +432,7 @@ export async function mount(area, ctx) {
     const now = Date.now();
     const remote = machineId !== LOCAL_ID;
     const label = labelOf(machineId);
+    if (status === 'loading' && failure) return [errorBand({ title: 'Sem conexão com o núcleo.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } })];
     if (status === 'loading') return [loading({ label: 'Lendo os perfis da AWS', pending: !aws })];
     if (status === 'missing') return [empty({ icon: 'cloud', title: 'Este núcleo não tem os conectores de nuvem', text: 'Ele é de uma versão anterior. Atualize o console para ver as sessões da AWS.' })];
     if (status === 'not-found') return [empty({ icon: 'server', title: 'Máquina não encontrada', text: `Nenhuma máquina "${machineId}" no ~/.ahrena-console/machines.json deste núcleo.`, action: { label: 'Ver este Mac', onClick: () => select(LOCAL_ID) } })];

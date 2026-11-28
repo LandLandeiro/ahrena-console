@@ -329,7 +329,7 @@ describe('Every screen marks the loading card of its first paint (#765, N4)', ()
     });
   }
 
-  // Each anchor ties the mark to the paint that really is the first one (N5, N6): a mark on a later line fails.
+  // #765: each anchor ties the mark to the paint that really is the first one (N5, N6); a mark on a later line fails.
   const ANCHORED: [string, string, RegExp][] = [
     ['connections.js', 'Conexões', /replaceChildren\(head, loading\(\{[^}]*pending: true[^}]*\}\)\);\s*await read\(\)/],
     ['repos.js', 'Repositórios', /replaceChildren\(head, loading\(\{[^}]*pending: true[^}]*\}\)\);\s*await read\(\)/],
