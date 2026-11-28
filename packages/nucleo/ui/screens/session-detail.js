@@ -14,7 +14,7 @@ import { create as workflowTab } from './session-detail-workflow.js';
 import { create as decisionsTab } from './session-detail-decisions.js';
 import { createComposeBox } from './session-message.js';
 import { messageBody } from './chat-text.js';
-import { downNotice, downText, isMachineUnreachable, readHeld, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
+import { downNotice, downText, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
 import { attentionOf, attentionPill, isBlocked, isIdle, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
 import { needsOrIdleLabel, stateLabel, stateLabels } from '../state-labels.js';
 
@@ -171,8 +171,8 @@ export function remoteDetailContext(ctx, base, machineId, { onRead = () => {}, o
       } catch (e) {
         if (!isMachineUnreachable(e)) throw e;
         const seen = normalizeMachines([{ ...e.body.machine, id: e.body.machine?.id ?? machineId }])[0] ?? { id: machineId, label: 'Máquina remota', lastReadAt: null };
-        // #754: the answer of the session does not say that the person stopped the machine or that it is updating; `/api/machines` does.
-        const m = { ...seen, held: seen.held ?? (await readHeld((route) => ctx.read(route), seen.id)) };
+        // #754: the answer of the session does not say that the person stopped the machine or that it is updating; the list the sidebar reads does.
+        const m = { ...seen, held: ctx.heldMachines?.get?.().get(seen.id) ?? null };
         onUnreachable(m);
         if (answered.has(pathOf(route))) {
           const quiet = new Error('machine-unreachable');

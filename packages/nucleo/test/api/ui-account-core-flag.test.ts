@@ -243,6 +243,13 @@ describe('#754 the nav gives the held machines to the screens, from the same rea
     assert.deepEqual([...heard.at(-1)!], []);
   });
 
+  test('stopped by you wins over updating, as in the sidebar dot', async () => {
+    const heard: Map<string, string>[] = [];
+    const { readMachines } = createNav({ nav: new ElementoFalso('nav'), read: async () => [machine('a', { ...stopped, ...updating })], screens: SCREENS, onHeld: (m: Map<string, string>) => heard.push(m) });
+    await readMachines();
+    assert.deepEqual([...heard.at(-1)!], [['a', 'stopped']]);
+  });
+
   test('a failed read gives nothing new: the screens keep what they had', async () => {
     let fail = false;
     const heard: unknown[] = [];

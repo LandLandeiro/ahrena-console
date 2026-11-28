@@ -20,6 +20,7 @@ export const MACHINE_STATE_LABELS = { connected: 'Conectada', unreachable: 'Sem 
 
 /** How soon the sidebar reads the machines again while one is being updated (issue 484): the dot must not lag. (ADR-0024) */
 const UPDATING_REREAD_MS = 5000;
+const MACHINE_PATH = '/ui/machines/';
 
 /** Conexões has no item of its own since decision 0029: its dot goes on Configuração, the item that receives it (#754). */
 const CONNECTIONS_ITEM = 'agent-config';
@@ -29,10 +30,12 @@ const LONG_LABEL = 24;
 
 /**
  * Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are;
+ * `onHeld(map)` hears, on every good read, `Map(id -> 'stopped' | 'updating')`: the one source of the band of the machine filter and of the
+ * session Detail (#754), so no screen reads `/api/machines` for it.
  * `onCoreOutdated(list)` hears, on every read, the remotes whose núcleo is older than the app (`[{ id, label, route }]`, any state of the
  * machine, both modes): the account menu draws them (#754).
  */
-export function createNav({ nav, read, screens = SCREENS, onMachines = () => {}, onCoreOutdated = () => {} }) {
+export function createNav({ nav, read, screens = SCREENS, onMachines = () => {}, onCoreOutdated = () => {}, onHeld = () => {} }) {
   const items = new Map();
   const counts = new Map();
   const tags = new Map();
@@ -146,6 +149,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {},
     }
     const next = machineItems(list);
     onMachines(1 + next.length);
+    onHeld(new Map(next.filter((item) => item.state === 'stopped' || item.state === 'updating').map((item) => [item.route.slice(MACHINE_PATH.length), item.state])));
     onCoreOutdated(next.filter((item) => item.coreOutdated).map(({ id, title, route }) => ({ id, label: title, route })));
     if (!updatingTimer && next.some((item) => item.state === 'updating')) {
       updatingTimer = setTimeout(() => {

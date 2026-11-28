@@ -38,6 +38,9 @@ const gate = createScreenGate();
 // ---------- Sidebar ----------
 
 let machineCount = null;
+// #754: stopped by you / updating, from the read the sidebar already does; the screens follow it (`ctx.heldMachines`), none reads for it.
+let heldMachines = new Map();
+const heldListeners = new Set();
 
 // One block per section (C1, C24): the everyday screens, then Delivery, Decisions, Machines and Control. The remote
 // machines (issue 178) come from `GET /api/machines` and are added by nav.js (`createNav`).
@@ -47,6 +50,10 @@ const { readMachines, readConnectors, highlight, counter, tag } = createNav({
   onMachines(n) {
     machineCount = n;
     drawLive();
+  },
+  onHeld(held) {
+    heldMachines = held;
+    for (const f of [...heldListeners]) f();
   },
   // #754: the arrow of an outdated núcleo is in the account menu in both modes, and its dot is also on the ☰ below 860 px.
   onCoreOutdated(list) {
@@ -228,6 +235,11 @@ async function showScreen() {
     // #754: a screen that redraws itself on a switch of the mode (the Mural, keeping focus and scroll) asks for it here.
     onModeChange: (f) => (listeners.mode.add(f), leave.signal.addEventListener('abort', () => listeners.mode.delete(f))),
     liveState: () => liveState.state,
+    // #754: the list of held machines the sidebar reads (`Map(id -> 'stopped' | 'updating')`); the listener leaves with the screen.
+    heldMachines: {
+      get: () => heldMachines,
+      onChange: (f) => (heldListeners.add(f), leave.signal.addEventListener('abort', () => heldListeners.delete(f)), () => heldListeners.delete(f)),
+    },
   };
   try {
     const module = await import(screen.file);

@@ -85,8 +85,6 @@ describe('#754 the band says the state of the machine', () => {
   });
 
   test('the precedence is the code\'s: stopped by you > updating > the others', () => {
-    const both = notice(remote({ state: 'unreachable', reason: 'port-closed', ...STOPPED, ...UPDATING }));
-    assert.match(texto(both), /^Workstation parada por você\./);
     const updatingAndDown = notice(remote({ state: 'unreachable', reason: 'port-closed', ...UPDATING }));
     assert.match(texto(updatingAndDown), /^Workstation atualizando\./);
     const stoppedWithProof = notice(remote({ ...ownerAuth, ...STOPPED }));
