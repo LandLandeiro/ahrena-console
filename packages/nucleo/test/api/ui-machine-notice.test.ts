@@ -40,8 +40,9 @@ type Obj = Record<string, unknown>;
 const AT = new Date('2026-11-28T10:41:00').toISOString();
 const local = { id: 'local', label: 'Esta máquina', state: 'connected', reason: null, lastReadAt: null };
 const remote = (extra: Obj = {}) => ({ id: 'ws', label: 'Workstation', state: 'connected', reason: null, lastReadAt: AT, ...extra });
-const STOPPED = { connection: { state: 'stopped' } };
-const UPDATING = { update: { configured: true, state: 'running', kind: 'update', phase: 'swap', startedAt: '2026-11-28T10:00:00.000Z' } };
+// What the shell hands the screens (#754): the sidebar's own read says 'stopped' or 'updating'; the machine answers `connected` in the list routes.
+const STOPPED = { held: 'stopped' };
+const UPDATING = { held: 'updating' };
 const ownerAuth = { state: 'unreachable', reason: 'owner-auth-required' };
 const notice = (m: Obj, now = Date.parse(AT) + 14 * 60_000) => mf.downNotice(mf.normalizeMachines([local, m])[1], { now });
 const svgOf = (n: ElementoFalso) => (n.querySelector('.mf-notice-icon') as ElementoFalso).children[0] as ElementoFalso;
@@ -132,9 +133,24 @@ describe('#754 which machines the band covers', () => {
 });
 
 describe('#754 the band on the filter of a screen', () => {
-  function rig(machines: unknown[], listAnswer: unknown[]) {
+  // The shell's source (#754): the list the sidebar already reads, as `Map(id -> 'stopped' | 'updating')`, and a way to follow it.
+  function shellHeld(initial: [string, string][] = []) {
+    let map = new Map(initial);
+    const listeners = new Set<() => void>();
+    return {
+      get: () => map,
+      onChange: (f: () => void) => (listeners.add(f), () => listeners.delete(f)),
+      set(next: [string, string][]) {
+        map = new Map(next);
+        [...listeners].forEach((f) => f());
+      },
+      listeners,
+    };
+  }
+  function rig(machines: unknown[], listAnswer: unknown[], held: [string, string][] = []) {
     const leave = new AbortController();
     const routes: string[] = [];
+    const heldMachines = shellHeld(held);
     const ctx = {
       signal: leave.signal,
       read: async (route: string) => {
@@ -143,75 +159,96 @@ describe('#754 the band on the filter of a screen', () => {
         return {};
       },
       onChange: () => {},
+      heldMachines,
     };
     const filter = mf.createMachineFilter(ctx, { periodic: false, watchChanges: false });
     const host = new ElementoFalso('main');
     host.append(filter.row, filter.notices);
     // What the list routes answer (#754): `machines: [{ id, label, state, reason, lastReadAt }]`, without connection or update.
     const raw = listAnswer.map((m) => {
-      const { connection: _c, update: _u, ...rest } = m as Obj;
+      const { held: _h, ...rest } = m as Obj;
       return rest;
     });
     filter.update({ machines: raw });
-    return { filter, routes, leave, raw };
+    return { filter, routes, leave, raw, heldMachines };
   }
   const band = (f: { notices: ElementoFalso }) => (f.notices.querySelectorAll('.mf-notice') as unknown as ElementoFalso[]).map((n) => texto(n.querySelector('p') as ElementoFalso));
 
   test('the band of a stopped machine says so even when the list answer says connected', async () => {
-    const full = [local, remote(STOPPED)];
-    const { filter, leave } = rig(full, full);
+    const full = [local, remote()];
+    const { filter, leave } = rig(full, full, [['ws', 'stopped']]);
     await until(() => band(filter).length === 1, 'the band');
     assert.match(band(filter)[0], /^Workstation parada por você\./);
     leave.abort();
   });
 
   test('the band of an updating machine says so even when the list answer says connected', async () => {
-    const full = [local, remote(UPDATING)];
-    const { filter, leave } = rig(full, full);
+    const full = [local, remote()];
+    const { filter, leave } = rig(full, full, [['ws', 'updating']]);
     await until(() => band(filter).length === 1, 'the band');
     assert.match(band(filter)[0], /^Workstation atualizando\./);
     leave.abort();
   });
 
-  test('a connected machine has no band, and the answer of the list does not erase what the machines read said', async () => {
-    const full = [local, remote(STOPPED)];
-    const { filter, raw, leave } = rig(full, full);
-    await until(() => band(filter).length === 1, 'the band');
+  test('a connected machine has no band, and the answer of the list does not erase what the sidebar said', async () => {
+    const full = [local, remote()];
+    const { filter, raw, leave } = rig(full, full, [['ws', 'stopped']]);
+    assert.match(band(filter)[0], /^Workstation parada por você\./);
     filter.update({ machines: raw });
     assert.match(band(filter)[0], /^Workstation parada por você\./);
     leave.abort();
-    const quiet = rig([local, remote()], [local, remote()]);
+    const quiet = rig(full, full);
     await new Promise((r) => setTimeout(r, 30));
     assert.deepEqual(band(quiet.filter), []);
     quiet.leave.abort();
   });
 
-  test('the machines read is the existing route: nothing else is read for it', async () => {
-    const full = [local, remote(STOPPED)];
-    const { routes, filter, leave } = rig(full, full);
-    await until(() => band(filter).length === 1, 'the band');
-    assert.deepEqual([...new Set(routes)], ['/api/machines']);
+  test('one source: with the choice "Todas" the filter reads nothing on /api/machines, whatever the answers of the lists', async () => {
+    const full = [local, remote()];
+    const { routes, filter, raw, leave } = rig(full, full, [['ws', 'stopped']]);
+    filter.update({ machines: raw });
+    filter.update({ machines: raw });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.deepEqual(routes.filter((r) => r.startsWith('/api/machines')), []);
     leave.abort();
   });
 
-  test('a machine that goes from stopped to connected loses its band on the first answer after, not on the second', async () => {
-    const leave = new AbortController();
-    let answer: unknown[] = [local, remote(STOPPED)];
-    const ctx = { signal: leave.signal, read: async () => structuredClone(answer), onChange: () => {} };
-    const filter = mf.createMachineFilter(ctx, { periodic: false, watchChanges: false });
-    const raw = [local, remote()];
-    filter.update({ machines: raw });
-    await until(() => band(filter).length === 1, 'the band');
-    assert.match(band(filter)[0], /^Workstation parada por você\./);
-    answer = [local, remote()];
-    filter.update({ machines: raw });
-    await until(() => band(filter).length === 0, 'the band gone on the first answer');
+  test('the own read of a chosen machine stays the only one: once, and without the held state (that comes from the sidebar)', async () => {
+    mf.rememberChoice('ws');
+    const full = [local, remote()];
+    const { routes, filter, leave } = rig(full, full, [['ws', 'updating']]);
+    await new Promise((r) => setTimeout(r, 30));
+    filter.update({ machines: [remote()] });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(routes.filter((r) => r.startsWith('/api/machines')).length, 1);
+    assert.match(band(filter)[0], /^Workstation atualizando\./);
     leave.abort();
+  });
+
+  test('the band follows the list of the sidebar: stopped, then updating, then connected', async () => {
+    const full = [local, remote()];
+    const { filter, heldMachines, leave } = rig(full, full, [['ws', 'stopped']]);
+    assert.match(band(filter)[0], /^Workstation parada por você\./);
+    heldMachines.set([['ws', 'updating']]);
+    assert.match(band(filter)[0], /^Workstation atualizando\./);
+    heldMachines.set([]);
+    assert.deepEqual(band(filter), []);
+    leave.abort();
+  });
+
+  test('the filter stops following the sidebar when the screen leaves', async () => {
+    const full = [local, remote()];
+    const { filter, heldMachines, leave } = rig(full, full, [['ws', 'stopped']]);
+    assert.equal(heldMachines.listeners.size, 1);
+    leave.abort();
+    assert.equal(heldMachines.listeners.size, 0);
+    heldMachines.set([]);
+    assert.match(band(filter)[0], /^Workstation parada por você\./, 'a screen that left draws nothing more');
   });
 
   test('the focus on the link of a band stays on the band of the same machine when the state arrives', async () => {
-    const full = [local, remote(STOPPED)];
-    const { filter, raw, leave } = rig(full, full);
+    const full = [local, remote()];
+    const { filter, raw, leave } = rig(full, full, [['ws', 'stopped']]);
     await until(() => band(filter).length === 1, 'the band');
     const link = filter.notices.querySelector('.mf-notice[data-machine="ws"] .mf-notice-link') as ElementoFalso;
     link.focus();
@@ -322,15 +359,20 @@ describe('#754 a switch of the mode redraws the band of the Mural in place', () 
 });
 
 describe('#754 the session Detail says the same as the band', () => {
-  test('readHeld reads the machines route the sidebar reads, and says stopped, updating or nothing; a failed read says nothing', async () => {
-    const answer = [local, remote({ state: 'unreachable', ...STOPPED }), { ...remote(UPDATING), id: 'lab', label: 'Laboratório' }, { ...remote(), id: 'calm' }];
-    const routes: string[] = [];
-    const read = async (route: string) => (routes.push(route), structuredClone(answer));
-    assert.equal(await mf.readHeld(read, 'ws'), 'stopped');
-    assert.equal(await mf.readHeld(read, 'lab'), 'updating');
-    assert.equal(await mf.readHeld(read, 'calm'), null);
-    assert.deepEqual([...new Set(routes)], ['/api/machines']);
-    assert.equal(await mf.readHeld(async () => { throw new Error('offline'); }, 'ws'), null);
-    assert.equal(await mf.readHeld(async () => ({}), 'ws'), null);
+  test('the Detail takes stopped or updating from the list of the sidebar and reads nothing on /api/machines', async () => {
+    const detail = await import('../../ui/screens/session-detail.js');
+    const down = Object.assign(new Error('503'), { status: 503, body: { error: 'machine-unreachable', machine: { id: 'ws', label: 'Workstation', state: 'unreachable', reason: 'port-closed', lastReadAt: AT } } });
+    const run = async (held: [string, string][]) => {
+      const routes: string[] = [];
+      const ctx = { read: async (r: string) => (routes.push(r), Promise.reject(down)), write: async () => ({}), heldMachines: { get: () => new Map(held), onChange: () => () => {} } };
+      const d = detail.remoteDetailContext(ctx, '/api/sessions/s1', 'ws');
+      const e = (await d.read('/api/sessions/s1').catch((x: Error) => x)) as Error;
+      return { message: e.message, routes };
+    };
+    const stopped = await run([['ws', 'stopped']]);
+    assert.match(stopped.message, /^Workstation parada por você\./);
+    assert.match((await run([['ws', 'updating']])).message, /^Workstation atualizando\./);
+    assert.match((await run([])).message, /^Workstation sem conexão/);
+    assert.equal(stopped.routes.filter((r) => r.startsWith('/api/machines')).length, 0);
   });
 });

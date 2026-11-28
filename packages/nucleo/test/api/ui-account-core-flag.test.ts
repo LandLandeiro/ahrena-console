@@ -228,7 +228,44 @@ describe('#754 the nav gives the list, in both modes, from the list it already r
   });
 });
 
+describe('#754 the nav gives the held machines to the screens, from the same read', () => {
+  const stopped = { connection: { state: 'stopped' } };
+  const updating = { update: { configured: true, state: 'running', kind: 'update', phase: 'swap', startedAt: '2026-11-28T10:00:00.000Z' } };
+
+  test('stopped by you and updating, by id; the others are not there; the list is given at every good read', async () => {
+    let list: unknown[] = [machine('a', stopped), machine('b', updating), machine('c'), machine('d', { state: 'unreachable' })];
+    const heard: Map<string, string>[] = [];
+    const { readMachines } = createNav({ nav: new ElementoFalso('nav'), read: async () => list, screens: SCREENS, onHeld: (m: Map<string, string>) => heard.push(m) });
+    await readMachines();
+    assert.deepEqual([...heard.at(-1)!], [['a', 'stopped'], ['b', 'updating']]);
+    list = [machine('a'), machine('b')];
+    await readMachines();
+    assert.deepEqual([...heard.at(-1)!], []);
+  });
+
+  test('a failed read gives nothing new: the screens keep what they had', async () => {
+    let fail = false;
+    const heard: unknown[] = [];
+    const { readMachines } = createNav({ nav: new ElementoFalso('nav'), read: async () => (fail ? Promise.reject(new Error('offline')) : [machine('a', stopped)]), screens: SCREENS, onHeld: (m: unknown) => heard.push(m) });
+    await readMachines();
+    fail = true;
+    await readMachines();
+    assert.equal(heard.length, 1);
+  });
+});
+
 describe('#754 the page and the wiring', () => {
+  test('app.js hands the screens the list of the nav (heldMachines) with a listener that leaves with the screen, and reads nothing for it', () => {
+    assert.match(app, /heldMachines/);
+    const block = app.match(/onHeld\(held\) \{[\s\S]*?\n  \},/)?.[0] ?? '';
+    assert.ok(block, 'the nav calls onHeld');
+    assert.doesNotMatch(block, /read|fetch|api\//);
+    const ctxBlock = app.match(/heldMachines: \{[\s\S]*?\n    \},/)?.[0] ?? '';
+    assert.ok(ctxBlock, 'the ctx carries heldMachines');
+    assert.match(ctxBlock, /leave\.signal\.addEventListener\('abort'/);
+    assert.doesNotMatch(ctxBlock, /read\(|fetch|api\//);
+  });
+
   test('index.html has the dot in the account button and in the ☰, hidden, not read, beside the "N esperam"', () => {
     const account = html.match(/<button[^>]*id="account-button"[\s\S]*?<\/button>/)![0];
     const menuButton = html.match(/<button[^>]*id="menu-button"[\s\S]*?<\/button>/)![0];
