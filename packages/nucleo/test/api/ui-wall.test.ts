@@ -199,7 +199,7 @@ const MURAL = {
   cards: [
     cardDeExemplo('ativa-1'),
     cardDeExemplo('espera-1', { status: 'waiting', state: 'waiting', reason: 'notification', urgent: true, attention: { level: 'blocked', reason: 'permission' }, activity: { type: 'permission', text: 'Bash: npm run migrate' }, plan: null }),
-    cardDeExemplo('espera-2', { status: 'waiting', state: 'waiting', reason: 'stop', attention: { level: 'idle', reason: 'turn_ended' }, activity: { type: 'your-turn', text: 'Rodo os testes?' }, context: null }),
+    cardDeExemplo('espera-2', { status: 'waiting', state: 'waiting', reason: 'stop', attention: { level: 'idle', reason: 'interrupted' }, activity: { type: 'interrupted', text: 'Parou no passo 2' }, context: null }),
     cardDeExemplo('erro-1', { status: 'error', state: 'error', urgent: true, attention: { level: 'blocked', reason: 'error' }, activity: { type: 'error', text: 'API 529 · overloaded_error' }, context: { pct: 96, used: 192_000, limit: 200_000, label: '' } }),
     cardDeExemplo('feita-1', { title: '<b>negrito</b>', status: 'completed', state: 'completed', activity: { type: 'completed', text: '' }, cost: { usd: null, estimate: true }, model: null }),
   ],
@@ -302,14 +302,30 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
 
 describe('#751: the phrase of an idle row says the reason first', () => {
   const idle = (reason: string | null, text: string | undefined) => rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason }, activity: text === undefined ? undefined : { type: 'your-turn', text } })).phrase;
-  test('"Sua vez · <text of the core>", the reason alone without a text, the text alone when it already starts with the reason', () => {
-    assert.equal(idle('turn_ended', 'Rodo os testes?'), 'Sua vez · Rodo os testes?');
+  test('"Interrompida · <text of the core>", the reason alone without a text, the text alone when it already starts with the reason', () => {
     assert.equal(idle('interrupted', 'Parou no passo 2'), 'Interrompida · Parou no passo 2');
     assert.equal(idle('first_prompt', 'Aguardando o primeiro pedido'), 'No prompt · Aguardando o primeiro pedido');
-    assert.equal(idle('turn_ended', undefined), 'Sua vez');
-    assert.equal(idle('turn_ended', '   '), 'Sua vez');
-    assert.equal(idle('turn_ended', 'Sua vez: rodo os testes?'), 'Sua vez: rodo os testes?');
-    assert.equal(idle('turn_ended', 'sua vez'), 'sua vez');
+    assert.equal(idle('interrupted', undefined), 'Interrompida');
+    assert.equal(idle('interrupted', '   '), 'Interrompida');
+    assert.equal(idle('interrupted', 'Interrompida: parou no passo 2'), 'Interrompida: parou no passo 2');
+    assert.equal(idle('interrupted', 'interrompida'), 'interrompida');
+  });
+  test('#761: a Sua vez row is blocked and says the reason first too, and it is not an idle row', () => {
+    const turn = (text: string | undefined, extra: Card = {}) => rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' }, activity: text === undefined ? undefined : { type: 'your-turn', text }, ...extra }));
+    assert.equal(turn('Rodo os testes?').phrase, 'Sua vez · Rodo os testes?');
+    assert.equal(turn(undefined).phrase, 'Sua vez');
+    assert.equal(turn('   ').phrase, 'Sua vez');
+    assert.equal(turn('Sua vez: rodo os testes?').phrase, 'Sua vez: rodo os testes?');
+    assert.equal(turn('sua vez').phrase, 'sua vez');
+    const row = turn('Rodo os testes?', { plan: { done: 12, total: 14, current: null } });
+    assert.equal(row.idle, false, 'it is not an idle row');
+    assert.equal(row.turn, true);
+    assert.equal(row.state.label, 'Sua vez', 'the state is written with the reason, as it is today');
+    assert.equal(row.state.kind, 'needs');
+    assert.equal(row.ratio, null, 'as an idle row: the icon, the written label and the time, no "X de Y"');
+    assert.equal(rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })).turn, false);
+    assert.equal(rowContent(cardDeExemplo('r')).turn, false);
+    assert.equal(rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'question' } })).turn, false);
   });
   test('without a known reason the phrase is the text, as before; a working or completed row does not change', () => {
     assert.equal(idle(null, 'Rodo os testes?'), 'Rodo os testes?');
@@ -324,8 +340,8 @@ describe('#751: the phrase of an idle row says the reason first', () => {
       await ate(() => rowsOf(area).length > 0);
       const rowEl = rowsOf(area).find((r) => r.getAttribute('data-session') === 'espera-2')!;
       const phraseNode = comClasse(rowEl, 'wall-phrase')[0]!;
-      assert.equal(phraseNode.textContent, 'Sua vez · Rodo os testes?');
-      assert.equal(phraseNode.getAttribute('title'), 'Sua vez · Rodo os testes?');
+      assert.equal(phraseNode.textContent, 'Interrompida · Parou no passo 2');
+      assert.equal(phraseNode.getAttribute('title'), 'Interrompida · Parou no passo 2');
     } finally {
       await sair();
     }
@@ -1885,5 +1901,168 @@ describe('Wall: the agent monogram only where it tells agents apart (#751)', () 
     assert.match(text, /\.wall-main-solo > :first-child \{[^}]*position:\s*static/);
     assert.ok(text.indexOf('.wall-main-solo {') > text.indexOf('.wall-main {'), 'the modifier comes after the base rule');
     for (const m of text.matchAll(/@media[^{]*\{([\s\S]*?)\n\}/g)) assert.doesNotMatch(m[1]!, /\.wall-main[^{]*\{[^}]*(padding-left|grid-template-columns)/, 'no breakpoint puts the monogram column back');
+  });
+});
+
+// ---------- #761: Sua vez is one of the sessions that need you, drawn as a row under the cards ----------
+
+describe('#761: "Sua vez" in "Precisam de você" as a row, below the cards', () => {
+  const WS = { id: 'ws', label: 'Workstation', state: 'connected' };
+  const vez = (id: string, extra: Card = {}) => cardDeExemplo(id, { status: 'waiting', state: 'waiting', reason: 'stop', attention: { level: 'blocked', reason: 'turn_ended' }, activity: { type: 'your-turn', text: 'Rodo os testes?' }, context: null, plan: null, ...extra });
+  // The cards and the rows arrive mixed: the screen puts the cards first and keeps the order of each kind.
+  const MIXED = () => ({
+    ...MURAL,
+    cards: [
+      vez('vez-1', { title: 'Migração dos pedidos' }),
+      cardDeExemplo('espera-1', { status: 'waiting', state: 'waiting', urgent: true, attention: { level: 'blocked', reason: 'permission' }, activity: { type: 'permission', text: 'Bash: npm run migrate' }, plan: null }),
+      cardDeExemplo('ativa-1'),
+      vez('vez-2', { title: 'Relatório mensal', since: '2026-10-20T11:00:00Z' }),
+      cardDeExemplo('erro-1', { status: 'error', state: 'error', urgent: true, attention: { level: 'blocked', reason: 'error' }, activity: { type: 'error', text: 'API 529' }, context: null }),
+      cardDeExemplo('pausa-1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' }, activity: { type: 'interrupted', text: 'Parou no passo 2' } }),
+    ],
+  });
+
+  test('the section draws the cards in the grid and, under it, one named list with the Sua vez rows; no Sua vez card, none in "Ociosas"', async () => {
+    const { area, sair } = await montarTela(async () => MIXED());
+    try {
+      await ate(() => sessionsOf(area).length === 6);
+      const section = comClasse(area, 'wall-sec-blocked')[0]!;
+      const grid = comClasse(section, 'wall-grid')[0]!;
+      const list = comClasse(section, 'wall-list')[0]!;
+      assert.deepEqual(comClasse(grid, 'wall-card').map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1']);
+      assert.equal(comClasse(grid, 'wall-row').length, 0, 'a row is not in the grid');
+      assert.deepEqual(comClasse(list, 'wall-row').map((c) => c.getAttribute('data-session')), ['vez-1', 'vez-2'], 'the rows keep the order of the core');
+      assert.equal(comClasse(list, 'wall-card').length, 0, 'Sua vez is a row, never a card');
+      assert.deepEqual(cardsOf(area).map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1']);
+      const kids = section.children;
+      assert.ok(kids.indexOf(grid) < kids.indexOf(list), 'the list comes after the cards');
+      assert.equal(list.getAttribute('role'), 'list');
+      const h2 = comClasse(section, 'wall-h')[0]!;
+      assert.equal(list.getAttribute('aria-labelledby'), h2.getAttribute('id'), 'the list carries the name of the section');
+      assert.equal(grid.getAttribute('aria-labelledby'), h2.getAttribute('id'));
+      assert.ok(comClasse(list, 'wall-row').every((r) => r.getAttribute('role') === 'listitem'));
+      const idleList = comClasse(area, 'wall-sec-idle')[0]!;
+      assert.deepEqual(comClasse(idleList, 'wall-row').map((c) => c.getAttribute('data-session')), ['pausa-1'], 'Ociosas keeps only what is really idle');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('one number: the h2, the segment and the sentence count the cards plus the Sua vez rows', async () => {
+    const { area, sair } = await montarTela(async () => MIXED());
+    try {
+      await ate(() => sessionsOf(area).length === 6);
+      assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você 4', 'Ativas 1', 'Ociosas 1']);
+      const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
+      assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 6', 'Precisam de você 4', 'Ativas 1', 'Ociosas 1']);
+      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^4 sessões precisam de você\. 1 ativa e 1 ociosa\.$/);
+      const segment = filtros.find((f) => f.getAttribute('data-filter') === 'blocked')!;
+      segment.click();
+      assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['espera-1', 'erro-1', 'vez-1', 'vez-2'], 'the filter shows the same four sessions: cards first');
+      filtros.find((f) => f.getAttribute('data-filter') === 'idle')!.click();
+      assert.deepEqual(sessionsOf(area).map((c) => c.getAttribute('data-session')), ['pausa-1']);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('only Sua vez needs you: no calm block, the section holds the list alone', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [vez('vez-1')] }));
+    try {
+      await ate(() => rowsOf(area).length === 1);
+      assert.equal(comClasse(area, 'wall-calm').length, 0);
+      assert.equal(comClasse(area, 'wall-grid').length, 0, 'no empty grid');
+      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^1 sessão precisa de você\.$/);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('the row: the title link, "Sua vez · text", the written state, how long ago, and no card look', async () => {
+    const { area, sair } = await montarTela(async () => MIXED());
+    try {
+      await ate(() => rowsOf(area).length > 0);
+      const row = rowsOf(area).find((r) => r.getAttribute('data-session') === 'vez-1')!;
+      const link = comClasse(row, 'wall-link')[0]!;
+      assert.equal(link.tag, 'a');
+      assert.equal(link.getAttribute('href'), '/ui/sessions/vez-1');
+      assert.equal(link.textContent, 'Migração dos pedidos');
+      assert.equal(comClasse(row, 'wall-phrase')[0]!.textContent, 'Sua vez · Rodo os testes?');
+      const tag = comClasse(row, 'state-tag')[0]!;
+      assert.equal(tag.textContent, 'Sua vez', 'the state in words, with its icon, never only colour');
+      assert.equal(comClasse(tag, 'state-icon').length, 1);
+      assert.match(comClasse(row, 'wall-since')[0]!.textContent, /^há \d+ (min|h|d)$/);
+      assert.equal(comClasse(row, 'wall-ratio').length, 0);
+      assert.equal(comClasse(row, 'card').length + comClasse(row, 'wall-card').length, 0);
+      assert.ok(!row.classes.includes('card'), 'no border or fill of a card');
+      assert.equal(row.todos((e) => e.classes.includes('primary')).length, 0, 'low urgency: no primary button');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('"Responder": a control of its own, named with the title, that takes the person to the box of the Detail', async () => {
+    const { composeHref } = await import('../../ui/screens/session-message.js');
+    const { area, sair } = await montarTela(async () => MIXED());
+    try {
+      await ate(() => rowsOf(area).length > 0);
+      for (const [id, title] of [['vez-1', 'Migração dos pedidos'], ['vez-2', 'Relatório mensal']] as const) {
+        const row = rowsOf(area).find((r) => r.getAttribute('data-session') === id)!;
+        const answers = comClasse(row, 'wall-answer');
+        assert.equal(answers.length, 1);
+        const answer = answers[0]!;
+        assert.equal(answer.tag, 'a', 'a link that navigates, like "Ver sessão"');
+        assert.equal(answer.textContent, 'Responder', 'the visible text is the short one');
+        assert.equal(answer.getAttribute('aria-label'), `Responder, ${title}`);
+        assert.equal(answer.getAttribute('href'), composeHref(id));
+        assert.equal(answer.getAttribute('href'), `/ui/sessions/${id}?focus=message#conversation`);
+        const link = comClasse(row, 'wall-link')[0]!;
+        assert.ok(!link.contains(answer) && !answer.contains(link), 'no interactive control inside another');
+        assert.notEqual(answer, link);
+        assert.ok(!comClasse(row, 'wall-tag').some((t) => t.contains(answer)));
+      }
+      assert.equal(comClasse(comClasse(area, 'wall-sec-blocked')[0]!, 'wall-card').flatMap((c) => comClasse(c, 'wall-answer')).length, 0, 'the cards keep their own button');
+      assert.equal(comClasse(comClasse(area, 'wall-sec-active')[0]!, 'wall-answer').length, 0, 'only Sua vez answers from the row');
+      assert.equal(comClasse(comClasse(area, 'wall-sec-idle')[0]!, 'wall-answer').length, 0);
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a session of another machine: the Detail of that machine, with the box focused', async () => {
+    const remote = vez('vez-r', { title: 'Fila de tarefas', machine: WS, open: { target: 'remote', command: null } });
+    const local = vez('vez-l', { machine: { id: 'local', label: 'Esta máquina' } });
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, machines: [{ id: 'local', label: 'Esta máquina', state: 'connected' }, WS], cards: [remote, local] }));
+    try {
+      await ate(() => rowsOf(area).length === 2);
+      const answerOf = (id: string) => comClasse(rowsOf(area).find((r) => r.getAttribute('data-session') === id)!, 'wall-answer')[0]!;
+      assert.equal(answerOf('vez-r').getAttribute('href'), '/ui/sessions/vez-r?machine=ws&focus=message#conversation');
+      assert.equal(answerOf('vez-r').getAttribute('aria-label'), 'Responder, Fila de tarefas');
+      assert.equal(comClasse(rowsOf(area).find((r) => r.getAttribute('data-session') === 'vez-r')!, 'wall-link')[0]!.getAttribute('href'), '/ui/sessions/vez-r?machine=ws');
+      assert.equal(answerOf('vez-l').getAttribute('href'), '/ui/sessions/vez-l?focus=message#conversation', 'the local one is not broken');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('a session without a title is answered by the name the list shows', async () => {
+    const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [vez('vez-s', { title: '  ' })] }));
+    try {
+      await ate(() => rowsOf(area).length === 1);
+      assert.equal(comClasse(rowsOf(area)[0]!, 'wall-answer')[0]!.getAttribute('aria-label'), 'Responder, Sem título');
+    } finally {
+      await sair();
+    }
+  });
+
+  test('the CSS: the list under the cards keeps the tokens of the other rows; "Responder" sits above the stretched link, does not shrink and stays inside 390px', () => {
+    const text = css('wall.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(text, /\.wall-grid \+ \.wall-list \{[^}]*margin-top:\s*12px/);
+    assert.match(text, /\.wall-answer \{[^}]*position:\s*relative[^}]*z-index:\s*1/);
+    assert.match(text, /\.wall-answer \{[^}]*flex:\s*none/);
+    assert.match(text, /\.wall-answer:focus-visible/);
+    assert.doesNotMatch(text, /\.wall-grid \+ \.wall-list \{[^}]*(background|border)\s*:/, 'the list takes its look from .wall-list, as Ociosas');
+    assert.doesNotMatch(text, /\.wall-answer[^{]*\{[^}]*#[0-9a-f]{3,8}\b/i, 'no hex: the variables of the brand');
+    assert.doesNotMatch(css('wall.css'), /overflow-x\s*:\s*scroll/);
   });
 });

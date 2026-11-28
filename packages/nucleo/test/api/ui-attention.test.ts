@@ -25,7 +25,7 @@ describe('attention vocabulary (issue 245)', () => {
       plan: ['blocked', 'Plano para aprovar'],
       decision: ['blocked', 'Decisão pedida'],
       error: ['blocked', 'Com erro'],
-      turn_ended: ['idle', 'Sua vez'],
+      turn_ended: ['blocked', 'Sua vez'],
       interrupted: ['idle', 'Interrompida'],
       first_prompt: ['idle', 'No prompt'],
     });
@@ -37,7 +37,8 @@ describe('attention vocabulary (issue 245)', () => {
     assert.deepEqual(attention.attentionOf({ level: 'idle', reason: 7 }), { level: 'idle', reason: null });
     assert.equal(attention.attentionTone({ level: 'blocked', reason: 'error' }), 'error');
     assert.equal(attention.attentionText({ level: 'blocked', reason: 'question' }), 'Precisa de você');
-    assert.equal(attention.attentionText({ level: 'idle', reason: 'turn_ended' }), 'Ociosa');
+    assert.equal(attention.attentionText({ level: 'blocked', reason: 'turn_ended' }), 'Precisa de você', 'Sua vez is blocked since #761');
+    assert.equal(attention.attentionText({ level: 'idle', reason: 'interrupted' }), 'Ociosa');
     assert.equal(attention.attentionText({ level: 'blocked', reason: 'error' }), 'Com erro');
     assert.equal(attention.reasonLabel({ level: 'blocked', reason: 'something-new' }), null, 'never a raw value on screen');
   });
@@ -57,18 +58,44 @@ describe('attention vocabulary (issue 245)', () => {
     assert.deepEqual(attention.attentionBadges({ level: 'blocked', reason: 'decision' }).map((n: ElementoFalso) => texto(n)), ['Precisa de você', 'Decisão pedida']);
   });
 
+  test('Sua vez (#761): blocked, with low urgency: the pill and the chip are light, and say it in text and icon', () => {
+    const turn = { level: 'blocked', reason: 'turn_ended' };
+    assert.equal(attention.attentionTone(turn), 'blocked');
+    assert.equal(attention.isBlocked(turn), true);
+    assert.equal(attention.isIdle(turn), false);
+    assert.equal(attention.isYourTurn(turn), true);
+    assert.equal(attention.isYourTurn({ level: 'blocked', reason: 'question' }), false);
+    assert.equal(attention.isYourTurn({ level: 'idle', reason: 'turn_ended' }), false, 'an idle attention is never the turn');
+    assert.equal(attention.isYourTurn(null), false);
+    const pill = attention.attentionPill(turn) as ElementoFalso;
+    assert.equal(texto(pill), 'Precisa de você', 'the text says it, not only the colour');
+    assert.equal(pill.getAttribute('data-attention'), 'blocked');
+    assert.ok(classes(pill).includes('attention-pill-low'), 'light: no strong yellow of a card');
+    assert.ok(!classes(attention.attentionPill({ level: 'blocked', reason: 'question' }) as ElementoFalso).includes('attention-pill-low'), 'a card keeps the strong pill');
+    const chip = attention.reasonChip(turn) as ElementoFalso;
+    assert.equal(texto(chip), 'Sua vez');
+    assert.ok(classes(chip).includes('attention-chip-light'));
+    assert.equal(chip.getAttribute('data-reason'), 'turn_ended');
+    assert.ok(chip.children.length > 0 || (chip as unknown as { filhos?: unknown[] }).filhos?.length, 'with its icon');
+    assert.ok(!classes(attention.reasonChip({ level: 'blocked', reason: 'plan' }) as ElementoFalso).includes('attention-chip-light'));
+    assert.deepEqual(attention.attentionBadges(turn).map((n: ElementoFalso) => texto(n)), ['Precisa de você', 'Sua vez']);
+  });
+
   test('statusWithoutAttention: waiting without attention is active, the rest unchanged', () => {
     assert.equal(attention.statusWithoutAttention('waiting'), 'active');
     assert.equal(attention.statusWithoutAttention('error'), 'error');
     assert.equal(attention.statusWithoutAttention('completed'), 'completed');
   });
 
-  test('an /api/attention item from an older core: level needs is blocked, your-turn is idle', () => {
+  test('an /api/attention item from an older core: level needs is blocked; your-turn is idle, except its Sua vez, which is blocked (#761)', () => {
     assert.deepEqual(attention.attentionOfItem({ attention: { level: 'idle', reason: 'first_prompt' }, level: 'your-turn' }), { level: 'idle', reason: 'first_prompt' });
     assert.deepEqual(attention.attentionOfItem({ level: 'needs', reason: 'question' }), { level: 'blocked', reason: 'question' });
-    assert.deepEqual(attention.attentionOfItem({ level: 'needs', reason: 'your-turn' }), { level: 'blocked', reason: null });
+    assert.deepEqual(attention.attentionOfItem({ level: 'needs', reason: 'your-turn' }), { level: 'blocked', reason: 'turn_ended' }, 'the core reads it so (src/api/attention-route.ts)');
     assert.deepEqual(attention.attentionOfItem({ level: 'needs', reason: 'error' }), { level: 'blocked', reason: 'error' });
-    assert.deepEqual(attention.attentionOfItem({ level: 'your-turn', reason: 'your-turn' }), { level: 'idle', reason: null });
+    assert.deepEqual(attention.attentionOfItem({ level: 'your-turn', reason: 'your-turn' }), { level: 'blocked', reason: 'turn_ended' }, 'a remote from before #761 sends Sua vez as your-turn: the core reads it as needs');
+    assert.deepEqual(attention.attentionOfItem({ level: 'your-turn', reason: 'interrupted' }), { level: 'idle', reason: null });
+    assert.deepEqual(attention.attentionOfItem({ level: 'your-turn', reason: 'no-prompt' }), { level: 'idle', reason: null });
+    assert.deepEqual(attention.attentionOfItem({ level: 'your-turn' }), { level: 'idle', reason: null });
     assert.equal(attention.attentionOfItem({}), null);
   });
 });

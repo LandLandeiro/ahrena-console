@@ -9,7 +9,9 @@ const { sectionOf, sectionsOf, countsOf, summaryOf, summaryText, clockOf } = sec
 type Card = Record<string, unknown>;
 const card = (id: string, extra: Card = {}): Card => ({ id, status: 'active', attention: null, ...extra });
 const blocked = (id: string, reason = 'question', extra: Card = {}) => card(id, { status: 'waiting', attention: { level: 'blocked', reason }, ...extra });
-const idle = (id: string, extra: Card = {}) => card(id, { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' }, ...extra });
+const idle = (id: string, extra: Card = {}) => card(id, { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' }, ...extra });
+// #761: Sua vez is blocked, with low urgency: it lands in "Precisam de você", after the cards.
+const turn = (id: string, extra: Card = {}) => card(id, { status: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' }, ...extra });
 const done = (id: string, extra: Card = {}) => card(id, { status: 'completed', ...extra });
 
 describe('#752: sectionOf puts each session in exactly one section', () => {
@@ -27,6 +29,16 @@ describe('#752: sectionOf puts each session in exactly one section', () => {
   test('idle attention wins over a completed status; blocked wins over idle', () => {
     assert.equal(sectionOf(idle('a', { status: 'completed' })), 'idle');
     assert.equal(sectionOf(card('a', { status: 'completed', attention: { level: 'blocked', reason: 'plan' } })), 'blocked');
+  });
+  test('#761: Sua vez is blocked: it is counted in "Precisam de você" and never in "Ociosas"', () => {
+    assert.equal(sectionOf(turn('t')), 'blocked');
+    assert.equal(sectionOf(turn('t', { status: 'completed' })), 'blocked', 'a finished session that waits for the answer');
+    const cards = [blocked('b1'), turn('t1'), idle('i1'), turn('t2'), card('w1')];
+    assert.deepEqual(countsOf(cards), { blocked: 3, active: 1, idle: 1, completed: 0 }, 'cards plus Sua vez rows, one number');
+    assert.deepEqual(sectionsOf(cards).blocked.map((c: Card) => c.id), ['b1', 't1', 't2'], 'in the core order');
+    assert.deepEqual(sectionsOf(cards).idle.map((c: Card) => c.id), ['i1']);
+    assert.deepEqual(summaryOf(countsOf(cards)), { lead: '3 sessões precisam de você.', rest: '1 ativa e 1 ociosa.' });
+    assert.deepEqual(summaryOf(countsOf([turn('t')])), { lead: '1 sessão precisa de você.', rest: '' });
   });
   test('an attention the UI does not know is no attention', () => {
     assert.equal(sectionOf(card('a', { attention: { level: 'urgent' } })), 'active');
