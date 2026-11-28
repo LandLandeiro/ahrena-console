@@ -151,7 +151,7 @@ describe('the work board files: served, and the /ui file rules', () => {
       const text = readFileSync(`${UI_FOLDER}${file}`, 'utf8');
       const urls = (text.match(/https?:\/\/[^\s"'`)]+/g) ?? []).filter((u) => u !== 'http://www.w3.org/2000/svg');
       assert.deepEqual(urls, [], `${file} names an external address`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${file} writes a colour by hand`);
+      assert.doesNotMatch(text.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${file} writes a colour by hand`);
       assert.doesNotMatch(text, /style=|innerHTML|\bfetch\(/, `${file} uses inline style, innerHTML or fetch`);
     }
     const js = readFileSync(`${UI_FOLDER}screens/work-board-parts.js`, 'utf8');

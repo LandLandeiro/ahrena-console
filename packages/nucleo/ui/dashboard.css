@@ -139,7 +139,7 @@
   .stats, .inbox .grid4 { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 .dash-mini-actions .open-icon,
 .subs { position: relative; }
 .dash-mini-actions .open-icon::after,

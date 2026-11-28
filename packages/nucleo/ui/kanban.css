@@ -84,6 +84,6 @@
 .kb-kc .attention-pill { height: 20px; padding: 0 7px; font-size: 11px; }
 .kb-kc .attention-chip { height: 17px; font-size: 10px; }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 .kb-seg button { position: relative; }
 .kb-seg button::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

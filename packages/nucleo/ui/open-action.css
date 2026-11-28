@@ -47,6 +47,6 @@
 .open-close { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); flex: none; cursor: pointer; font: inherit; }
 .open-close:hover { color: var(--text); background: var(--surface); }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 .open-close { position: relative; }
 .open-close::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

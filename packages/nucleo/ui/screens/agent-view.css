@@ -98,6 +98,6 @@
   .av-target { display: none; }
 }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 .av-toggle { position: relative; }
 .av-toggle::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

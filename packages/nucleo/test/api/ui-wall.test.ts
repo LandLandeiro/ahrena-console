@@ -919,7 +919,7 @@ test('a tela está registrada em /ui/wall, na barra como "Mural ao vivo"', () =>
 test('a tela e o estilo dela não escrevem cor à mão, não chamam endereço de fora nem põem HTML ou estilo inline', () => {
   for (const arquivo of ['screens/wall.js', 'wall.css']) {
     const texto = readFileSync(`${UI_FOLDER}${arquivo}`, 'utf8');
-    assert.doesNotMatch(texto, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
+    assert.doesNotMatch(texto.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
     assert.doesNotMatch(texto, /https?:\/\//, `${arquivo} chama endereço de fora`);
     assert.doesNotMatch(texto, /innerHTML|style=|\.style\b/, `${arquivo} põe HTML ou estilo inline`);
   }

@@ -134,6 +134,6 @@
 .sessions-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
 .sessions-footer .pages { display: flex; gap: 6px; }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 .seg button { position: relative; }
 .seg button::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

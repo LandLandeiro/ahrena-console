@@ -331,7 +331,7 @@ test('as rotas da tela são as do núcleo', async () => {
 test('a tela e o estilo dela não escrevem cor à mão nem chamam endereço de fora', () => {
   for (const arquivo of ['screens/dashboard.js', 'dashboard.css']) {
     const texto = readFileSync(`${UI_FOLDER}${arquivo}`, 'utf8');
-    assert.doesNotMatch(texto, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
+    assert.doesNotMatch(texto.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
     assert.doesNotMatch(texto, /https?:\/\//, `${arquivo} chama endereço de fora`);
     assert.doesNotMatch(texto, /innerHTML|style=/, `${arquivo} põe HTML ou estilo inline`);
   }

@@ -345,7 +345,7 @@ describe('#752: the sheet of the menu', () => {
   const sheet = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8').split('/* ADR-0028: the machine menu')[1] ?? '';
   test('every colour is a variable of the brand and no control uses the divider border', () => {
     assert.ok(sheet.length > 0);
-    assert.doesNotMatch(sheet, /#[0-9a-f]{3,8}\b|rgba?\(/i);
+    assert.doesNotMatch(sheet.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b|rgba?\(/i);
     for (const rule of sheet.split('\n').filter((l) => /\.mf-menu-(button|item)\b[^{]*\{/.test(l))) assert.doesNotMatch(rule, /var\(--border\)/);
   });
   test('the focus ring is the 2px --accent-line one, on the button and on the options', () => {

@@ -116,7 +116,7 @@ describe('Kanban: registro e arquivos', () => {
       const texto = readFileSync(`${UI_FOLDER}${a}`, 'utf8');
       const urls = (texto.match(/https?:\/\/[^\s"'`)]+/g) ?? []).filter((u) => u !== 'http://www.w3.org/2000/svg');
       assert.deepEqual(urls, [], `${a} cita endereço externo`);
-      assert.doesNotMatch(texto, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
+      assert.doesNotMatch(texto.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
       assert.doesNotMatch(texto, /style=|innerHTML|\bfetch\(/, `${a} usa estilo inline, innerHTML ou fetch direto`);
     }
   });

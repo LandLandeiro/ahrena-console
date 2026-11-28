@@ -234,7 +234,7 @@ export function setHeaderSub(head, text) {
   head.querySelector('h1')?.parentNode?.append(el('div', { class: 'sub' }, text));
 }
 
-/** The header of a screen (C1): icon, title, subtitle and actions on the right. Issue 764: the connection is the bar's, not the title's. */
+/** The header of a screen (C1): icon, title, subtitle and actions on the right. #764: the connection is the bar's, not the title's. */
 export function header({ icon: name, title, sub, actions = [] }) {
   return el(
     'header',

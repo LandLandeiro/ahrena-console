@@ -102,7 +102,7 @@ button { font: inherit; cursor: pointer; }
 .cc-gh::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 @media (prefers-reduced-motion: reduce) { .cc-gh[data-state="pending"] .cc-gh-state .icon { animation: none; } }
 
-/* Issue 764 (B3): the first focus of the page; out of sight until it has the focus. Nothing moves. */
+/* #764 (B3): the first focus of the page; out of sight until it has the focus. Nothing moves. */
 .cc-skip { position: absolute; left: 8px; top: -100px; z-index: 100; padding: 6px 12px; border-radius: var(--radius-control); background: var(--surface); color: var(--text); border: 1px solid var(--border-control); font-size: var(--text-xs); text-decoration: none; }
 .cc-skip:focus, .cc-skip:focus-visible { top: 8px; outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .cc-main:focus { outline: none; }

@@ -86,6 +86,6 @@
 .wf-coverage { padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; }
 .wf-coverage-ic { color: var(--status-completed-text); display: inline-flex; }
 
-/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+/* #764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 button.wft-toggle { position: relative; }
 button.wft-toggle::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

@@ -485,6 +485,6 @@ describe('#754: the compact density in the CSS', () => {
   test('the mono line is in the mono font, a token, and the boxes of the panel are styled in popover.css', () => {
     assert.match(block('.wall-tech {'), /font-family:\s*var\(--font-mono\)/);
     assert.match(readFileSync(new URL('../../ui/popover.css', import.meta.url), 'utf8'), /\.pop-check\b/);
-    assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b/i, 'no colour written by hand');
+    assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b/i, 'no colour written by hand');
   });
 });
