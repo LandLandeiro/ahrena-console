@@ -211,6 +211,20 @@ export function attentionForChoice(attention, choice) {
   return { ...attention, items, blocked: undefined, idle: undefined };
 }
 
+/**
+ * The numbers of the machine menu, from what the last answer holds: `all` (the total on screen) and one per
+ * machine that answered. A machine that is down has none; with one machine chosen the answer holds only it, so
+ * only its number is known.
+ */
+export function machineCounts(items, machines, choice) {
+  const list = items ?? [];
+  const known = machines ?? [];
+  if (choice !== ALL) return known.some((m) => m.id === choice && isDown(m)) ? {} : { [choice]: list.length };
+  const out = { all: list.length };
+  for (const m of known) if (!isDown(m)) out[m.id] = list.filter((i) => machineIdOf(i) === m.id).length;
+  return out;
+}
+
 /** The Detail's 503 of a remote that does not answer. */
 export const isMachineUnreachable = (e) => e?.status === 503 && e?.body?.error === 'machine-unreachable';
 
@@ -241,6 +255,19 @@ export function machineTag(item, { iconOnly = false } = {}) {
   const label = typeof item.machine.label === 'string' && item.machine.label ? item.machine.label : 'Máquina remota';
   if (iconOnly) return el('span', { class: 'mf-tag mf-tag-icon', title: label, 'aria-label': label, role: 'img' }, icon('server'));
   return el('span', { class: 'mf-tag' }, icon('server'), el('span', {}, label));
+}
+
+/** What an item's machine is called and drawn as: a laptop for this machine, a server for a remote. */
+export function machineLabel(item) {
+  if (!isRemote(item)) return { remote: false, icon: 'laptop', text: LOCAL_LABEL };
+  const label = typeof item.machine.label === 'string' && item.machine.label ? item.machine.label : 'Máquina remota';
+  return { remote: true, icon: 'server', text: label };
+}
+
+/** The machine of an item with its icon and its name written, for the foot of a card and a row. */
+export function machineMark(item) {
+  const m = machineLabel(item);
+  return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', { title: m.text }, m.text));
 }
 
 /** The C48 band: neutral, the wifi-off icon, the text and "Ver a <label>" to the machine screen. */
@@ -276,6 +303,151 @@ export function machineControl(machines, choice, onChoose) {
   return el('div', { class: 'mf-filter' }, el('span', { class: 'mf-label' }, 'Máquina'), group);
 }
 
+const ALL_LABEL = 'Todas as máquinas';
+let menuSerial = 0;
+
+/** ADR-0028: the icon of an option of the menu: the grid for all, the monitor for this machine, the server, or wifi-off when it is down. */
+const menuIcon = (id, down) => (down ? 'wifi-off' : id === ALL ? 'wall' : id === LOCAL ? 'monitor' : 'server');
+
+/**
+ * The machine filter as a button with a menu (ADR-0028). The button, the panel and the options live as long as the
+ * screen: `draw(machines, choice, counts)` reconciles the options by machine, so the focus is never lost to a redraw.
+ */
+function createMenu({ pick, signal, fallbackFocus }) {
+  const id = `mf-menu-${++menuSerial}`;
+  const button = el('button', { type: 'button', class: 'btn outline mf-menu-button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'data-machine-menu': '' });
+  const panel = el('div', { id, class: 'mf-menu-panel', role: 'menu', 'aria-label': 'Máquina', hidden: true });
+  // ADR-0028: the button is built once; a redraw writes only the part that changed, so the focus and the reading are not disturbed.
+  const lead = el('span', { class: 'mf-menu-icon' });
+  const name = el('span', { class: 'mf-menu-label' });
+  const off = el('span', { class: 'mf-menu-off' }, ' sem conexão');
+  button.append(lead, name, icon('chevron-down'));
+  const root = el('div', { class: 'mf-menu' }, button, panel);
+  let items = new Map();
+  const isOpen = () => !panel.hidden;
+  const outside = (ev) => {
+    if (!root.contains(ev.target)) close(false);
+  };
+
+  // ADR-0028: left aligned when the panel fits in the visible width (minus 16px), else right aligned; right aligned only while that keeps it 16px inside on the left.
+  function align() {
+    panel.classList.remove('mf-menu-end');
+    const visible = document.documentElement?.clientWidth;
+    if (typeof visible !== 'number' || !(panel.getBoundingClientRect?.()?.right > visible - 16)) return;
+    panel.classList.add('mf-menu-end');
+    if (panel.getBoundingClientRect().left < 16) panel.classList.remove('mf-menu-end');
+  }
+
+  function close(returnFocus) {
+    if (!isOpen()) return;
+    panel.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+    button.removeAttribute('aria-controls');
+    document.removeEventListener('pointerdown', outside, true);
+    globalThis.removeEventListener?.('resize', align);
+    if (returnFocus) button.focus({ preventScroll: true });
+  }
+
+  function open(where) {
+    if (!isOpen()) {
+      panel.hidden = false;
+      button.setAttribute('aria-expanded', 'true');
+      button.setAttribute('aria-controls', id);
+      // ADR-0028: capturing, because a control inside the page stops the event before it reaches the document.
+      document.addEventListener('pointerdown', outside, true);
+      // ADR-0028: a change of the window size aligns the open menu again; the listener lives only while it is open.
+      globalThis.addEventListener?.('resize', align);
+      align();
+    }
+    const list = [...items.values()].map((v) => v.node);
+    const target = where === 'last' ? list.at(-1) : where === 'first' ? list[0] : (list.find((n) => n.getAttribute('aria-checked') === 'true') ?? list[0]);
+    target?.focus({ preventScroll: true });
+  }
+
+  function makeItem(machine) {
+    const parts = { icon: el('span', { class: 'mf-menu-icon' }), label: el('span', { class: 'mf-menu-label' }), off: el('span', { class: 'mf-menu-off' }, ' sem conexão'), count: el('span', { class: 'mf-menu-count' }), check: el('span', { class: 'mf-menu-check' }, icon('done')) };
+    const node = el('button', { type: 'button', role: 'menuitemradio', tabindex: '-1', class: 'mf-menu-item', 'data-machine': machine, 'aria-checked': 'false', onClick: () => (close(true), pick(machine)) }, parts.icon, parts.label, parts.count, parts.check);
+    return { node, parts };
+  }
+
+  function draw(entries, choice, counts) {
+    const focused = [...items].find(([, v]) => v.node === document.activeElement)?.[0] ?? null;
+    const order = [...items.keys()];
+    const next = new Map();
+    for (const e of entries) {
+      const item = items.get(e.id) ?? makeItem(e.id);
+      const { node, parts } = item;
+      if (node.getAttribute('data-icon') !== menuIcon(e.id, e.down)) {
+        node.setAttribute('data-icon', menuIcon(e.id, e.down));
+        parts.icon.replaceChildren(icon(menuIcon(e.id, e.down)));
+      }
+      if (parts.label.textContent !== e.label) parts.label.textContent = e.label;
+      if (e.down && !parts.off.parentNode) node.insertBefore(parts.off, parts.count);
+      else if (!e.down && parts.off.parentNode) parts.off.remove();
+      const n = counts[e.id];
+      const count = Number.isInteger(n) && !e.down ? String(n) : '';
+      if (parts.count.textContent !== count) parts.count.textContent = count;
+      node.setAttribute('aria-checked', e.id === choice ? 'true' : 'false');
+      if (e.down) node.setAttribute('class', 'mf-menu-item mf-off');
+      else node.setAttribute('class', 'mf-menu-item');
+      next.set(e.id, item);
+    }
+    const nodes = [...next.values()].map((v) => v.node);
+    if (nodes.length !== panel.children.length || nodes.some((n, i) => panel.children[i] !== n)) panel.replaceChildren(...nodes);
+    items = next;
+    const chosen = entries.find((e) => e.id === choice);
+    const text = chosen?.label ?? (choice === LOCAL ? LOCAL_LABEL : choice === ALL ? ALL_LABEL : 'Máquina remota');
+    const which = menuIcon(choice, chosen?.down);
+    if (lead.getAttribute('data-icon') !== which) {
+      lead.setAttribute('data-icon', which);
+      lead.replaceChildren(icon(which));
+    }
+    if (name.textContent !== text) name.textContent = text;
+    if (chosen?.down && !off.parentNode) button.insertBefore(off, button.lastChild);
+    else if (!chosen?.down && off.parentNode) off.remove();
+    if (isOpen()) align();
+    if (focused === null || !isOpen()) return;
+    // ADR-0028: the option under the focus is gone: the next one, else the one before it, else the button.
+    const at = order.indexOf(focused);
+    const sensible = [focused, ...order.slice(at + 1), ...order.slice(0, at).reverse()].find((k) => next.has(k));
+    const target = sensible ? next.get(sensible).node : button;
+    if (document.activeElement !== target) target.focus({ preventScroll: true });
+  }
+
+  function keydown(ev) {
+    const list = [...items.values()].map((v) => v.node);
+    if (!isOpen()) {
+      if (ev.target === button && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) {
+        ev.preventDefault();
+        open(ev.key === 'ArrowDown' ? 'first' : 'last');
+      }
+      return;
+    }
+    const at = list.indexOf(document.activeElement);
+    const go = (i) => (ev.preventDefault(), list[(i + list.length) % list.length]?.focus({ preventScroll: true }));
+    if (ev.key === 'ArrowDown') go(at + 1);
+    else if (ev.key === 'ArrowUp') go(at < 0 ? -1 : at - 1);
+    else if (ev.key === 'Home') go(0);
+    else if (ev.key === 'End') go(-1);
+    else if (ev.key === 'Escape') (ev.preventDefault(), close(true));
+    else if (ev.key === 'Tab') close(true);
+  }
+
+  button.addEventListener('click', () => (isOpen() ? close(false) : open('checked')));
+  root.addEventListener('keydown', keydown);
+  signal?.addEventListener?.('abort', () => close(false));
+
+  return {
+    root,
+    button,
+    draw,
+    close,
+    /** ADR-0028: whether the focus is inside the control, to put it somewhere when the control goes away. */
+    holdsFocus: () => root.contains(document.activeElement),
+    fallbackFocus,
+  };
+}
+
 /**
  * The filter of one screen. `onChange(choice)` re-reads the screen with the new choice; `reread()` is
  * the screen's quiet re-read (the periodic one and the machine changes). A screen with a clock of its own
@@ -289,8 +461,12 @@ export function machineControl(machines, choice, onChoose) {
  * - `parts()`: `[row, notices]` when there is a remote, else `[]` (the screen exactly as before);
  * - `hasRemotes()`, `machines()`, `chosenDown()` (the chosen remote is down: the empty list says no more);
  * - `recover(error)`: a choice the core no longer knows goes back to Todas (true when it did).
+ *
+ * With `menu: { itemsOf(body) }` (the wall, ADR-0028) the control is a button with a menu and a number per machine, from the
+ * items `itemsOf` takes of an answer; `row` holds it (the screen places it), `parts()` is the notices only, and when the
+ * last remote goes while the focus is in it, `fallbackFocus()` says where the focus goes.
  */
-export function createMachineFilter(ctx, { onChange = () => {}, reread = onChange, onLayout = () => {}, periodic = true, watchChanges = true } = {}) {
+export function createMachineFilter(ctx, { onChange = () => {}, reread = onChange, onLayout = () => {}, periodic = true, watchChanges = true, menu = null, fallbackFocus = () => null } = {}) {
   let choice = initialChoice(globalThis.location?.search ?? '');
   rememberChoice(choice);
   let known = [];
@@ -302,6 +478,10 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
   // Nothing on screen until an answer says there is a remote.
   row.hidden = true;
   notices.hidden = true;
+  const menuUi = menu ? createMenu({ pick: (id) => choose(id), signal: ctx.signal, fallbackFocus }) : null;
+  if (menuUi) row.append(menuUi.root);
+  // ADR-0028: the items of the last answer, for the numbers of the menu; forgotten when the choice changes (they were of the old one).
+  let lastItems = null;
 
   function writeUrl() {
     const l = globalThis.location;
@@ -317,19 +497,43 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     choice = fresh;
     rememberChoice(choice);
     writeUrl();
+    lastItems = null;
     draw();
     onChange(choice);
   }
 
   function draw() {
     const remotes = remotesOf(known).length > 0;
-    row.replaceChildren(...(remotes ? [machineControl(known, choice, choose)] : []));
+    // ADR-0028: the control is drawn again on every answer; the focus stays on the same machine.
+    const held = !menuUi && row.contains(document.activeElement) ? document.activeElement.getAttribute('data-machine') : null;
+    // ADR-0028: the link of a notice is found again by the machine of its notice; with the notice gone, the focus goes to that machine's segment.
+    const heldNotice = notices.contains(document.activeElement) ? (document.activeElement.closest?.('.mf-notice')?.getAttribute('data-machine') ?? null) : null;
+    if (menuUi) drawMenu(remotes);
+    else row.replaceChildren(...(remotes ? [machineControl(known, choice, choose)] : []));
     row.hidden = !remotes;
+    // ADR-0028: with every remote gone the button is hidden, and a hidden control is never a place for the focus.
+    const segment = (id) => (menuUi ? (remotes ? menuUi.button : menuUi.fallbackFocus()) : [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === id));
+    if (held !== null) segment(held)?.focus({ preventScroll: true });
     const now = Date.now();
     const down = remotes ? downFor(known, choice) : [];
     notices.replaceChildren(...down.map((m) => downNotice(m, { now })));
     notices.hidden = down.length === 0;
+    if (heldNotice !== null) {
+      const notice = [...notices.querySelectorAll('.mf-notice')].find((n) => n.getAttribute('data-machine') === heldNotice);
+      (notice?.querySelector('.mf-notice-link') ?? segment(heldNotice))?.focus({ preventScroll: true });
+    }
     tick();
+  }
+
+  function drawMenu(remotes) {
+    if (!remotes) {
+      const inside = menuUi.holdsFocus();
+      menuUi.close(false);
+      if (inside) menuUi.fallbackFocus()?.focus?.({ preventScroll: true });
+      return;
+    }
+    const entries = [{ id: ALL, label: ALL_LABEL, down: false }, ...normalizeMachines(known).map((m) => ({ id: m.id, label: m.label, down: isDown(m) }))];
+    menuUi.draw(entries, choice, lastItems ? machineCounts(lastItems, known, choice) : {});
   }
 
   /** The periodic re-read runs only while a remote is known. */
@@ -386,13 +590,14 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     route: (apiRoute) => routeWithMachine(apiRoute, choice),
     update(body) {
       if (!Array.isArray(body?.machines)) return;
+      if (menu) lastItems = menu.itemsOf(body) ?? [];
       merge(body.machines, choice === ALL);
       draw();
     },
     row,
     notices,
     control: () => (remotesOf(known).length ? machineControl(known, choice, choose) : null),
-    parts: () => (remotesOf(known).length ? [row, ...(notices.hidden ? [] : [notices])] : []),
+    parts: () => (remotesOf(known).length ? [...(menuUi ? [] : [row]), ...(notices.hidden ? [] : [notices])] : []),
     hasRemotes: () => remotesOf(known).length > 0,
     machines: () => known,
     chosenDown: () => choice !== ALL && choice !== LOCAL && known.some((m) => m.id === choice && isDown(m)),

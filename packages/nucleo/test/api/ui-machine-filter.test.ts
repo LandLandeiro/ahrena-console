@@ -2,7 +2,9 @@
 // part of ui/machine-filter.js, the feed's insertion by `createdAt`, and the screens mounted in the fake
 // DOM against a stubbed core: the filter, the tag, the C48 notice and the remote Detail. Synthetic data.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, test } from 'node:test';
+import { UI_FOLDER } from '../../src/api/ui.ts';
 import { ElementoFalso, documentoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 
 instalarDomFalso();
@@ -31,6 +33,8 @@ Object.assign(globalThis, {
 
 // @ts-expect-error: browser modules, plain JavaScript
 const mf = await import('../../ui/machine-filter.js');
+// @ts-expect-error: idem
+const { ICON_NAMES } = await import('../../ui/dom.js');
 // @ts-expect-error: idem
 const feedState = await import('../../ui/screens/feed-state.js');
 // @ts-expect-error: idem
@@ -199,6 +203,39 @@ describe('machine-filter: the choice, the URL and the routes', () => {
   });
 });
 
+describe('machine-filter: the machine with its icon (#751)', () => {
+  test('machineLabel: the name and the icon, a laptop for this machine and a server for a remote', () => {
+    assert.deepEqual(mf.machineLabel({ id: 's1' }), { remote: false, icon: 'laptop', text: mf.LOCAL_LABEL });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: { id: 'local', label: 'Esta máquina' } }), { remote: false, icon: 'laptop', text: 'Esta máquina' });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: WS }), { remote: true, icon: 'server', text: 'Workstation' });
+    assert.deepEqual(mf.machineLabel({ id: 's1', machine: { id: 'ws' } }), { remote: true, icon: 'server', text: 'Máquina remota' });
+  });
+
+  test('machineMark: the icon and the name written, as text', () => {
+    const mark = mf.machineMark({ id: 's1', machine: { id: 'ws', label: '<i>x</i>' } });
+    assert.ok(mark.classList.contains('mf-mach'));
+    assert.equal(mark.querySelectorAll('svg').length, 1);
+    assert.equal(texto(mark), '<i>x</i>');
+    assert.equal(texto(mf.machineMark({ id: 's1' })), 'Esta máquina');
+  });
+
+  test('machineMark: the name carries the whole text in its title, local or remote, the long one included (#751)', () => {
+    const long = 'Estação de trabalho do time de plataforma e de dados, sala 4';
+    const named = (item: unknown) => mf.machineMark(item).querySelectorAll('span').find((n: { textContent: string }) => n.textContent !== '')!;
+    assert.equal(named({ id: 's1' }).getAttribute('title'), 'Esta máquina');
+    assert.equal(named({ id: 's1', machine: WS }).getAttribute('title'), 'Workstation');
+    assert.equal(named({ id: 's1', machine: { id: 'ws', label: long } }).getAttribute('title'), long);
+    assert.equal(named({ id: 's1', machine: { id: 'ws' } }).getAttribute('title'), 'Máquina remota');
+    assert.equal(mf.machineMark({ id: 's1', machine: WS }).getAttribute('aria-label'), null, 'the visible text already is the name: nothing added for the reader');
+  });
+
+  test('the laptop icon exists and the sheet draws it at 14px, opacity .8', () => {
+    assert.ok(ICON_NAMES.includes('laptop'));
+    const css = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8');
+    assert.match(css.match(/^\.mf-mach \.icon \{([^}]*)\}/m)![1]!, /width:\s*14px[^}]*height:\s*14px[^}]*opacity:\s*\.8|opacity:\s*\.8[^}]*14px/);
+  });
+});
+
 describe('machine-filter: the tag, the notice and the control', () => {
   test('the tag only on a remote item; the icon-only one says the machine in the tooltip', () => {
     assert.equal(mf.machineTag({ id: 's1' }), null);
@@ -219,6 +256,27 @@ describe('machine-filter: the tag, the notice and the control', () => {
     assert.equal(n.getAttribute('role'), 'status');
     assert.match(texto(n), /^Workstation sem conexão desde \d\d:\d\d \(há .+\)\. As sessões de lá voltam quando ela responder\. Ver a Workstation$/);
     assert.equal(one(n, 'a')!.getAttribute('href'), '/ui/machines/ws');
+  });
+
+  test('#751: a redraw keeps the focus on the link of a notice, and on the machine segment when the notice is gone; a screen with no focus there is untouched', () => {
+    setUrl('/ui');
+    mf.resetMachineChoice();
+    const filter = mf.createMachineFilter({ read: async () => ({}), onChange: () => {}, signal: new AbortController().signal }, { periodic: false, watchChanges: false });
+    const host = new ElementoFalso('main');
+    host.append(filter.row, filter.notices);
+    filter.update({ machines: machinesDown });
+    const link = one(filter.notices, '.mf-notice[data-machine="ws"] .mf-notice-link')!;
+    link.focus();
+    filter.update({ machines: machinesDown });
+    const now = one(filter.notices, '.mf-notice[data-machine="ws"] .mf-notice-link')!;
+    assert.notEqual(now, link);
+    assert.equal(documentoFalso.activeElement, now);
+    filter.update({ machines: machinesUp });
+    assert.equal(one(filter.notices, '.mf-notice'), null);
+    assert.equal(documentoFalso.activeElement, one(filter.row, '[data-machine="ws"]'));
+    documentoFalso.activeElement = null;
+    filter.update({ machines: machinesDown });
+    assert.equal(documentoFalso.activeElement, null, 'nothing is focused by a redraw that had no focus in the filter');
   });
 
   test('the control: Todas, Esta máquina and one segment per remote, by its label; a remote that is down is grey', () => {
@@ -306,20 +364,24 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     assert.deepEqual(f.routes, ['/api/wall?machine=all']);
     assert.equal(all(area, '.mf-filter').length, 0);
     assert.equal(all(area, '.mf-tag').length, 0);
+    assert.equal(all(area, '.mf-mach').length, 0, 'no remote known: no machine mark either (#751)');
     assert.equal(all(area, '.mf-notice').length, 0);
     f.leave.abort();
   });
 
   test('with a remote: the filter on its own row, the tag only on the remote card, the remote card opens the remote Detail with its open action off', async () => {
     setUrl('/ui/wall');
-    const f = context(() => ({ count: {}, cards: [wallCard('s1'), wallCard('s1', { machine: WS, open: { target: 'remote', command: null } })], machines: machinesUp }));
+    const needs = { status: 'waiting', attention: { level: 'blocked', reason: 'question' } };
+    const f = context(() => ({ count: {}, cards: [wallCard('s1', needs), wallCard('s1', { ...needs, machine: WS, open: { target: 'remote', command: null } })], machines: machinesUp }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    assert.equal(all(area, '.mf-row .mf-filter').length, 1);
+    assert.equal(all(area, '.mf-row [aria-haspopup="menu"]').length, 1, 'the wall (#752): a button with a menu, not the loose segments');
+    assert.equal(all(area, '.mf-seg').length, 0);
     const cards = all(area, '.wall-card');
     assert.deepEqual(cards.map((c) => c.getAttribute('data-key')), ['local:s1', 'ws:s1']);
     assert.equal(all(cards[0]!, '.mf-tag').length, 0);
-    assert.equal(texto(one(cards[1]!, '.wall-prj')), 'projeto-exemplo · feat/1-exemplo Workstation', 'the tag shares the project line');
+    assert.equal(texto(one(cards[0]!, '.mf-mach')), 'Esta máquina', 'with a remote known, this one is named too (#751)');
+    assert.equal(texto(one(cards[1]!, '.mf-mach')), 'Workstation', 'the remote one always, with its name written (#751)');
     assert.equal(one(cards[1]!, 'a.wall-link')!.getAttribute('href'), '/ui/sessions/s1?machine=ws');
     assert.equal(one(cards[0]!, 'a.wall-link')!.getAttribute('href'), '/ui/sessions/s1');
     const off = one(cards[1]!, '.open-action button')!;
@@ -335,11 +397,14 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const f = context(() => ({ count: {}, cards: [], machines: machinesUp }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    one(area, '.mf-seg button[data-machine="ws"]')!.click();
+    const menuItem = (id: string) => one(area, `[role="menuitemradio"][data-machine="${id}"]`)!;
+    one(area, '[aria-haspopup="menu"]')!.click();
+    menuItem('ws').click();
     await until(() => f.routes.includes('/api/wall?machine=ws'), 'the read of the chosen machine');
     assert.equal(page.search, '?machine=ws');
     assert.equal(mf.initialChoice(''), 'ws');
-    one(area, '.mf-seg button[data-machine="all"]')!.click();
+    one(area, '[aria-haspopup="menu"]')!.click();
+    menuItem('all').click();
     await until(() => f.routes.at(-1) === '/api/wall?machine=all');
     assert.equal(page.search, '', 'Todas leaves the URL');
     f.leave.abort();
@@ -353,16 +418,58 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     assert.equal(all(area, '.mf-notice').length, 1);
     assert.match(texto(one(area, '.mf-notice')), /^Workstation sem conexão desde/);
     assert.equal(all(area, '.error-band').length, 0);
-    assert.ok(one(area, '.mf-seg button[data-machine="ws"]')!.classList.contains('mf-off'));
-    assert.equal(all(area, '.wall-card').length, 1, 'this machine\'s list stays');
+    assert.ok(one(area, '[role="menuitemradio"][data-machine="ws"]')!.classList.contains('mf-off'));
+    assert.equal(all(area, '.wall-row').length, 1, 'this machine\'s list stays');
 
-    one(area, '.mf-seg button[data-machine="ws"]')!.click();
+    one(area, '[aria-haspopup="menu"]')!.click();
+    one(area, '[role="menuitemradio"][data-machine="ws"]')!.click();
     await until(() => f.routes.includes('/api/wall?machine=ws'));
     await tick();
     assert.equal(all(area, '.mf-notice').length, 1);
-    assert.equal(all(area, '.wall-card').length, 0);
+    assert.equal(all(area, '.wall-row').length, 0);
     assert.equal(all(area, '.state').length, 0, 'no empty card: the notice says why');
-    assert.equal(all(area, '.mf-seg button').length, 3, 'the other segments stay');
+    assert.equal(all(area, '[role="menuitemradio"]').length, 3, 'the other options stay');
+    f.leave.abort();
+  });
+
+  test('#752: a chosen machine that is down says nothing about it: no sentence and no numbers; with cards it behaves as usual', async () => {
+    setUrl('/ui/wall?machine=ws');
+    const f = context((route) => (route === '/api/machines' ? machinesDown : { count: {}, cards: [], machines: [machinesDown[1]] }));
+    const area = new ElementoFalso('main');
+    await wall.mount(area, f.ctx);
+    await until(() => all(area, '.wall-summary').length === 1 && all(area, '.wall-seg-n').length > 0 && f.routes.includes('/api/wall?machine=ws'));
+    await tick();
+    assert.equal(texto(one(area, '.wall-summary')).trim(), '', 'no "Nada precisa de você agora."');
+    assert.deepEqual(all(area, '.wall-seg-n').map((n) => texto(n)), ['', '', '', ''], 'the segments hold no zeros');
+    f.leave.abort();
+
+    const live = context((route) => (route === '/api/machines' ? machinesDown : { count: {}, cards: [wallCard('s1')], machines: [machinesDown[1]] }));
+    const again = new ElementoFalso('main');
+    await wall.mount(again, live.ctx);
+    await until(() => all(again, '.wall-row').length === 1);
+    assert.match(texto(one(again, '.wall-summary')), /ativa/);
+    assert.equal(texto(all(again, '.wall-seg-n')[0]!), '1');
+    live.leave.abort();
+  });
+
+  test('#752: while the read of a newly chosen machine is on its way the sentence and the numbers are empty, and they come back with the answer', async () => {
+    setUrl('/ui/wall');
+    const f = context((route) => (route.includes('machine=ws') ? { count: {}, cards: [wallCard('w1')], machines: machinesUp } : { count: {}, cards: [wallCard('s1')], machines: machinesUp }));
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const read = f.ctx.read;
+    let asked = false;
+    f.ctx.read = async (route: string) => (route.includes('/api/wall?machine=ws') ? ((asked = true), await gate, read(route)) : read(route));
+    const area = new ElementoFalso('main');
+    await wall.mount(area, f.ctx);
+    await until(() => /ativa/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
+    one(area, '[aria-haspopup="menu"]')!.click();
+    one(area, '[role="menuitemradio"][data-machine="ws"]')!.click();
+    await until(() => asked, 'the read of the chosen machine');
+    assert.equal(texto(one(area, '.wall-summary')).trim(), '', 'the sentence of the other machine is gone');
+    assert.deepEqual(all(area, '.wall-seg-n').map((n) => texto(n)), ['', '', '', ''], 'and so are the numbers');
+    release();
+    await until(() => /ativa/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
     f.leave.abort();
   });
 
@@ -371,9 +478,9 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const f = context((route) => (route === '/api/machines' ? machinesUp : { count: {}, cards: [], machines: [machinesUp[1]] }));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    await until(() => all(area, '.mf-seg button').length === 3, 'the three segments');
+    await until(() => all(area, '[role="menuitemradio"]').length === 3, 'the three options');
     assert.ok(f.routes.includes('/api/machines'));
-    assert.equal(one(area, '.mf-seg button[aria-pressed="true"]')!.getAttribute('data-machine'), 'ws');
+    assert.equal(one(area, '[role="menuitemradio"][aria-checked="true"]')!.getAttribute('data-machine'), 'ws');
     f.leave.abort();
   });
 
@@ -776,5 +883,15 @@ describe('the Detail of a remote session (C49)', () => {
       f.leave.abort();
       stop?.();
     }
+  });
+});
+
+describe('#751: the machine selector is a control: the control border and the --accent-line ring', () => {
+  const sheet = readFileSync(`${UI_FOLDER}machine-filter.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const body = (selector: string) => [...sheet.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].find((m) => m[1]!.trim() === selector)?.[2] ?? '';
+  test('the box uses --border-control and the focus is 2px --accent-line, offset 2px', () => {
+    assert.match(body('.mf-seg'), /border:\s*1px solid var\(--border-control\)/);
+    assert.match(body('.mf-seg button:focus-visible'), /outline:\s*2px solid var\(--accent-line\)/);
+    assert.match(body('.mf-seg button:focus-visible'), /outline-offset:\s*2px/);
   });
 });

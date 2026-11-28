@@ -24,6 +24,9 @@ class No {
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
   }
+  contains(outro: unknown): boolean {
+    return outro === this || this.filhos.some((f) => f.contains(outro));
+  }
   /** Todos os elementos abaixo deste que passam no teste. */
   todos(teste: (e: Elemento) => boolean): Elemento[] {
     const out: Elemento[] = [];
@@ -230,7 +233,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       // issue 285: the card is a div; "Abrir ›" is the link to the Detail.
       assert.deepEqual(minis.flatMap((m) => m.todos((e) => e.tag === 'a').map((a) => a.getAttribute('href'))), ['/ui/sessions/sim-panel-motor-de-regras']);
       assert.match(minis[0]!.textContent, /Pede permissão.*motor-de-regras.*Bash: npm run migrate.*Opus 5\.5.*Abrir/);
-      assert.equal(contadores.dashboard, 1, 'the sidebar number counts only who needs you');
+      assert.deepEqual(contadores, {}, 'the number of who waits is on the Mural, read by the shell (issue 750)');
 
       const idle = comClasse(area, 'dash-idle')[0]!;
       assert.match(idle.textContent, /^1 ociosa · sem pressaInterrompidaapp-receitasVer em Sessões$/);

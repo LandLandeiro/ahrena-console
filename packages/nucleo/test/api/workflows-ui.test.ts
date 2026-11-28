@@ -247,3 +247,20 @@ describe('formatos e registro', () => {
     }
   });
 });
+
+describe('#750 the Workflows header wraps before the three filters need more than the window has', () => {
+  const css = readFileSync(`${UI_FOLDER}screens/workflows.css`, 'utf8');
+  const block = (query: string) => css.slice(css.indexOf(`@media (max-width: ${query}px) {`)).split(/\n}\n/)[0]!;
+
+  test('the header wrap rules sit at 1200 px, the KPI columns stay at 1000 px', () => {
+    assert.match(block('1200'), /\.cc-head:has\(\.wf-seg\) \{ flex-wrap: wrap; \}/);
+    assert.match(block('1200'), /\.cc-head:has\(\.wf-seg\) > div:nth-child\(2\) \{ flex: 1 1 0; min-width: 240px; \}/);
+    assert.doesNotMatch(block('1200'), /wf-kpis/);
+    assert.match(block('1000'), /\.wf-kpis \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
+    assert.doesNotMatch(block('1000'), /wf-seg/);
+  });
+
+  test('the KPI card keeps 10 px at the sides, so "Profundidade" fits its label at 1100 px', () => {
+    assert.match(css, /\.wf-kpi \{ padding: 12px 10px;/);
+  });
+});
