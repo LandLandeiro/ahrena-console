@@ -1,12 +1,12 @@
-// The switch of screen (issue 765): the screen that was open stays, inert, over the area until the new one has its
-// data or 300 ms pass; only then does a skeleton with the shape of the new screen take its place. The new screen
-// mounts in the real area underneath, so its focus, scroll and measures are the ones it always had.
+/* #765: the switch of screen. The screen that was open stays, inert, over the area until the new one has its
+   data or 300 ms pass; only then does a skeleton with the shape of the new screen take its place. The new screen
+   mounts in the real area underneath, so its focus, scroll and measures are the ones it always had. */
 
 import { skeleton as shapeSkeleton } from './skeletons.js';
 
 export const SWAP_DELAY_MS = 300;
 
-/** Anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data. */
+/** #765: anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data. */
 const hasData = (area) => area.children.length > 0 && !area.querySelector('[aria-busy="true"]');
 
 function watchArea(area, check) {
@@ -36,7 +36,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
   function begin(screenId) {
     wanted = screenId;
     if (ghost) {
-      // Still waiting for an earlier screen: the person keeps seeing the one they left, not a half-built one.
+      // #765: still waiting for an earlier screen: the person keeps seeing the one they left, not a half-built one.
       area.replaceChildren();
       return;
     }

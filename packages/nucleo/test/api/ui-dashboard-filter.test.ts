@@ -1,5 +1,5 @@
-// #765 (M6): the machine filter of the Dashboard keeps the content on screen until the new one arrives, and a redraw
-// puts the keyboard focus back where it was, the way the Mural does.
+/* #765 (M6): the machine filter of the Dashboard keeps the content on screen until the new one arrives, and a redraw
+   puts the keyboard focus back where it was, the way the Mural does. */
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 import { ElementoFalso, documentoFalso, instalarDomFalso } from './fake-dom.ts';

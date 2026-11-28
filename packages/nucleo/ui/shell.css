@@ -211,20 +211,20 @@ button { font: inherit; cursor: pointer; }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn[aria-busy="true"] .icon, .btn[aria-busy="true"]::before { animation: none; } }
 
-/* ---------- the switch of screen (issue 765): the screen that was open stays under .cc-ghost, then a skeleton with the shape of the new one. No motion. ---------- */
+/* ---------- the switch of screen (#765): the screen that was open stays under .cc-ghost, then a skeleton with the shape of the new one. No motion. ---------- */
 .cc-col { position: relative; }
-.cc-ghost { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; overflow: hidden; padding: 20px 24px 24px; background: var(--bg); display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
-.sk { display: flex; flex-direction: column; gap: 16px; }
-.sk-title { height: 38px; width: 220px; max-width: 60%; border-radius: 10px; background: var(--raised); }
-.sk-bar { height: 36px; border-radius: 10px; background: var(--raised); }
-.sk-row { height: 44px; border-radius: 10px; background: var(--raised); }
-.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.cc-ghost { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; overflow: hidden; padding: 20px 24px 24px; background: var(--bg); display: flex; flex-direction: column; gap: var(--space-xl); pointer-events: none; }
+.sk { display: flex; flex-direction: column; gap: var(--space-xl); }
+.sk-title { height: 38px; width: 220px; max-width: 60%; border-radius: var(--radius-card); background: var(--raised); }
+.sk-bar { height: 36px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-row { height: 44px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-xl); }
 .sk-grid-stats { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 .sk-grid-two { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-.sk-card { height: 252px; border-radius: 12px; background: var(--raised); }
-.sk-stat { height: 96px; border-radius: 12px; background: var(--raised); }
-.sk-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.sk-column { height: 420px; border-radius: 12px; background: var(--raised); }
-.sk-head { height: 72px; border-radius: 12px; background: var(--raised); }
-.sk-notice { height: 48px; border-radius: 12px; background: var(--raised); }
-.sk-block { height: 88px; border-radius: 12px; background: var(--raised); }
+.sk-card { height: 252px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-stat { height: 96px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-columns { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-xl); }
+.sk-column { height: 420px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-head { height: 72px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-notice { height: 48px; border-radius: var(--radius-card); background: var(--raised); }
+.sk-block { height: 88px; border-radius: var(--radius-card); background: var(--raised); }

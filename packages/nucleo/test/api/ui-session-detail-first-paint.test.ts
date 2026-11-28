@@ -1,5 +1,5 @@
-// #765 (M5): the session detail paints its header and notice first, with what the list already knew (title, state,
-// reason), and the conversation after, in blocks: the last 30 first, the older ones in the next turns of the loop.
+/* #765 (M5): the session detail paints its header and notice first, with what the list already knew (title, state,
+   reason), and the conversation after, in blocks: the last 30 first, the older ones in the next turns of the loop. */
 import assert from 'node:assert/strict';
 import { afterEach, describe, test } from 'node:test';
 import { ElementoFalso, documentoFalso, instalarDomFalso } from './fake-dom.ts';
@@ -154,7 +154,7 @@ describe('The conversation comes in blocks (#765, M5)', () => {
   test('a tool-only run is not cut from the reply it folds into', async () => {
     const msgs = many(60);
     const tool = { id: 't', name: 'Bash', summary: 'npm test', state: 'ok', input: 'npm test', result: 'ok' };
-    // m28..m30 are assistant turns with tools and no text: they fold into the reply that follows (m31)
+    // #765: m28..m30 are assistant turns with tools and no text: they fold into the reply that follows (m31)
     for (const i of [28, 29, 30]) msgs[i] = bot(`m${i}`, null, [tool]);
     msgs[31] = bot('m31', 'resposta 31');
     const h = harness(msgs);
@@ -168,7 +168,7 @@ describe('The conversation comes in blocks (#765, M5)', () => {
     const ref = harness(msgs);
     const whole = frame();
     await detail.mount(whole, ref.ctx);
-    // the same entries a single build would give: the folded run belongs to one row, with the same key
+    // #765: the same entries a single build would give: the folded run belongs to one row, with the same key
     assert.deepEqual(all, mids(whole).length === all.length ? mids(whole) : all);
     h.leave.abort();
     ref.leave.abort();

@@ -433,7 +433,7 @@ export async function mount(area, ctx) {
     }
     drawFilters(list.directories, list.counts);
     if (list.items.length) {
-      // Issue 765: the detail of a session opens with its header from what this list showed.
+      // #765: the detail of a session opens with its header from what this list showed.
       rememberSessions(list.items);
       messageCells = new Map();
       body.replaceChildren(table(list), footer(list));

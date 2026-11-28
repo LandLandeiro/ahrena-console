@@ -1,5 +1,5 @@
-// #765: the switch of screen. The screen that was open stays (inert, over the area) until the new one has its data
-// or 300 ms pass; only then a skeleton with the shape of the screen shows, and it does not pulse.
+/* #765: the switch of screen. The screen that was open stays (inert, over the area) until the new one has its data
+   or 300 ms pass; only then a skeleton with the shape of the screen shows, and it does not pulse. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

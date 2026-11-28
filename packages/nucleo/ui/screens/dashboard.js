@@ -357,7 +357,7 @@ export async function mount(area, ctx) {
   // re-read (BACKGROUND_MS) and its re-read on every change already cover the remotes: the filter adds no
   // timer and no debounce of its own (the slow /api/dashboard is never read twice for one tick).
   const machines = createMachineFilter(ctx, {
-    // Issue 765: the screen keeps what it shows until the new answer arrives; the area says it is busy meanwhile.
+    // #765: the screen keeps what it shows until the new answer arrives; the area says it is busy meanwhile.
     onChange: () => ((last = null), area.setAttribute('aria-busy', 'true'), draw()),
     onLayout: () => last && paint(last),
     periodic: false,
@@ -365,7 +365,7 @@ export async function mount(area, ctx) {
   });
   area.replaceChildren(head, loading({ label: 'Lendo as sessões' }));
 
-  // Issue 765: a redraw keeps the nodes that did not change and puts the focus back, as the Mural does (wall.js `place`).
+  // #765: a redraw keeps the nodes that did not change and puts the focus back, as the Mural does (wall.js `place`).
   function place(nodes) {
     const doc = globalThis.document;
     const was = doc?.activeElement && area.contains(doc.activeElement) ? doc.activeElement : null;

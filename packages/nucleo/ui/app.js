@@ -35,9 +35,9 @@ port.textContent = location.host;
  */
 const shellRead = shareReads(read);
 const gate = createScreenGate();
-// Issue 765: the screen that was open stays until the new one has its data or 300 ms pass; then a skeleton with its shape.
+// #765: the screen that was open stays until the new one has its data or 300 ms pass; then a skeleton with its shape.
 const swap = createScreenSwap({ area });
-// Issue 765: until the first screen has settled the shell takes the answers the screen read, so a route is not asked twice.
+// #765: until the first screen has settled the shell takes the answers the screen read, so a route is not asked twice.
 let coldLoad = true;
 gate.ready.then(() => {
   coldLoad = false;
