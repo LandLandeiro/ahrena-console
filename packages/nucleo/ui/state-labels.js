@@ -119,16 +119,3 @@ export function stateLabels(spec, options) {
 
 /** The name of a column of the work board, by its id (the same in both modes), or `null`. */
 export const boardColumnLabel = (id) => (typeof id === 'string' && Object.hasOwn(BOARD_COLUMNS, id) ? BOARD_COLUMNS[id] : null);
-
-/** The ids of the board's columns, in order. */
-export const boardColumnIds = () => Object.keys(BOARD_COLUMNS);
-
-/** Every state with its kind and both columns, as plain data (a copy), for a test or a legend. */
-export function stateEntries() {
-  return Object.entries(STATES).map(([id, s]) => ({
-    id,
-    kind: s.kind,
-    dev: { label: s.dev[0], plural: s.dev[1] ?? null },
-    project: { label: s.project[0], plural: s.project[1] ?? null },
-  }));
-}

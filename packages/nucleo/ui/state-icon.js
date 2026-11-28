@@ -2,7 +2,7 @@
 
 import { el } from './dom.js';
 import { ATTENTION_REASONS, attentionOf, statusWithoutAttention } from './attention.js';
-import { kindLabel, stateLabel } from './state-labels.js';
+import { kindLabel, stateKind, stateLabel } from './state-labels.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -55,18 +55,15 @@ export function stateTag({ kind, label = null, fraction = 0 } = {}) {
   return el('span', { class: 'state-tag', 'data-state-kind': kind }, stateIcon(kind, { fraction }), el('span', { class: 'state-tag-label', title: text }, text));
 }
 
-/** The kind and the label of a session by its attention and its status, in the words of the current mode. */
+/** The kind and the label of a session by its attention and its status, in the words of the current mode: both come from the id in state-labels.js. */
 export function stateOfSession({ attention = null, status = null } = {}) {
   const a = attentionOf(attention);
-  if (a?.level === 'blocked') {
-    const reason = a.reason && ATTENTION_REASONS[a.reason]?.level === 'blocked' ? a.reason : null;
-    if (reason === 'permission' || reason === 'error') return { kind: reason, label: stateLabel(reason) };
-    return { kind: 'needs', label: stateLabel(reason ?? 'blocked') };
+  let id = 'active';
+  if (a?.level === 'blocked') id = a.reason && ATTENTION_REASONS[a.reason]?.level === 'blocked' ? a.reason : 'blocked';
+  else if (a?.level === 'idle') id = 'idle';
+  else {
+    const s = statusWithoutAttention(status);
+    if (s === 'completed' || s === 'error' || s === 'abandoned') id = s;
   }
-  if (a?.level === 'idle') return { kind: 'paused', label: stateLabel('idle') };
-  const s = statusWithoutAttention(status);
-  if (s === 'completed') return { kind: 'completed', label: stateLabel('completed') };
-  if (s === 'error') return { kind: 'error', label: stateLabel('error') };
-  if (s === 'abandoned') return { kind: 'paused', label: stateLabel('abandoned') };
-  return { kind: 'working', label: stateLabel('active') };
+  return { kind: stateKind(id), label: stateLabel(id) };
 }
