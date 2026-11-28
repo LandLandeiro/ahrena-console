@@ -208,7 +208,7 @@ describe('Dev Console: pure parts', () => {
       ['Prontos', 3],
       ['CI rodando', 1],
       ['CI vermelho', 2],
-      ['Trabalhando', 1],
+      ['Ativa', 1],
       ['Precisam de você', 1],
     ]);
     assert.equal(cards[1].sub, '#83');

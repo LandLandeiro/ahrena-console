@@ -186,7 +186,9 @@ describe('the work board files: served, and the /ui file rules', () => {
   });
 
   test('the on-screen copy mirrors the domain: the six columns, the reasons and the four levels', () => {
-    assert.deepEqual(COLUMNS, WORK_BOARD_COLUMNS.map(({ id, label, criterion }) => ({ id, label, criterion })));
+    // #760: the names come from ui/state-labels.js by column id; the core's payload `label` ("Em review", "Bloqueado") is not drawn.
+    assert.deepEqual(COLUMNS.map(({ id, criterion }: { id: string; criterion: string }) => ({ id, criterion })), WORK_BOARD_COLUMNS.map(({ id, criterion }) => ({ id, criterion })));
+    assert.deepEqual(COLUMNS.map((c: { label: string }) => c.label), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
     assert.deepEqual(Object.keys(BLOCKED_LABELS), WORK_BLOCKED_REASONS.map((r) => r.id));
     assert.deepEqual(Object.keys(LEVEL_LABELS), [...WORK_LEVELS]);
     assert.deepEqual(FILTER_FIELDS.map((f: { param: string }) => f.param), ['initiative', 'epic', 'type', 'label', 'repo', 'status']);
@@ -428,7 +430,7 @@ describe('#465/AC-2 the six columns', () => {
     assert.equal(board.getAttribute('aria-label'), 'Quadro por ciclo do agente');
     const cols = board.querySelectorAll('section.wb-col');
     assert.deepEqual(cols.map((c) => c.getAttribute('data-column')), ['planning', 'queued', 'running', 'review', 'blocked', 'done']);
-    assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-col-name'))), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído']);
+    assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-col-name'))), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
     assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-criterion'))), WORK_BOARD_COLUMNS.map((c) => c.criterion));
     assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-count'))), ['2', '1', '1', '1', '3', '3']);
     for (const c of cols) {
@@ -505,7 +507,7 @@ describe('#466/AC-2 the epic and initiative card (466-1)', () => {
     assert.match(texto(node.querySelector('.wb-progress')), /1\/7 filhas concluídas/);
     const bar = node.querySelector('[role="progressbar"]')!;
     assert.deepEqual([bar.getAttribute('aria-valuenow'), bar.getAttribute('aria-valuemax')], ['1', '7']);
-    assert.deepEqual(node.querySelectorAll('.wb-dist li').map((li) => li.getAttribute('aria-label')), ['Planejamento: 2', 'Em execução: 1', 'Bloqueado: 3', 'Concluído: 1']);
+    assert.deepEqual(node.querySelectorAll('.wb-dist li').map((li) => li.getAttribute('aria-label')), ['Planejamento: 2', 'Em execução: 1', 'Precisa de você: 3', 'Concluído: 1']);
     assert.equal(texto(node.querySelector('.wb-reason')), '3 filhas bloqueadas · 1 precisa de você · 2 CI falhou');
     const drill = buttonNamed(node, /Ver filhos/)!;
     assert.equal(texto(drill), 'Ver filhos (7)');
@@ -746,7 +748,7 @@ describe('#466/AC-3 the filter with no result (466-3)', () => {
   test('#466/AC-3 the columns stay with their names and zero, without Nenhuma', () => {
     const board = boardColumns({ mode: 'blank', counts: '0', now: NOW });
     assert.equal(board.querySelectorAll('section.wb-col').length, 6);
-    assert.deepEqual(board.querySelectorAll('.wb-col-name').map(texto), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído']);
+    assert.deepEqual(board.querySelectorAll('.wb-col-name').map(texto), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
   });
 });
 
@@ -790,7 +792,7 @@ describe('#465/AC-5 English internals, pt-BR on screen (ADR-0009)', () => {
     }
     assert.ok(data.has('data-column') && data.has('data-param') && data.has('data-level') && data.has('data-queue'));
     const copy = roots.map(texto).join(' ');
-    for (const words of ['Quadro do trabalho', 'Atualizar', 'Nível', 'Iniciativa', 'Limpar filtros', 'Copiar link', 'Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído', 'Ver filhos', 'Tentar agora', 'Trocar de Project', 'Nenhuma issue com estes filtros.']) {
+    for (const words of ['Quadro do trabalho', 'Atualizar', 'Nível', 'Iniciativa', 'Limpar filtros', 'Copiar link', 'Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído', 'Ver filhos', 'Tentar agora', 'Trocar de Project', 'Nenhuma issue com estes filtros.']) {
       assert.ok(copy.includes(words), `the screen says "${words}"`);
     }
   });
