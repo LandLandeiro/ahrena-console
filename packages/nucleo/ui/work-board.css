@@ -121,6 +121,8 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-pr { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; text-decoration: none; }
 .wb-pr:hover { color: var(--text); }
 .wb-pr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wb-pr.wb-gh { position: relative; }
+.wb-pr.wb-gh::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .wb-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-medium); white-space: nowrap; }
 .wb-pill-active { background: var(--status-active-badge); color: var(--status-active-text); }
 .wb-pill-waiting { background: var(--status-waiting-badge); color: var(--status-waiting-text); }

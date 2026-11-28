@@ -132,6 +132,8 @@
 .wall-parked-h { margin: 0; font: inherit; min-width: 0; }
 .wall-parked { margin-top: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; border-radius: var(--radius-card); }
 .wall-parked-head { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; text-align: left; min-width: 0; }
+.wall-parked-head { position: relative; }
+.wall-parked-head::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .wall-parked-head b { white-space: nowrap; }
 .wall-parked-r { margin-left: auto; font-size: 12px; white-space: nowrap; }
 

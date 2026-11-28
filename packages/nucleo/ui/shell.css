@@ -98,6 +98,8 @@ button { font: inherit; cursor: pointer; }
 .cc-gh[data-state="pending"] .cc-gh-state .icon { animation: girar 1s linear infinite; }
 .cc-gh:hover { color: var(--text); }
 .cc-gh:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.cc-gh { position: relative; }
+.cc-gh::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 @media (prefers-reduced-motion: reduce) { .cc-gh[data-state="pending"] .cc-gh-state .icon { animation: none; } }
 
 /* Issue 764 (B3): the first focus of the page; out of sight until it has the focus. Nothing moves. */
