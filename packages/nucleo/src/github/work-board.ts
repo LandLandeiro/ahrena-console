@@ -32,12 +32,12 @@ export const WORK_BOARD_COLUMNS = [
   { id: 'queued', label: 'Na fila', criterion: 'Planejada e posta na fila; espera vaga' },
   { id: 'running', label: 'Em execução', criterion: 'Sessão da Athena trabalhando' },
   { id: 'review', label: 'Em review', criterion: 'PR aberto esperando o Argos' },
-  { id: 'blocked', label: 'Bloqueado', criterion: 'Precisa de você, 3 rodadas ou CI falhou' },
+  { id: 'blocked', label: 'Precisa de você', criterion: 'Precisa de você, 3 rodadas ou CI falhou' },
   { id: 'done', label: 'Concluído', criterion: 'PR mergeado ou issue fechada' },
 ] as const;
 export type WorkBoardColumn = (typeof WORK_BOARD_COLUMNS)[number]['id'];
 
-/** Why a card is blocked; this order is also the sort order inside Bloqueado. */
+/** Why a card is blocked; this order is also the sort order inside Precisa de você. */
 export const WORK_BLOCKED_REASONS = [
   { id: 'needs-you', label: 'Precisa de você' },
   { id: 'review-rounds', label: 'Mudança pedida depois de 3 rodadas' },

@@ -5,13 +5,17 @@
 import { el, icon } from '../dom.js';
 import { agentRouteId, agentViewHref } from './agent-view-format.js';
 import { duration, num, shortAgentName } from './workflow-format.js';
+import { boardColumnLabel, stateLabel } from '../state-labels.js';
 
 // ---------- Pure parts (tested in node) ----------
 
 /** The state of a group: the label on the screen and the color token it takes. */
 export const GROUP_STATE = {
   approved: ['Aprovado', 'completed'],
-  'in-review': ['Em revisão', 'active'],
+  // The same word as the work board's "Em revisão" column (state-labels.js, ADR-0028).
+  get 'in-review'() {
+    return [boardColumnLabel('review'), 'active'];
+  },
   'waiting-fix': ['Aguardando correção', 'waiting'],
   stopped: ['Parou aqui', 'waiting'],
   open: ['Aberto', 'muted'],
@@ -43,13 +47,13 @@ export function stepName(s) {
 
 /** The line under the name: what the step did. */
 export function stepResult(s) {
-  if (s.state === 'running') return s.role === 'review' ? 'Revisando' : 'Rodando';
-  if (s.state === 'error') return 'Com erro';
+  if (s.state === 'running') return stateLabel(s.role === 'review' ? 'reviewing' : 'running');
+  if (s.state === 'error') return stateLabel('error');
   if (s.role === 'review') {
     if (s.verdict === 'approve') return 'Aprovou';
     if (s.verdict) return s.findings ? `Pediu mudanças · ${num(s.findings)} ${s.findings === 1 ? 'achado' : 'achados'}` : 'Pediu mudanças';
   }
-  return 'Concluído';
+  return stateLabel('completed_item');
 }
 
 /** ok | changes | run | error: the color of the step. */
@@ -88,7 +92,12 @@ export function loopSummary(loop, subagents) {
   return rows;
 }
 
-const ORCHESTRATOR_STATE = { running: ['Rodando', 'active', 'run'], completed: ['Concluída', 'completed', 'ok'], error: ['Com erro', 'error', 'error'] };
+// `[state, pill tone, tone]`; the label is the state's in state-labels.js (ADR-0028), read when the row is drawn.
+const ORCHESTRATOR_STATE = { running: ['running', 'active', 'run'], completed: ['completed', 'completed', 'ok'], error: ['error', 'error', 'error'] };
+const orchestratorState = (state) => {
+  const [id, pillTone, tone] = ORCHESTRATOR_STATE[state] ?? ORCHESTRATOR_STATE.completed;
+  return [stateLabel(id), pillTone, tone];
+};
 
 /** "abriu 2 camadas · 1 PR": the layers an orchestrator opened and how many of them already have a PR. */
 export function layersText(orchestrator, groupsById) {
@@ -150,13 +159,13 @@ function groupEl(g, sessionId, led = false) {
       : g.state === 'stopped'
         ? el('div', { class: 'wfl-foot' }, 'A sessão terminou com um pedido de mudança sem resposta: é onde o laço travou.')
         : g.state === 'waiting-fix'
-          ? el('div', { class: 'wfl-foot' }, 'A sessão está ativa: o laço segue aberto, ninguém corrigiu ainda.')
+          ? el('div', { class: 'wfl-foot' }, 'A sessão está trabalhando: o laço segue aberto, ninguém corrigiu ainda.')
           : null;
   return el('div', { class: 'card wfl-group', 'data-group': g.id }, head, row, foot);
 }
 
 function orchestratorEl(o, groupsById, sessionId) {
-  const [label, pillTone, tone] = ORCHESTRATOR_STATE[o.state] ?? ORCHESTRATOR_STATE.completed;
+  const [label, pillTone, tone] = orchestratorState(o.state);
   const name = shortAgentName(o.agentType) ?? 'Orquestrador';
   const led = o.groups.map((id) => groupsById.get(id)).filter(Boolean);
   const card = el(

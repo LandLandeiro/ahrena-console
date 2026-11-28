@@ -728,7 +728,8 @@ describe('issue 484 the automatic update (484-1)', () => {
     await readMachines();
     const dot = nav.querySelector('[data-screen="machine-ws-a"] .cc-nav-dot')!;
     assert.equal(dot.getAttribute('data-state'), 'updating');
-    assert.equal(dot.getAttribute('aria-label'), 'Atualizando');
+    assert.equal(texto(dot), 'Atualizando');
+    assert.equal(dot.getAttribute('aria-label'), null);
     assert.equal(dot.getAttribute('title'), 'Atualizando');
     await readMachines();
     assert.equal(navReads, 2, 'the 5 s re-read is one pending timer, not one per read');
