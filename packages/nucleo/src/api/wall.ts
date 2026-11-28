@@ -4,14 +4,17 @@
 //
 // An OPEN session (the wall's criterion):
 // - is not archived in the Claude Desktop (the person removed it from the sidebar); and
-// - is `active` (which includes waiting, delegating and in background) or in `error` still without
-//   `endedAt` (the state machine's watcher moves the one idle for 180 min to `abandoned`, and the
-//   listing only fetches the errors inside that window); or
-// - is `completed` (or in an already ended `error`) with its last activity (`updatedAt`) within
-//   `recenteMs`, which is the watcher's `abandonMs` (180 min): the wireframe's "Terminou sem erro"
-//   card stays on the wall as long as an idle session takes to be considered abandoned.
+// - is `active` (which includes waiting, delegating and in background); or
+// - is in `error`, whatever its age (#761): an error needs the person until they archive the session, so
+//   an old error is a card of "Precisam de você", not a row of "Paradas" (the bar and the Sessions filter
+//   already count it; the listing fetches the errors with no cutoff); or
+// - is `completed` with its last activity (`updatedAt`) within `recenteMs`, which is the watcher's
+//   `abandonMs` (180 min): the wireframe's "Terminou sem erro" card stays on the wall as long as an idle
+//   session takes to be considered abandoned.
 // - `abandoned` never comes in, except (#333) the one that was waiting on a blocking request when the
 //   watcher abandoned it (`waitingAsAbandoned`): it stays, with the age of the request, until it is archived.
+//   Only a request that blocks counts (#761): an abandoned session whose turn merely ended ("Sua vez") awaits
+//   nobody any more and stays parked.
 //
 // The "Paradas" band (#333): the not archived sessions the wall does not show (ended or abandoned more than
 // 180 min ago, asking nothing), within 30 days, as `parked` (`total` and the most recent rows).
@@ -19,10 +22,11 @@
 // Desktop index's parent link (`startedBy`, as the Workflows tree of #332). A session with an open ancestor
 // nests in it and is a card of its own only when it needs you (`attention.level` `blocked`), with `parentId`.
 //
-// Order (#245): first the ones that need you (`attention.level` `blocked`, errors included), the urgent
+// Order (#245, #761): first the ones that need you (`attention.level` `blocked`, errors included), the urgent
 // ones first (an error is urgent, as in the panel's "precisam de você"), and among them the most recent
-// request; then the idle ones (`idle`: the turn ended, Esc, at the prompt), the most recent first; then
-// the others, by the most recent activity.
+// request; then, still inside `blocked`, the "Sua vez" ones (`attention.reason` `turn_ended`, `isYourTurn`:
+// the screen draws them as rows below the cards), the most recent first; then the idle ones (`idle`: Esc, a
+// new session at the prompt), the most recent first; then the others, by the most recent activity.
 //
 // No import cycle: this module only imports types from panel.ts; server.ts builds the wall from
 // the panel builder (`muralDoPainel`).
@@ -43,6 +47,7 @@
 import { basename } from 'node:path';
 import type { ServerResponse } from 'node:http';
 import { send } from '../ingest/hooks/receiver.ts';
+import { isYourTurn } from '../states/needs-you.ts';
 import { readMemory } from '../states/rules.ts';
 import { DEFAULT_LIMITS } from '../states/watcher.ts';
 import type { Session } from '../model.ts';
@@ -83,7 +88,7 @@ export function ehAberta(session: Pick<Session, 'status' | 'endedAt' | 'updatedA
   if (desktop?.archived) return false;
   if (session.status === 'abandoned') return false;
   if (session.status === 'active') return true;
-  if (session.status === 'error' && !session.endedAt) return true;
+  if (session.status === 'error') return true;
   return agora - Date.parse(session.updatedAt) <= recenteMs;
 }
 
@@ -204,12 +209,13 @@ export class MontadorDoMural {
     );
     // A child nests in its leader's card; on its own it stays on the wall only when it needs you.
     const onWall = lidas.filter((l) => !l.parentId || l.leitura.sessao.attention?.level === 'blocked');
-    const rank = (l: LeituraDaSessao) => (l.sessao.attention?.level === 'blocked' ? 0 : l.sessao.attention?.level === 'idle' ? 1 : 2);
+    // 0 a card that needs you, 1 "Sua vez" (needs you too, a row), 2 idle, 3 the rest.
+    const rank = (l: LeituraDaSessao) => (l.sessao.attention?.level === 'blocked' ? (isYourTurn(l.sessao.attention.reason) ? 1 : 0) : l.sessao.attention?.level === 'idle' ? 2 : 3);
     onWall.sort((a, b) => {
       const [x, y] = [a.leitura, b.leitura];
       if (rank(x) !== rank(y)) return rank(x) - rank(y);
       if (rank(x) === 0) return Number(urgenteDe(y)) - Number(urgenteDe(x)) || y.sessao.since.localeCompare(x.sessao.since);
-      if (rank(x) === 1) return y.sessao.since.localeCompare(x.sessao.since);
+      if (rank(x) <= 2) return y.sessao.since.localeCompare(x.sessao.since);
       return b.updatedAt.localeCompare(a.updatedAt);
     });
     // The card's `parentId` is the nearest ancestor that is on the wall too (the in-between ones nest and show only in the tree).
@@ -246,7 +252,8 @@ export class MontadorDoMural {
       const key = `${session.id}@${session.updatedAt}`;
       if (asking && !this.askedNothing.has(key)) {
         const reading = await this.painel.leituraDaSessao(asking);
-        if (reading.sessao.attention?.level === 'blocked') return { session, desktop, open: true, reading: async () => reading };
+        // "Sua vez" is not a request: the session that was abandoned after its turn ended awaits nobody (#761).
+        if (reading.sessao.attention?.level === 'blocked' && !isYourTurn(reading.sessao.attention.reason)) return { session, desktop, open: true, reading: async () => reading };
         this.askedNothing.add(key);
       }
     }
@@ -293,21 +300,22 @@ export class MontadorDoMural {
     };
   }
 
-  // As `active` inteiras, por índice; das `error`, `completed` e `abandoned`, só as páginas com atividade
-  // dentro da janela das Paradas (a lista vem da mais recente para a mais antiga). #333: a janela agora é
-  // a das Paradas (30 dias); quem fica no mural é decidido sessão a sessão (`situationOf`).
+  // As `active` inteiras, por índice; as `error` inteiras também, de qualquer idade (#761: o erro antigo
+  // precisa de você, não é Parada); das `completed` e `abandoned`, só as páginas com atividade dentro da
+  // janela das Paradas (a lista vem da mais recente para a mais antiga). #333: a janela é a das Paradas
+  // (30 dias); quem fica no mural é decidido sessão a sessão (`situationOf`).
   private async candidatas(agora: number): Promise<Session[]> {
     const vistas = new Map<string, Session>();
     let cursor: string | null = null;
     do {
-      const page = await this.storage.listSessions({ status: ['active'], limit: PAGINA, cursor });
+      const page = await this.storage.listSessions({ status: ['active', 'error'], limit: PAGINA, cursor });
       for (const s of page.items) vistas.set(s.id, s);
       cursor = page.nextCursor;
     } while (cursor);
     const corte = new Date(agora - this.parkedWindowMs).toISOString();
     cursor = null;
     do {
-      const page = await this.storage.listSessions({ status: ['error', 'completed', 'abandoned'], limit: PAGINA, cursor });
+      const page = await this.storage.listSessions({ status: ['completed', 'abandoned'], limit: PAGINA, cursor });
       for (const s of page.items) if (s.updatedAt >= corte) vistas.set(s.id, s);
       const ultima = page.items.at(-1);
       cursor = ultima && ultima.updatedAt >= corte ? page.nextCursor : null;
