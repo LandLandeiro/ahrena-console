@@ -209,9 +209,9 @@ export function firstField(root) {
   const enabled = (n) => !n.hasAttribute('disabled') && n.getAttribute('aria-disabled') !== 'true';
   return (
     root.querySelector('[data-autofocus]') ??
-    root.querySelectorAll('select, input, textarea').find(enabled) ??
+    Array.from(root.querySelectorAll('select, input, textarea')).find(enabled) ??
     root.querySelector('[role="radio"][aria-checked="true"]') ??
-    root.querySelectorAll('button').find(enabled) ??
+    Array.from(root.querySelectorAll('button')).find(enabled) ??
     null
   );
 }
@@ -341,7 +341,7 @@ export function trapFocus(root) {
   root.setAttribute('aria-modal', 'true');
   root.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Tab') return;
-    const items = root.querySelectorAll(TABBABLE).filter((n) => !n.hasAttribute('disabled') && n.getAttribute('tabindex') !== '-1' && !n.closest?.('[hidden]'));
+    const items = Array.from(root.querySelectorAll(TABBABLE)).filter((n) => !n.hasAttribute('disabled') && n.getAttribute('tabindex') !== '-1' && !n.closest?.('[hidden]'));
     if (!items.length) return void ev.preventDefault?.();
     const at = globalThis.document?.activeElement;
     const [first, last] = [items[0], items[items.length - 1]];
