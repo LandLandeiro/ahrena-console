@@ -58,25 +58,33 @@ export function parseDisplay(raw, forMode = 'dev') {
   return { density, show: Object.fromEntries(FIELDS.map((f) => [f, typeof given[f] === 'boolean' ? given[f] : defaults.show[f]])) };
 }
 
-/** The value of `forMode` from the storage (or from memory when the storage is off). */
+/** The value of `forMode`: what this page chose (memory), else the storage, else the defaults. */
 export function readDisplay(forMode = 'dev', storage = pageStorage()) {
+  // What the page chose lasts for the session even when the storage is full or denied (#754, ADR-0028).
+  if (memory[forMode]) return parseDisplay(memory[forMode], forMode);
   try {
     return parseDisplay(storage?.getItem(KEYS[forMode]), forMode);
   } catch {
-    // A denied storage: what this page chose is in memory.
-    return parseDisplay(memory[forMode], forMode);
+    return parseDisplay(null, forMode);
   }
 }
 
 /** Stores `{ density, show }` (`show: null` for the density's own fields) under the key of `forMode`; nothing else is touched. */
 export function writeDisplay(forMode, value, storage = pageStorage()) {
   const stored = { v: 1, density: value.density, show: value.show ?? null };
+  // Memory first: a full or denied storage still changes the page (#754, ADR-0028, like the theme).
+  memory[forMode] = stored;
   try {
     storage?.setItem(KEYS[forMode], JSON.stringify(stored));
   } catch {
-    // ADR-0028, like the theme: a full or denied storage still changes the page, from memory.
-    memory[forMode] = stored;
+    // The choice is in memory; it is lost on a reload.
   }
+}
+
+/** Forgets what this page chose, so the storage speaks again (for the tests, and for a reload that never happened). */
+export function resetDisplayMemory() {
+  memory.dev = null;
+  memory.project = null;
 }
 
 /** The value of the current mode. */

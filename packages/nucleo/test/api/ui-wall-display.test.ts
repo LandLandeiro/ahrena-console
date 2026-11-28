@@ -44,6 +44,7 @@ beforeEach(() => {
   useNodeListQueries(true);
   storage.clear();
   useStorage();
+  display.resetDisplayMemory();
   display.setDisplayMode('dev');
   documentoFalso.activeElement = null;
 });
