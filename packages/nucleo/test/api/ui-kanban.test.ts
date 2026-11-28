@@ -218,4 +218,24 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       abort.abort();
     }
   });
+  test('the board does not follow the mode by itself: it registers no listener, and the shell opens it again (#754)', async () => {
+    instalarDomFalso();
+    Object.assign(globalThis, { location: { search: '', pathname: '/ui/kanban' }, history: { state: null, replaceState: () => {} } });
+    const followers: (() => void)[] = [];
+    const area = new ElementoFalso('main');
+    const abort = new AbortController();
+    await mount(area, {
+      signal: abort.signal,
+      read: async () => BOARD,
+      onChange: () => {},
+      onRestart: () => {},
+      onModeChange: (f: () => void) => void followers.push(f),
+      title: () => {},
+    });
+    try {
+      assert.equal(followers.length, 0);
+    } finally {
+      abort.abort();
+    }
+  });
 });

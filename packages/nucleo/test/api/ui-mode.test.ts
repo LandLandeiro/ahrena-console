@@ -315,7 +315,7 @@ describe('#754 the Mural in the two modes', () => {
     modeModule.setAppMode('dev', { storage });
     display.chooseDensity('compact');
     const { area, stop, followers } = await start(cards());
-    assert.equal(followers.length, 2, 'the Mural and its machine filter (the band) register with the shell');
+    assert.equal(followers.length, 1, 'only the Mural registers: its listener draws the machine filter (the band) first');
     assert.equal(text(area, 'row-1', '.wall-tech'), 'claude-opus-5-5 · ~US$ 1,84 · uso 31% · feat/1-exemplo');
     modeModule.setAppMode('project', { storage });
     followers.forEach((f) => f());

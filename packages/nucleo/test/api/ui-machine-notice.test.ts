@@ -147,7 +147,7 @@ describe('#754 the band on the filter of a screen', () => {
     const filter = mf.createMachineFilter(ctx, { periodic: false, watchChanges: false });
     const host = new ElementoFalso('main');
     host.append(filter.row, filter.notices);
-    // What the list routes answer: `machines: [{ id, label, state, reason, lastReadAt }]`, without connection or update.
+    // What the list routes answer (#754): `machines: [{ id, label, state, reason, lastReadAt }]`, without connection or update.
     const raw = listAnswer.map((m) => {
       const { connection: _c, update: _u, ...rest } = m as Obj;
       return rest;
@@ -191,6 +191,21 @@ describe('#754 the band on the filter of a screen', () => {
     const { routes, filter, leave } = rig(full, full);
     await until(() => band(filter).length === 1, 'the band');
     assert.deepEqual([...new Set(routes)], ['/api/machines']);
+    leave.abort();
+  });
+
+  test('a machine that goes from stopped to connected loses its band on the first answer after, not on the second', async () => {
+    const leave = new AbortController();
+    let answer: unknown[] = [local, remote(STOPPED)];
+    const ctx = { signal: leave.signal, read: async () => structuredClone(answer), onChange: () => {} };
+    const filter = mf.createMachineFilter(ctx, { periodic: false, watchChanges: false });
+    const raw = [local, remote()];
+    filter.update({ machines: raw });
+    await until(() => band(filter).length === 1, 'the band');
+    assert.match(band(filter)[0], /^Workstation parada por você\./);
+    answer = [local, remote()];
+    filter.update({ machines: raw });
+    await until(() => band(filter).length === 0, 'the band gone on the first answer');
     leave.abort();
   });
 
@@ -260,12 +275,48 @@ describe('#754 a switch of the mode redraws the band of the Mural in place', () 
     await new Promise((r) => setTimeout(r, 30));
     const count = () => filter.notices.querySelectorAll('.mf-notice').length;
     assert.equal(count(), 0);
+    assert.equal(modeHandlers.length, 0, 'the filter does not register by itself: the shell opens again the screens that do not follow the mode');
     mode('project');
-    modeHandlers.forEach((f) => f());
+    filter.redraw();
     assert.equal(count(), 1);
     mode('dev');
-    modeHandlers.forEach((f) => f());
+    filter.redraw();
     assert.equal(count(), 0);
+    leave.abort();
+  });
+
+  test('the band of the Mural comes with Projeto through the listener of the Mural, which draws the filter before itself', async () => {
+    const wall = await import('../../ui/screens/wall.js');
+    const full = [local, remote({ state: 'unreachable', reason: 'port-closed', lastReadAt: AT })];
+    mf.rememberChoice('local');
+    const handlers: (() => void)[] = [];
+    const leave = new AbortController();
+    const area = new ElementoFalso('main');
+    const answer = { version: 1, count: { all: 0, blocked: 0, idle: 0 }, cards: [], machines: full };
+    const stop = (await wall.mount(area, {
+      params: {},
+      signal: leave.signal,
+      read: async (route: string) => (route.startsWith('/api/new-session/folders') ? { folders: [], targets: {} } : structuredClone(answer)),
+      write: async () => ({ ok: true }),
+      onChange: () => {},
+      onRestart: () => {},
+      onModeChange: (f: () => void) => void handlers.push(f),
+      counter: () => {},
+      title: () => {},
+      navigate: () => {},
+      liveState: () => 'live',
+    })) as () => void;
+    await until(() => handlers.length > 0, 'the listener of the Mural');
+    const count = () => area.querySelectorAll('.mf-notice').length;
+    assert.equal(handlers.length, 1, 'only the Mural follows the mode');
+    assert.equal(count(), 0);
+    mode('project');
+    handlers.forEach((f) => f());
+    assert.equal(count(), 1);
+    mode('dev');
+    handlers.forEach((f) => f());
+    assert.equal(count(), 0);
+    stop();
     leave.abort();
   });
 });
