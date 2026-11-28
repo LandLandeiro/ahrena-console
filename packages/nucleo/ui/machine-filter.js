@@ -600,7 +600,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
   }
 
   function applyHeld() {
-    known = known.map((m) => (m.id === LOCAL ? m : { ...m, held: held.get(m.id) ?? m.held ?? null }));
+    known = known.map((m) => (m.id === LOCAL ? m : { ...m, held: held.get(m.id) ?? null }));
   }
 
   /** Reads `/api/machines` for what the list routes leave out; draws again only when it changed. One read at a time. */
@@ -630,8 +630,6 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     wait = setTimeout(() => reread(), CHANGE_WAIT_MS);
     wait?.unref?.();
   });
-  // #754: the band depends on the mode (in Projeto it covers every remote), so a switch draws it again where the screen redraws in place.
-  ctx.onModeChange?.(() => draw());
   ctx.signal?.addEventListener?.('abort', () => {
     clearInterval(timer);
     clearTimeout(wait);
@@ -657,6 +655,9 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
       return choice;
     },
     route: (apiRoute) => routeWithMachine(apiRoute, choice),
+    // #754: the band depends on the mode (in Projeto it covers every remote). The filter does not follow the mode by itself: a screen
+    // that redraws in place calls this from its own listener; the others are opened again by the shell.
+    redraw: draw,
     update(body) {
       if (!Array.isArray(body?.machines)) return;
       if (menu) lastItems = menu.itemsOf(body) ?? [];

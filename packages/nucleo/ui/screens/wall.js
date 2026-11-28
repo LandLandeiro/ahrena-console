@@ -603,7 +603,10 @@ export async function mount(area, ctx) {
   // ADR-0029, issue 754: a choice made in the panel, or in another mode, draws the wall again.
   const stopDisplay = onDisplayChange(() => draw());
   // ADR-0029, issue 754: a switch of the mode redraws in place, so the focus and the scroll stay (the shell would open the screen again otherwise).
-  ctx.onModeChange?.(() => draw());
+  ctx.onModeChange?.(() => {
+    machines.redraw();
+    draw();
+  });
   ctx.onRestart(() => read());
   // ADR-0028, issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {
