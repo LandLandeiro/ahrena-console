@@ -21,15 +21,15 @@ function inOrder(anchor: string, needles: string[]) {
 
 describe('The switch of screen keeps its order of effects (#759)', () => {
   test('leaving: the drawer closes unless a mode switch keeps it, the old screen is aborted, then a new signal and a clean failure flag', () => {
-    inOrder('async function showScreen()', [
+    inOrder('function beginLeave()', [
       'if (keepDrawer) keepDrawer = false;',
       'else drawer.close();',
       'leaving?.abort();',
       'new AbortController()',
       'leaving = leave;',
       'screenFailed = false;',
-      'findScreen(location.pathname)',
     ]);
+    inOrder('async function showScreen()', ['beginLeave()', 'findScreen(location.pathname)']);
   });
 
   test('a screen that does not exist: no highlight, no tabs, the plain title, the swap settles, then the message and its way home', () => {
@@ -54,7 +54,7 @@ describe('The switch of screen keeps its order of effects (#759)', () => {
       "empty({ title: 'Esta tela ainda não existe', text: 'Ela chega na próxima versão do console.' })",
       'drawLive();',
     ]);
-    assert.ok(app.indexOf('swap.begin(screen.id)') > app.indexOf("'Esta tela ainda não existe'"), 'the swap begins only for a screen with a file');
+    inOrder('async function showScreen()', ['if (!screen.file) return showUnbuilt(screen, params);', 'swap.begin(screen.id)']);
   });
 
   test('a screen with a file: the swap begins, the module loads, the area is cleared, mount runs, cleanup rides the signal, the swap settles', () => {

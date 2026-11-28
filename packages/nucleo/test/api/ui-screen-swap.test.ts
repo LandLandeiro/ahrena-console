@@ -177,7 +177,7 @@ describe('The shell uses the swap (#765)', () => {
     assert.match(app, /swap\.settle\(\)/);
   });
   test('a screen that does not exist leaves no ghost behind', () => {
-    const lost = app.slice(app.indexOf('if (!found) {'), app.indexOf('const { screen, params } = found;'));
+    const lost = app.slice(app.indexOf('function showNotFound() {'), app.indexOf('function showUnbuilt('));
     assert.match(lost, /swap\.settle\(\)/);
   });
 });

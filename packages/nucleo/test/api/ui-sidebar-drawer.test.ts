@@ -138,7 +138,9 @@ describe('issue 750: the drawer', () => {
   test('a route change of the shell closes it: open() (navigate and popstate) closes the drawer', () => {
     assert.match(/async function open\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '', /await showScreen\(\)/);
     const body = /async function showScreen\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '';
-    assert.match(body, /drawer\.close\(\)/);
+    assert.match(body, /beginLeave\(\)/);
+    // beginLeave is where the drawer closes: the open of a mode switch keeps it.
+    assert.match(/function beginLeave\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '', /drawer\.close\(\)/);
     assert.match(app, /addEventListener\('popstate', open\)/);
   });
 

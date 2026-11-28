@@ -198,37 +198,54 @@ async function open() {
 }
 
 async function showScreen() {
+  const leave = beginLeave();
+  const found = findScreen(location.pathname);
+  if (!found) return showNotFound();
+  const { screen, params } = found;
+  highlight(litItem(screen, params));
+  openScreenId = screen.id;
+  screenTabs.draw(tabsFor(screen.id, appMode()));
+  document.title = `Ahrena Console · ${screen.title}`;
+  if (!screen.file) return showUnbuilt(screen, params);
+  const ctx = screenContext(params, leave);
+  swap.begin(screen.id);
+  await mountScreen(screen, ctx, leave);
+}
+
+// Closes the drawer (unless a mode switch keeps it), aborts the screen that was open and starts the signal of the new visit.
+function beginLeave() {
   if (keepDrawer) keepDrawer = false;
   else drawer.close();
   leaving?.abort();
   const leave = new AbortController();
   leaving = leave;
   screenFailed = false;
-  const found = findScreen(location.pathname);
-  if (!found) {
-    highlight(null);
-    openScreenId = null;
-    screenTabs.draw(null);
-    document.title = 'Ahrena Console';
-    swap.settle();
-    area.replaceChildren(empty({ title: 'Página não encontrada', text: `Nada em ${location.pathname}.`, action: { label: 'Ir para o Dashboard', onClick: () => navigate('/ui') } }));
-    return;
-  }
-  const { screen, params } = found;
-  highlight(litItem(screen, params));
-  openScreenId = screen.id;
-  screenTabs.draw(tabsFor(screen.id, appMode()));
-  document.title = `Ahrena Console · ${screen.title}`;
-  if (!screen.file) {
-    swap.settle();
-    area.replaceChildren(
-      header({ icon: screen.icon, title: screen.title, sub: screen.sub ?? params.id ?? null }),
-      empty({ title: 'Esta tela ainda não existe', text: 'Ela chega na próxima versão do console.' }),
-    );
-    drawLive();
-    return;
-  }
-  const ctx = {
+  return leave;
+}
+
+// Draws the page of a route no screen owns, with a way back to the Dashboard.
+function showNotFound() {
+  highlight(null);
+  openScreenId = null;
+  screenTabs.draw(null);
+  document.title = 'Ahrena Console';
+  swap.settle();
+  area.replaceChildren(empty({ title: 'Página não encontrada', text: `Nada em ${location.pathname}.`, action: { label: 'Ir para o Dashboard', onClick: () => navigate('/ui') } }));
+}
+
+// Draws the placeholder of a screen the menu lists but that has no file yet.
+function showUnbuilt(screen, params) {
+  swap.settle();
+  area.replaceChildren(
+    header({ icon: screen.icon, title: screen.title, sub: screen.sub ?? params.id ?? null }),
+    empty({ title: 'Esta tela ainda não existe', text: 'Ela chega na próxima versão do console.' }),
+  );
+  drawLive();
+}
+
+// Builds what a screen gets when it mounts: its reads and writes, tied to the signal of this visit, and its listeners, dropped when it leaves.
+function screenContext(params, leave) {
+  return {
     params,
     read: (route, options) => {
       const asked = read(route, { signal: leave.signal, ...options });
@@ -251,7 +268,10 @@ async function showScreen() {
       onChange: (f) => (heldListeners.add(f), leave.signal.addEventListener('abort', () => heldListeners.delete(f)), () => heldListeners.delete(f)),
     },
   };
-  swap.begin(screen.id);
+}
+
+// Loads the screen's module and mounts it; a visit that was left meanwhile ends quietly, any other failure shows the error.
+async function mountScreen(screen, ctx, leave) {
   try {
     const module = await import(screen.file);
     if (leave.signal.aborted) return;
@@ -262,10 +282,15 @@ async function showScreen() {
     drawLive();
   } catch (e) {
     if (leave.signal.aborted || e?.name === 'AbortError') return;
-    screenFailed = true;
-    swap.settle();
-    area.replaceChildren(error({ title: 'A tela não abriu', text: e?.message ?? String(e), retry: () => open() }));
+    showMountFailure(e);
   }
+}
+
+// Marks the open as failed (a restart then opens again) and draws the error with a retry.
+function showMountFailure(e) {
+  screenFailed = true;
+  swap.settle();
+  area.replaceChildren(error({ title: 'A tela não abriu', text: e?.message ?? String(e), retry: () => open() }));
 }
 
 // Issue 764: the skip link moves the focus to the main; the hash would be a route of its own for the shell below.

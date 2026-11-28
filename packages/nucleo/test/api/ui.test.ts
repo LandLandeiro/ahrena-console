@@ -489,7 +489,8 @@ describe('screen registry', () => {
   test('the shell routes the URL as it came: no old /ui URL is swapped any more (#173, phase 6)', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.doesNotMatch(app, /legacyUrl|replaceState/);
-    assert.match(app, /const found = findScreen\(location\.pathname\);\n\s+if \(!found\) \{[\s\S]{0,200}Página não encontrada/);
+    assert.match(app, /const found = findScreen\(location\.pathname\);\n\s+if \(!found\) return showNotFound\(\);/);
+    assert.match(app, /function showNotFound\(\) \{[\s\S]{0,300}Página não encontrada/);
   });
 });
 
