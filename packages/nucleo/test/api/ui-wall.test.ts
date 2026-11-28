@@ -743,10 +743,10 @@ describe('Mural: a tela montada', () => {
   });
 });
 
-describe('Mural: ao vivo, a releitura depois de mudanças (#752)', () => {
+describe('Wall: live, the re-read after changes (#752)', () => {
   const settle = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
-  const emit = (ouvintes: { mudar: ((m: unknown[]) => void)[] }, changes: unknown) => {
-    for (const f of ouvintes.mudar) f(changes as unknown[]);
+  const emit = (listeners: { mudar: ((m: unknown[]) => void)[] }, changes: unknown) => {
+    for (const f of listeners.mudar) f(changes as unknown[]);
   };
 
   test('the debounce is 120 ms', () => {

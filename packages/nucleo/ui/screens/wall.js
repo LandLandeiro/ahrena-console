@@ -567,9 +567,7 @@ export async function mount(area, ctx) {
   }
 
   ctx.onRestart(() => read());
-  // A burst of changes is read once, DEBOUNCE_MS after its first change (one pending timer, not reset by later changes,
-  // so continuous activity still re-reads every DEBOUNCE_MS). A list with an attention change (`needs-you` or
-  // `permission`) is read at once and cancels the pending timer, so the burst is not read twice.
+  // ADR-0028 (M2): one read per burst, DEBOUNCE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {
     if (Array.isArray(changes) && changes.some((c) => c?.type === 'needs-you' || c?.type === 'permission')) {
       clearTimeout(wait);
