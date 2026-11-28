@@ -382,6 +382,18 @@ describe('#508/AC-3 the card says planejando… and then plano · N passos, and 
     assert.deepEqual(core.posts[0], { repo: REPO, number: 508, target: 'desktop', replan: true });
   });
 
+  test('#762 Esc on the Replanejar confirmation of a card gives the focus back to Replanejar, not to the card', async () => {
+    const core = new Core();
+    core.cards = [card(508, { plan: { steps: 2 } })];
+    const s = await open(core);
+    const replan = buttonIn(articleOf(s, 508), 'replan');
+    press(replan, 'Replanejar');
+    assert.ok(popup(s)!.contains(documentoFalso.activeElement), 'focus moved into the confirmation');
+    documentoFalso.activeElement!.dispatchEvent({ type: 'keydown', key: 'Escape' });
+    assert.equal(popup(s), null);
+    assert.equal(documentoFalso.activeElement, buttonIn(articleOf(s, 508), 'replan'));
+  });
+
   test('#508/AC-3 the chosen destination is what the POST carries', async () => {
     const core = new Core();
     const s = await open(core);
