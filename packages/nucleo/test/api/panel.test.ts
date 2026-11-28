@@ -229,20 +229,20 @@ describe('painel por cenário (P1 a P7)', () => {
     await storage.close();
   });
 
-  test('#761: a "Decisão pedida" mais velha vem antes da "Sua vez" mais nova, que fica por último', async () => {
+  test('#761: an older "Decisão pedida" comes before a newer "Sua vez", which stays last', async () => {
     const { storage } = await cenario('p7');
     const base = (await storage.getSession('sim-panel-fila-de-tarefas'))!;
-    const id = 'sim-panel-decisao-antiga';
-    const antes = new Date(AGORA - 10 * 60_000).toISOString();
-    await storage.putSession({ ...base, identity: undefined, capabilities: undefined, id, name: id, status: 'active', awaitingReason: 'stop', awaitingInputSince: antes, updatedAt: antes, metadata: { ...base.metadata, family: {} } });
-    await storage.putAgent(agent({ id: `${id}:main`, sessionId: id, type: 'main', status: 'waiting', startedAt: antes, updatedAt: antes }));
-    await storage.appendEvent(event({ id: `${id}-e1`, sessionId: id, agentId: null, type: 'PreToolUse', toolName: 'wrap_up', summary: 'wrap_up', data: { tool_name: 'wrap_up', tool_input: { ask: 'Posso seguir?' } }, createdAt: antes }));
-    const trabalho = new TrabalhoPorBranch({ fonte: new SimulatorWorkSource(), git: SimulatorWorkSource.git, agora: () => AGORA });
-    const montador = new MontadorDoPainel({ storage, contas: new Accounts({ storage, file: null }), desktop: null, trabalho, agora: () => AGORA, apelido: () => PANEL_SESSION });
-    const p = await montador.montar({ sessionId: 'qualquer' });
-    const ordem = p.needYou.machine.filter((i) => i.level === 'needs').map((i) => [i.title, i.why]);
-    assert.deepEqual(ordem.at(-1), ['fila-de-tarefas', 'your-turn']);
-    assert.equal(ordem.findIndex(([t]) => t === id), ordem.length - 2);
+    const id = 'sim-panel-old-decision';
+    const earlier = new Date(AGORA - 10 * 60_000).toISOString();
+    await storage.putSession({ ...base, identity: undefined, capabilities: undefined, id, name: id, status: 'active', awaitingReason: 'stop', awaitingInputSince: earlier, updatedAt: earlier, metadata: { ...base.metadata, family: {} } });
+    await storage.putAgent(agent({ id: `${id}:main`, sessionId: id, type: 'main', status: 'waiting', startedAt: earlier, updatedAt: earlier }));
+    await storage.appendEvent(event({ id: `${id}-e1`, sessionId: id, agentId: null, type: 'PreToolUse', toolName: 'wrap_up', summary: 'wrap_up', data: { tool_name: 'wrap_up', tool_input: { ask: 'Posso seguir?' } }, createdAt: earlier }));
+    const work = new TrabalhoPorBranch({ fonte: new SimulatorWorkSource(), git: SimulatorWorkSource.git, agora: () => AGORA });
+    const assembler = new MontadorDoPainel({ storage, contas: new Accounts({ storage, file: null }), desktop: null, trabalho: work, agora: () => AGORA, apelido: () => PANEL_SESSION });
+    const p = await assembler.montar({ sessionId: 'qualquer' });
+    const order = p.needYou.machine.filter((i) => i.level === 'needs').map((i) => [i.title, i.why]);
+    assert.deepEqual(order.at(-1), ['fila-de-tarefas', 'your-turn']);
+    assert.equal(order.findIndex(([t]) => t === id), order.length - 2);
     await storage.close();
   });
 });

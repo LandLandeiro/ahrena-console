@@ -388,14 +388,14 @@ describe('Feed de atividade: a tela', () => {
     limpar();
   });
 
-  test('#761: a frase de ajuda diz a regra única, "Precisa de você" inclui o turno acabado e "Ociosa" é Esc ou sessão nova', async () => {
+  test('#761: the help text says the one rule, "Precisa de você" includes the turn that ended and "Ociosa" is Esc or a new session', async () => {
     const f = ctxFalso(() => ({ events: [], cursor: null, older: null, options: { types: [], tools: [], sessions: [] } }));
     const area = new Elemento('main');
     const limpar = await mount(area, f.ctx);
-    const ajuda = area.textContent;
+    const help = area.textContent;
     limpar();
-    assert.match(ajuda, /Precisa de você \(travada até você agir, ou com o turno acabado esperando a sua resposta\), Ociosa \(Esc ou sessão nova, sem pedido\)/);
-    assert.doesNotMatch(ajuda, /o turno acabou e nada trava/);
+    assert.match(help, /Precisa de você \(travada até você agir, ou com o turno acabado esperando a sua resposta\), Ociosa \(Esc ou sessão nova, sem pedido\)/);
+    assert.doesNotMatch(help, /o turno acabou e nada trava/);
   });
   test('vazio, vazio com filtro, erro e "mostrar mais"', async () => {
     const area = new Elemento('main');

@@ -573,8 +573,8 @@ export class MontadorDoPainel {
     // e, entre elas, o pedido mais recente, que é o que a pessoa lembra.
     // "Sua vez" fica por último dentro das que precisam de você, como em /api/attention, /api/wall e no Mural remoto (#761).
     const peso = (i: NeedsYouItem) => (i.level === 'needs' ? 1 : 0)
-    const suaVez = (i: NeedsYouItem) => (i.why === 'your-turn' ? 1 : 0)
-    itens.sort((a, b) => peso(b) - peso(a) || suaVez(a) - suaVez(b) || Number(b.urgent) - Number(a.urgent) || b.since.localeCompare(a.since));
+    const yourTurnLast = (i: NeedsYouItem) => (i.why === 'your-turn' ? 1 : 0)
+    itens.sort((a, b) => peso(b) - peso(a) || yourTurnLast(a) - yourTurnLast(b) || Number(b.urgent) - Number(a.urgent) || b.since.localeCompare(a.since));
     // A contagem e a divisão por conta são só das que precisam de você, a sua vez incluída (#761); as ociosas não somam.
     const precisam = itens.filter((i) => i.level === 'needs');
     const porConta = new Map<string, { account: PanelAccount | null; n: number }>();
