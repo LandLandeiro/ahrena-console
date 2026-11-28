@@ -12,6 +12,7 @@ import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
 import { createTheme } from './theme.js';
+import { createModeButton, onModeChange } from './mode.js';
 import { createLiveBlock, LIVE_LABELS } from './live-block.js';
 import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
@@ -71,6 +72,8 @@ document.addEventListener('click', (ev) => {
 });
 
 createTheme({ button: document.getElementById('theme-button') });
+// #754: the mode (Dev or Projeto) is applied here, before the first screen draws.
+createModeButton({ button: document.getElementById('mode-button') });
 const accountMenu = createAccountMenu({ button: document.getElementById('account-button'), menu: document.getElementById('account-menu') });
 // ADR-0028: the notice and the content are the inert background while the drawer is open; the top bar stays in reach.
 const drawer = createDrawer({ button: document.getElementById('menu-button'), side: document.getElementById('sidebar'), scrim: document.getElementById('scrim'), closeButton: document.getElementById('drawer-close'), background: [document.getElementById('update-notice'), document.getElementById('content')] });
@@ -84,7 +87,7 @@ createEscape(document, [
 
 let version = null;
 let liveState = { state: 'connecting', error: null, nextAttempt: null };
-const listeners = { change: new Set(), restart: new Set() };
+const listeners = { change: new Set(), restart: new Set(), mode: new Set() };
 
 /**
  * #750: boot reads the shell once, after the first screen has settled (or after 1 s). The first `restart` is the
@@ -153,6 +156,8 @@ startLive({
 
 let leaving = null;
 let screenFailed = false;
+// issue 754: the open of a switch of the mode leaves the drawer as it is, so the focus stays on the button that was pressed.
+let keepDrawer = false;
 
 // `route` may carry the query (`/ui/agent-config?tab=skills`): it stays in the URL for the screen to read.
 // `state` goes into the history entry: a screen can tell a navigation from this page apart from a link
@@ -172,7 +177,8 @@ async function open() {
 }
 
 async function showScreen() {
-  drawer.close();
+  if (keepDrawer) keepDrawer = false;
+  else drawer.close();
   leaving?.abort();
   const leave = new AbortController();
   leaving = leave;
@@ -205,6 +211,8 @@ async function showScreen() {
     title: (text) => (document.title = `Ahrena Console · ${text}`),
     onChange: (f) => (listeners.change.add(f), leave.signal.addEventListener('abort', () => listeners.change.delete(f))),
     onRestart: (f) => (listeners.restart.add(f), leave.signal.addEventListener('abort', () => listeners.restart.delete(f))),
+    // #754: a screen that redraws itself on a switch of the mode (the Mural, keeping focus and scroll) asks for it here.
+    onModeChange: (f) => (listeners.mode.add(f), leave.signal.addEventListener('abort', () => listeners.mode.delete(f))),
     liveState: () => liveState.state,
   };
   try {
@@ -231,5 +239,10 @@ document.addEventListener('click', (ev) => {
   navigate(route);
 });
 addEventListener('popstate', open);
+// #754: a switch of the mode redraws the current screen; one that follows it by itself keeps its focus and scroll, the others open again (the drawer stays as it is).
+onModeChange(() => {
+  if (listeners.mode.size === 0) return ((keepDrawer = true), open());
+  for (const f of [...listeners.mode]) f();
+});
 
 open();

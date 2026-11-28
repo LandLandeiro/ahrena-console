@@ -35,9 +35,12 @@ export function setDisplayMode(value) {
 /** The current mode, `dev` or `project`. */
 export const displayMode = () => mode;
 
-/** The density and the fields of a mode that nobody chose: comfortable is today's wall, compact adds the technical fields. */
+/**
+ * The density and the fields of a mode that nobody chose. Dev: comfortable is today's wall, compact adds the technical fields.
+ * Projeto (#754): model and cost, conversation use and branch are off at both densities; what asks for action comes back by itself.
+ */
 export function displayDefaults(forMode = 'dev', density = 'comfortable') {
-  const technical = density === 'compact';
+  const technical = forMode !== 'project' && density === 'compact';
   return { density, show: Object.fromEntries(FIELDS.map((f) => [f, TECHNICAL.includes(f) ? technical : true])) };
 }
 

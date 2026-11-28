@@ -23,6 +23,8 @@ export const WALL_ROUTE = '/api/wall';
 export const THROTTLE_MS = 120;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
+// issue 754: in Projeto the use of the conversation is hidden below this percentage and, from it, says "Conversa quase cheia".
+export const HIGH_CONTEXT_PROJECT = 80;
 // ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
 const AGENTS = { codex: 'Codex' };
 const SEE_SESSION = 'Ver sessão';
@@ -76,6 +78,13 @@ const base = (c) => ({
   state: stateOfSession({ attention: c.attention, status: c.status }),
 });
 
+// issue 754: Dev says the number from 90% (or on a failure); Projeto says "Conversa quase cheia" from 80% and nothing below it.
+function usageOf(pct, failed) {
+  if (pct === null) return null;
+  if (displayMode() === 'project') return pct >= HIGH_CONTEXT_PROJECT ? { pct, label: stateLabel('context_high'), high: true } : null;
+  return failed || pct >= HIGH_CONTEXT ? { pct, label: `Uso da conversa ${pct}%`, high: pct >= HIGH_CONTEXT } : null;
+}
+
 /** What a card shows, without DOM: the ask, the action, the step and the usage of the conversation. */
 export function cardContent(c) {
   const v = base(c);
@@ -87,7 +96,7 @@ export function cardContent(c) {
     ask: clean(c.activity?.text) || v.state.label,
     actionLabel: failed ? 'Abrir para retomar' : 'Responder no Claude',
     plan: plan ? { ...plan, label: `Passo ${plan.step} de ${plan.total}` } : null,
-    usage: pct !== null && (failed || pct >= HIGH_CONTEXT) ? { pct, label: `Uso da conversa ${pct}%`, high: pct >= HIGH_CONTEXT } : null,
+    usage: usageOf(pct, failed),
   };
 }
 
@@ -593,6 +602,8 @@ export async function mount(area, ctx) {
 
   // issue 754: a choice made in the panel, or in another mode, draws the wall again.
   const stopDisplay = onDisplayChange(() => draw());
+  // issue 754: a switch of the mode redraws in place, so the focus and the scroll stay (the shell would open the screen again otherwise).
+  ctx.onModeChange?.(() => draw());
   ctx.onRestart(() => read());
   // ADR-0028, issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {

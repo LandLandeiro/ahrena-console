@@ -50,6 +50,8 @@ const STATES = Object.freeze({
   active_item: state('working', ['Ativo']),
   completed_item: state('completed', ['Concluído']),
   agent_waiting: state('paused', ['Esperando']),
+  // #754: the warning of the Mural that comes back in Projeto from 80% of the conversation.
+  context_high: state('needs', ['Conversa quase cheia']),
 });
 
 /* #760: the six columns of the work board, equal in both modes. "Em revisão" and "Precisa de você" replace "Em review" and
