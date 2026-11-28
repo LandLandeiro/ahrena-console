@@ -1,5 +1,5 @@
-// Issue 764 (M14, WCAG 2.5.8): no clickable control of the /ui has a touch area under 24 x 24 px. The drawing keeps its size;
-// where it is smaller, a transparent ::after of at least 24 px is the touch area, so the density does not change.
+/* #764 (M14, WCAG 2.5.8): no clickable control of the /ui has a touch area under 24 x 24 px. The drawing keeps its size;
+   where it is smaller, a transparent ::after of at least 24 px is the touch area, so the density does not change. */
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, test } from 'node:test';
@@ -13,7 +13,7 @@ type Rule = { selectors: string[]; body: string };
 const rulesOf = (source: string): Rule[] => [...source.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((m) => ({ selectors: m[1]!.split(',').map((s) => s.trim()), body: m[2]! }));
 const allRules = rulesOf(css);
 
-// Every control that drew under 24 px (or whose height is the text's), by the selector the CSS uses for it.
+// #764: every control that drew under 24 px (or whose height is the text's), by the selector the CSS uses for it.
 const SMALL_TARGETS = [
   '.wb-chip-remove',
   '.open-close',

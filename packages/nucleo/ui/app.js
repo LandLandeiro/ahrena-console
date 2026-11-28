@@ -268,7 +268,7 @@ async function showScreen() {
   }
 }
 
-// Issue 764: the skip link moves the focus to the main; the hash would be a route of its own for the shell below.
+// #764: the skip link moves the focus to the main; the hash would be a route of its own for the shell below.
 document.querySelector('.cc-skip')?.addEventListener('click', (ev) => {
   ev.preventDefault();
   area.focus();

@@ -1,5 +1,5 @@
-// Issue 764 (M16, M17, B3): the live region announces the connection only, "Ao vivo" is not in the h1, the sections of the
-// Início are h2, and the first focus of the page is the link that skips to the content.
+/* #764 (M16, M17, B3): the live region announces the connection only, "Ao vivo" is not in the h1, the sections of the
+   Início are h2, and the first focus of the page is the link that skips to the content. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
