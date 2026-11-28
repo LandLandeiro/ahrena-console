@@ -83,6 +83,8 @@
 .agent { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: start; }
 .agent .exp { color: var(--muted); margin-top: 52px; font-size: 14px; padding: 0; background: none; border: 0; display: grid; place-items: center; }
 .agent button.exp:hover { color: var(--text); }
+.agent .exp { position: relative; }
+.agent .exp::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .agent .exp.open .icon { transform: rotate(90deg); }
 .agent .column { gap: 4px; }
 .ac { padding: 12px 14px; border-left: 3px solid var(--border); display: flex; flex-direction: column; gap: 8px; min-height: 148px; overflow: hidden; }
