@@ -293,11 +293,12 @@ export async function mount(area, ctx) {
     }
   }
 
-  // Issue 765: until the head answers, the header is what the list knew (title, state, reason) and the body says it is loading.
+  // #765: until the head answers, the header is what the list knew (title, state, reason) and the body says it is loading.
   function paintSeed() {
     const seed = headData ? null : seedOf(id);
     if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
     const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
+    top.setAttribute('data-swap-ready', '');
     top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
     area.replaceChildren(noticeSlot, top, body);
@@ -746,13 +747,13 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
     while (list.childNodes[i]) list.childNodes[i].remove();
   }
 
-  // Issue 765: the first paint is the last block of 30 messages; the older ones come in the next turns of the loop,
-  // each put above the ones on screen with the scroll held where the reader is. A turn that arrives (a live delta, a
-  // new full read) cancels what is left and builds the whole list.
+  /* #765: the first paint is the last block of 30 messages; the older ones come in the next turns of the loop,
+     each put above the ones on screen with the scroll held where the reader is. A turn that arrives (a live delta, a
+     new full read) cancels what is left and builds the whole list. */
   const BLOCK = 30;
   let blocksToken = null;
   const cancelBlocks = () => (blocksToken = null);
-  // A tool-only assistant message folds into the reply that follows it, so a cut never falls inside such a run.
+  // #765: a tool-only assistant message folds into the reply that follows it, so a cut never falls inside such a run.
   const foldsForward = (m) => m.role !== 'you' && !m.text && !m.tools.some((f) => f.state === 'permission');
   function renderInBlocks(all) {
     cancelBlocks();

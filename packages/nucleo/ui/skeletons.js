@@ -1,9 +1,9 @@
-// The skeleton of a screen (issue 765): only its shape, the sections and the heights of a card and of a row, so the
-// page does not jump when the data arrives. It does not move (no animation, so nothing to turn off for reduced motion).
+/* #765: the skeleton of a screen. Only its shape, the sections and the heights of a card and of a row, so the
+   page does not jump when the data arrives. It does not move (no animation, so nothing to turn off for reduced motion). */
 
 import { el } from './dom.js';
 
-// The kind of each screen; one that is not here gets rows, the commonest shape.
+// #765: the kind of each screen; one that is not here gets rows, the commonest shape.
 const SHAPES = { wall: 'cards', dashboard: 'stats', kanban: 'columns', work: 'columns', 'session-detail': 'detail' };
 
 /** The shape of a screen by its id: `cards`, `stats`, `columns`, `detail` or `rows`. */

@@ -26,7 +26,7 @@ class No {
     this.filhos = [];
     this.append(...nos);
   }
-  // Issue 765: the screen redraws keeping the nodes that did not change (see dashboard.js `place`).
+  // #765: the screen redraws keeping the nodes that did not change (see dashboard.js `place`).
   get childNodes(): No[] {
     return this.filhos;
   }
@@ -331,7 +331,9 @@ test('as rotas da tela são as do núcleo', async () => {
 test('a tela e o estilo dela não escrevem cor à mão nem chamam endereço de fora', () => {
   for (const arquivo of ['screens/dashboard.js', 'dashboard.css']) {
     const texto = readFileSync(`${UI_FOLDER}${arquivo}`, 'utf8');
-    assert.doesNotMatch(texto.replace(/\/\*[\s\S]*?\*\//g, ''), /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
+    // #765: only code is checked for a color, as in ui.test.ts (#750); a comment may carry a pointer such as `#765`.
+    const codigo = texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.doesNotMatch(codigo, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${arquivo} escreve cor à mão`);
     assert.doesNotMatch(texto, /https?:\/\//, `${arquivo} chama endereço de fora`);
     assert.doesNotMatch(texto, /innerHTML|style=/, `${arquivo} põe HTML ou estilo inline`);
   }

@@ -1,5 +1,5 @@
-// #765: the switch of screen. The screen that was open stays (inert, over the area) until the new one has its data
-// or 300 ms pass; only then a skeleton with the shape of the screen shows, and it does not pulse.
+/* #765: the switch of screen. The screen that was open stays (inert, over the area) until the new one has its data
+   or 300 ms pass; only then a skeleton with the shape of the screen shows, and it does not pulse. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -101,15 +101,104 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     const r = rig();
     r.swap.begin('sessions');
     assert.ok(r.watching);
-    r.area.append(node('h1', '', 'Sessões'), node('section', 'card state loading'));
-    r.area.children[1]!.setAttribute('aria-busy', 'true');
+    const body = node('div', 'sessions-body', node('section', 'card state loading'));
+    body.children[0]!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Sessões'), node('div', 'notices'), node('div', 'filters'), body);
     r.tick();
-    assert.equal(r.ghosts().length, 1, 'a loading card is not data');
-    r.area.children[1]!.remove();
-    r.area.append(node('div', 'table'));
+    assert.equal(r.ghosts().length, 1, 'a loading card inside the body is not data (the real shape of Sessões)');
+    body.children[0]!.remove();
+    body.append(node('div', 'table'));
     r.tick();
     assert.equal(r.ghosts().length, 0);
     assert.ok(!r.watching, 'the observer is gone');
+  });
+
+  test('Histórico puts its loading card inside the body too, and the ghost stays until the days arrive', () => {
+    const r = rig();
+    r.swap.begin('history');
+    const body = node('div', 'history-body', node('section', 'card state loading'));
+    body.children[0]!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Histórico'), node('div', 'machine-slot'), body);
+    r.tick();
+    assert.equal(r.ghosts().length, 1, 'the loading card is not data');
+    body.replaceChildren(node('div', 'days'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('the area is inert while the ghost is on screen and is free again when it leaves (A2)', () => {
+    const r = rig();
+    const inert = () => (r.area as unknown as { inert?: boolean }).inert;
+    r.swap.begin('wall');
+    assert.equal(inert(), true, 'a click or Tab cannot reach the hidden new screen');
+    r.timers.flush();
+    assert.equal(inert(), true, 'still inert once the skeleton shows');
+    r.swap.settle();
+    assert.equal(inert(), false);
+  });
+
+  test('mounted() in the real shape of Histórico: mount returns before the read, the ghost stays until the days arrive (A1)', () => {
+    const r = rig();
+    r.swap.begin('history');
+    const body = node('div', 'hist-body', node('div', 'hist-region', node('section', 'card state loading')));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Histórico'), node('div', 'hist-machines'), body);
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 1, 'the generic loading card never shows between the swap and the read');
+    assert.ok(r.watching, 'still watching for the days');
+    body.replaceChildren(node('div', 'hist-group'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('mounted() settles at once when the screen already has its data', () => {
+    const r = rig();
+    r.swap.begin('wall');
+    r.area.append(node('h1', '', 'Mural'), node('div', 'cards'));
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('the seeded header of Detalhe is data: aviso, marked header and a loading body settle at once (N1)', () => {
+    const r = rig();
+    r.swap.begin('session-detail');
+    const top = node('div', '', node('h1', '', 'Título da lista'));
+    top.setAttribute('data-swap-ready', '');
+    const body = node('div', 'sd-body', node('section', 'card state loading'));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('div', 'notice-slot'), top, body);
+    r.tick();
+    assert.equal(r.ghosts().length, 0, 'the seeded header shows before the read');
+  });
+
+  test('a loading card with no seed mark still holds the ghost (N1 does not weaken A1)', () => {
+    const r = rig();
+    r.swap.begin('session-detail');
+    const body = node('div', 'sd-body', node('section', 'card state loading'));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('div', 'notice-slot'), node('div', '', node('h1', '', 'x')), body);
+    r.tick();
+    assert.equal(r.ghosts().length, 1);
+  });
+
+  test('with the drawer open the area stays inert through begin and settle (N2)', () => {
+    const column = node('div', 'cc-col');
+    const area = node('main', 'cc-main');
+    column.append(area);
+    area.append(node('h1', '', 'Início'));
+    let open = true;
+    const swap = createScreenSwap({ area, held: () => open, setTimer: () => 1, clearTimer: () => {}, observe: () => () => {} });
+    const inert = () => (area as unknown as { inert?: boolean }).inert;
+    swap.begin('sessions');
+    assert.equal(inert(), true);
+    area.append(node('h1', '', 'Sessões'));
+    swap.settle();
+    assert.equal(inert(), true, 'the content behind the drawer stays inert');
+    open = false;
+    swap.begin('wall');
+    area.append(node('h1', '', 'Mural'));
+    swap.settle();
+    assert.equal(inert(), false, 'and is free when the drawer is closed');
   });
 
   test('settle with no ghost is a no-op, and a first load with nothing to keep shows a blank ghost then the skeleton', () => {
@@ -170,11 +259,20 @@ describe('Each screen has its own shape (#765, M1)', () => {
 describe('The shell uses the swap (#765)', () => {
   const app = ui('app.js');
   test('the area goes through createScreenSwap, begun before the screen module loads and settled when it mounts or fails', () => {
-    assert.match(app, /createScreenSwap\(\{ area \}\)/);
+    assert.match(app, /createScreenSwap\(\{ area/);
     const begin = app.indexOf('swap.begin(screen.id)');
     assert.ok(begin > 0, 'begins with the screen id');
     assert.ok(begin < app.indexOf('await import(screen.file)'), 'before the module loads');
     assert.match(app, /swap\.settle\(\)/);
+  });
+  test('the mount returning is not the data arriving: app.js calls mounted(), and the drawer holds the area inert (A1, N2)', () => {
+    const mount = app.slice(app.indexOf('await module.mount(area, ctx)'), app.indexOf('drawLive();', app.indexOf('await module.mount(area, ctx)')));
+    assert.match(mount, /swap\.mounted\(\)/);
+    assert.doesNotMatch(mount, /swap\.settle\(\)/);
+    assert.match(app, /createScreenSwap\(\{ area, held: \(\) => drawer\.isOpen\(\) \}\)/);
+  });
+  test('the seed of Detalhe marks its header as data (N1)', () => {
+    assert.match(ui('screens/session-detail.js'), /setAttribute\('data-swap-ready', ''\)/);
   });
   test('a screen that does not exist leaves no ghost behind', () => {
     const lost = app.slice(app.indexOf('if (!found) {'), app.indexOf('const { screen, params } = found;'));

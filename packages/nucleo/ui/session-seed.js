@@ -1,5 +1,5 @@
-// What a list already knew about a session (issue 765): title, state and reason. The session detail paints its header
-// with it while its own read is out. Only these four fields are kept, and only the last 300 sessions.
+/* #765: what a list already knew about a session, title, state and reason. The session detail paints its header
+   with it while its own read is out. Only these four fields are kept, and only the last 300 sessions. */
 
 const MAX = 300;
 const seeds = new Map();

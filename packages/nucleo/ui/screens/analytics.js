@@ -551,7 +551,7 @@ export async function mount(area, ctx, { releituraMs: rereadMs = REREAD_MS } = {
   let turn = 0;
   let wait = null;
 
-  // issue 766: only the cost tab has a number of yesterday's kind to say (today against the daily average); the overview has only its title.
+  // #766-subtitles: only the cost tab has a number of yesterday's kind to say (today against the daily average); the overview has only its title.
   const head = (actions = [], sub = null) => analyticsHeader(sub, actions);
   const costLine = (data) => (tab === 'cost' ? costSub({ today: data?.todaySummary?.usd, average: data?.period?.dailyAverage, days: data?.days ?? days }) : null);
 

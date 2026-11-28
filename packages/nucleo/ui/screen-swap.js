@@ -1,23 +1,23 @@
-// The switch of screen (issue 765): the screen that was open stays, inert, over the area until the new one has its
-// data or 300 ms pass; only then does a skeleton with the shape of the new screen take its place. The new screen
-// mounts in the real area underneath, so its focus, scroll and measures are the ones it always had.
+/* #765: the switch of screen. The screen that was open stays, inert, over the area until the new one has its
+   data or 300 ms pass; only then does a skeleton with the shape of the new screen take its place. The new screen
+   mounts in the real area underneath, so its focus, scroll and measures are the ones it always had. */
 
 import { skeleton as shapeSkeleton } from './skeletons.js';
 
 export const SWAP_DELAY_MS = 300;
 
-/** A direct child that says it is still loading is not data. */
-const hasData = (area) => area.children.length > 0 && ![...area.children].some((c) => c.getAttribute('aria-busy') === 'true');
+/** #765: anything below the area that says it is still loading (Sessões and Histórico put it inside a body div) is not data, unless the screen marks what it painted with `data-swap-ready` (the seeded header of Detalhe). */
+const hasData = (area) => area.children.length > 0 && (area.querySelector('[data-swap-ready]') !== null || !area.querySelector('[aria-busy="true"]'));
 
 function watchArea(area, check) {
   if (typeof MutationObserver !== 'function') return () => {};
   const observer = new MutationObserver(check);
-  observer.observe(area, { childList: true });
+  observer.observe(area, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
   return () => observer.disconnect();
 }
 
-/** `begin(screenId)` when a screen starts to open; `settle()` when it has mounted or failed. */
-export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = setTimeout, clearTimer = clearTimeout, delayMs = SWAP_DELAY_MS, observe = watchArea }) {
+/** `begin(screenId)` when a screen starts to open; `mounted()` when its mount returned (it settles only if the area has data); `settle()` when it failed. `held()` says something else (the drawer) keeps the area inert. */
+export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = setTimeout, clearTimer = clearTimeout, delayMs = SWAP_DELAY_MS, observe = watchArea, held = () => false }) {
   let ghost = null;
   let timer = null;
   let stopWatching = () => {};
@@ -28,6 +28,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
     clearTimer(timer);
     stopWatching();
     ghost.remove();
+    area.inert = held();
     ghost = timer = null;
     stopWatching = () => {};
   }
@@ -35,10 +36,11 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
   function begin(screenId) {
     wanted = screenId;
     if (ghost) {
-      // Still waiting for an earlier screen: the person keeps seeing the one they left, not a half-built one.
+      // #765: still waiting for an earlier screen: the person keeps seeing the one they left, not a half-built one.
       area.replaceChildren();
       return;
     }
+    area.inert = true;
     ghost = document.createElement('div');
     ghost.setAttribute('class', 'cc-ghost');
     ghost.setAttribute('aria-hidden', 'true');
@@ -50,5 +52,7 @@ export function createScreenSwap({ area, skeleton = shapeSkeleton, setTimer = se
     stopWatching = observe(area, () => hasData(area) && settle());
   }
 
-  return { begin, settle };
+  const mounted = () => { if (hasData(area)) settle(); };
+
+  return { begin, settle, mounted };
 }

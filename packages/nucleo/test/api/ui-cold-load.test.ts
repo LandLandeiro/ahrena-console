@@ -1,6 +1,6 @@
-// #765 (M4): on a cold load no route is asked twice. The screen's own reads come first, and a shell read of a route
-// the screen has just answered takes that answer. The one exception that stays is the first call of /api/changes
-// (the handshake of the long polling), which belongs to live.js and not to a shell read.
+/* #765 (M4): on a cold load no route is asked twice. The screen's own reads come first, and a shell read of a route
+   the screen has just answered takes that answer. The one exception that stays is the first call of /api/changes
+   (the handshake of the long polling), which belongs to live.js and not to a shell read. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -71,7 +71,7 @@ describe('A shell read takes the answer the screen has just read (#765, M4)', ()
       return promise;
     };
     await Promise.all([screen('/api/dashboard?machine=all'), screen('/api/attention')]);
-    // the shell, once the screen has settled: the version, the machines, the connectors, GitHub, the update notice, the counts
+    // #765: the shell, once the screen has settled: the version, the machines, the connectors, GitHub, the update notice, the counts
     await Promise.all(['/api/overview', '/api/machines', '/api/connectors', '/api/connections', '/api/app-update', '/api/attention', '/api/work?level=item'].map((r) => shared(r)));
     assert.equal(new Set(asked).size, asked.length, `a route was asked twice: ${asked.join(', ')}`);
     assert.ok(!asked.includes('/api/attention'));
