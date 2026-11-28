@@ -1,24 +1,14 @@
 // The state icon and tag, eight shapes with the label always written, colour only in state-icon.css (ADR-0028).
 
 import { el } from './dom.js';
-import { ATTENTION_LABEL, ATTENTION_REASONS, attentionOf, statusWithoutAttention } from './attention.js';
+import { ATTENTION_REASONS, attentionOf, statusWithoutAttention } from './attention.js';
+import { kindLabel, stateLabel } from './state-labels.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
 export const STATE_KINDS = ['needs', 'permission', 'working', 'queued', 'paused', 'completed', 'error', 'answered'];
 
-// Today's labels, kept until the names change (ADR-0028).
-const KIND_LABEL = {
-  needs: ATTENTION_LABEL.blocked,
-  permission: ATTENTION_REASONS.permission.label,
-  working: 'Ativa',
-  queued: 'Na fila',
-  paused: ATTENTION_LABEL.idle,
-  completed: 'Concluída',
-  error: ATTENTION_REASONS.error.label,
-  answered: 'Respondida',
-};
-const STATUS_TEXT = { completed: 'Concluída', abandoned: 'Abandonada' };
+// The label of each kind, and of each state this file names, is in state-labels.js (issue 760), read when the tag is drawn.
 
 function part(tag, cls, attributes) {
   const node = document.createElementNS(SVG, tag);
@@ -59,24 +49,24 @@ export function stateIcon(kind, { fraction = 0 } = {}) {
   return svg;
 }
 
-/** The tag of a state: the icon and the label in words, no fill. Without `label`, the kind says its own. */
+/** The tag of a state: the icon and the label in words, no fill. Without `label`, the kind says its own (the label of the current mode). */
 export function stateTag({ kind, label = null, fraction = 0 } = {}) {
-  const text = typeof label === 'string' && label ? label : (KIND_LABEL[kind] ?? '');
+  const text = typeof label === 'string' && label ? label : (kindLabel(kind) ?? '');
   return el('span', { class: 'state-tag', 'data-state-kind': kind }, stateIcon(kind, { fraction }), el('span', { class: 'state-tag-label', title: text }, text));
 }
 
-/** The kind and the label of a session by its attention and its status, with today's words. */
+/** The kind and the label of a session by its attention and its status, in the words of the current mode. */
 export function stateOfSession({ attention = null, status = null } = {}) {
   const a = attentionOf(attention);
   if (a?.level === 'blocked') {
     const reason = a.reason && ATTENTION_REASONS[a.reason]?.level === 'blocked' ? a.reason : null;
-    if (reason === 'permission' || reason === 'error') return { kind: reason, label: ATTENTION_REASONS[reason].label };
-    return { kind: 'needs', label: reason ? ATTENTION_REASONS[reason].label : ATTENTION_LABEL.blocked };
+    if (reason === 'permission' || reason === 'error') return { kind: reason, label: stateLabel(reason) };
+    return { kind: 'needs', label: stateLabel(reason ?? 'blocked') };
   }
-  if (a?.level === 'idle') return { kind: 'paused', label: ATTENTION_LABEL.idle };
+  if (a?.level === 'idle') return { kind: 'paused', label: stateLabel('idle') };
   const s = statusWithoutAttention(status);
-  if (s === 'completed') return { kind: 'completed', label: STATUS_TEXT.completed };
-  if (s === 'error') return { kind: 'error', label: KIND_LABEL.error };
-  if (s === 'abandoned') return { kind: 'paused', label: STATUS_TEXT.abandoned };
-  return { kind: 'working', label: KIND_LABEL.working };
+  if (s === 'completed') return { kind: 'completed', label: stateLabel('completed') };
+  if (s === 'error') return { kind: 'error', label: stateLabel('error') };
+  if (s === 'abandoned') return { kind: 'paused', label: stateLabel('abandoned') };
+  return { kind: 'working', label: stateLabel('active') };
 }

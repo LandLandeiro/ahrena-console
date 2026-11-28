@@ -6,26 +6,40 @@
 // - `idle` ("Ociosa"): the turn ended and nothing is stuck. Neutral tokens, hollow dot, no fill, the
 //   reason in a light chip (turn ended, interrupted, at the prompt).
 //
+// The words are not written here: they are read from state-labels.js (issue 760), in the mode of the moment.
+//
 // Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
 // "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen.
 
 import { el, icon } from './dom.js';
+import { stateLabel, stateLabels } from './state-labels.js';
+
+// The words are in state-labels.js (issue 760), in the Dev and the Projeto column. The three maps below keep their names and
+// shapes, but their text is read when it is used, so a change of mode shows in the next draw.
 
 /** The singular label of each level, as the pill says it. */
-export const ATTENTION_LABEL = { blocked: 'Precisa de você', idle: 'Ociosa' };
+export const ATTENTION_LABEL = stateLabels(['blocked', 'idle']);
 /** The plural, for pills, filters and columns. */
-export const ATTENTION_PLURAL = { blocked: 'Precisam de você', idle: 'Ociosas' };
+export const ATTENTION_PLURAL = stateLabels(['blocked', 'idle'], { plural: true });
+
+const reason = (level, id, iconName) => ({
+  level,
+  get label() {
+    return stateLabel(id);
+  },
+  icon: iconName,
+});
 
 /** The reasons, with the label and the icon (from dom.js) of each one. */
 export const ATTENTION_REASONS = {
-  permission: { level: 'blocked', label: 'Pede permissão', icon: 'permission' },
-  question: { level: 'blocked', label: 'Pergunta', icon: 'question' },
-  plan: { level: 'blocked', label: 'Plano para aprovar', icon: 'list-checks' },
-  decision: { level: 'blocked', label: 'Decisão pedida', icon: 'hand' },
-  error: { level: 'blocked', label: 'Com erro', icon: 'error' },
-  turn_ended: { level: 'idle', label: 'Sua vez', icon: 'your-turn' },
-  interrupted: { level: 'idle', label: 'Interrompida', icon: 'interrupted' },
-  first_prompt: { level: 'idle', label: 'No prompt', icon: 'no-prompt' },
+  permission: reason('blocked', 'permission', 'permission'),
+  question: reason('blocked', 'question', 'question'),
+  plan: reason('blocked', 'plan', 'list-checks'),
+  decision: reason('blocked', 'decision', 'hand'),
+  error: reason('blocked', 'error', 'error'),
+  turn_ended: reason('idle', 'turn_ended', 'your-turn'),
+  interrupted: reason('idle', 'interrupted', 'interrupted'),
+  first_prompt: reason('idle', 'first_prompt', 'no-prompt'),
 };
 
 /** The attention of a payload, checked: `{ level, reason }` or `null` (anything else is `null`). */

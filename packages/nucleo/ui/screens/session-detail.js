@@ -16,6 +16,7 @@ import { createComposeBox } from './session-message.js';
 import { messageBody } from './chat-text.js';
 import { downNotice, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
 import { attentionOf, attentionPill, isBlocked, isIdle, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
+import { needsOrIdleLabel, stateLabel, stateLabels } from '../state-labels.js';
 
 // ---------- Formatos ----------
 
@@ -73,10 +74,11 @@ function when(iso, now = new Date()) {
 }
 
 // issue 245: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Ociosa").
-const STATUS = { active: 'Ativa', working: 'Ativa', error: 'Com erro', completed: 'Concluída', abandoned: 'Abandonada' };
+// The words are in state-labels.js (issue 760); the maps read the mode when they are read.
+const STATUS = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' });
 const COLOR = { active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' };
 /** The timeline's status filter: the core's `waiting` takes both the blocked and the idle events. */
-const STATUS_FILTER = { ...STATUS, waiting: 'Precisa de você ou ociosa' };
+const STATUS_FILTER = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned', waiting: needsOrIdleLabel });
 
 /** The pill: the attention when there is one; a waiting one without it is active; the rest by status. */
 function statusPill(status, attention = null) {
@@ -93,7 +95,7 @@ export function idleNote(attention, since, now = Date.now()) {
     interrupted: when ? `interrompida há ${when}, no meio do turno` : 'interrompida no meio do turno',
     first_prompt: when ? `aberta no prompt há ${when}, sem o primeiro pedido` : 'aberta no prompt, sem o primeiro pedido',
   }[attentionOf(attention)?.reason ?? ''];
-  return `Ociosa · ${what ?? 'a vez é sua'}. Nada trava a sessão.`;
+  return `${stateLabel('idle')} · ${what ?? 'a vez é sua'}. Nada trava a sessão.`;
 }
 
 /** Texto com `código` entre crases: cada pedaço vira nó de texto ou `<code>`, nunca HTML. */
@@ -388,9 +390,9 @@ function withCommand(text, command) {
 // The class of each tool state and of the band is its API value (`sd-e-<state>`, `sd-t-<type>`).
 /** The band title: "Precisa de você · Pede permissão." or "Com erro." */
 export function bandTitle(session) {
-  if (session.banner?.type === 'error' || session.attention?.reason === 'error') return 'Com erro.';
+  if (session.banner?.type === 'error' || session.attention?.reason === 'error') return `${stateLabel('error')}.`;
   const reason = reasonLabel(session.attention);
-  return reason ? `Precisa de você · ${reason}.` : 'Precisa de você.';
+  return reason ? `${stateLabel('blocked')} · ${reason}.` : `${stateLabel('blocked')}.`;
 }
 
 function band(c) {

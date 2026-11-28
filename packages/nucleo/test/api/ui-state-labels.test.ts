@@ -68,6 +68,13 @@ export interface Stray {
   text: string;
 }
 
+/** The last character before `at` that is not a space, or an empty string at the start: what tells a regular expression from a division. */
+function previousSignificant(source: string, at: number): string {
+  let k = at - 1;
+  while (k >= 0 && (source[k] === ' ' || source[k] === '\t' || source[k] === '\n')) k--;
+  return k >= 0 ? source[k]! : '';
+}
+
 /** The string literals of a source, comments left out, each with its line. A template with an expression is walked for the literals inside it and is not a literal itself. */
 function literalsOf(source: string, firstLine = 1): { line: number; value: string }[] {
   const found: { line: number; value: string }[] = [];
@@ -88,6 +95,17 @@ function literalsOf(source: string, firstLine = 1): { line: number; value: strin
         i++;
       }
       i += 2;
+    } else if (c === '/' && /[(,=:[!&|?{};]|^$/.test(previousSignificant(source, i))) {
+      // A regular expression literal (it may hold a quote or a backtick): skipped, never read as a string.
+      let j = i + 1;
+      let inClass = false;
+      while (j < n && source[j] !== '\n' && (inClass || source[j] !== '/')) {
+        if (source[j] === '\\') j++;
+        else if (source[j] === '[') inClass = true;
+        else if (source[j] === ']') inClass = false;
+        j++;
+      }
+      i = j + 1;
     } else if (c === "'" || c === '"') {
       let j = i + 1;
       let value = '';
@@ -155,7 +173,6 @@ const NOT_SESSION_STATES: { file: string; text: string; why: string }[] = [
   { file: 'screens/docker-actions.js', text: 'Rodando', why: 'a container is running, not a session' },
   { file: 'screens/docker-format.js', text: 'Rodando', why: 'a container filter' },
   { file: 'screens/machine-terminals-format.js', text: 'Rodando', why: 'a terminal process' },
-  { file: 'screens/machine-terminals-format.js', text: 'Ocioso', why: 'a terminal, masculine and not a session' },
   { file: 'screens/session-detail.js', text: 'Rodando', why: 'a tool call in the conversation' },
   { file: 'screens/session-detail.js', text: 'Erro', why: 'a tool call in the conversation' },
   { file: 'screens/agent-view.js', text: 'Rodando', why: 'a step of the agent view is a tool call' },
@@ -190,6 +207,11 @@ export function strayLabelsInUi(): { strays: Stray[]; used: Set<string> } {
 
 describe('#760 uma fonte só: the guard finds a state label written by hand', () => {
   const map = ['const STATUS = {', "  active: 'Ativa',", '  error: "Com erro",', '  abandoned: `Abandonada`,', '};'].join('\n');
+
+  test('a regular expression with a backtick does not hide the labels after it', () => {
+    const source = ["const parts = text.split(/`([^`\\n]+)`/);", "const STATUS = { active: 'Ativa' };"].join('\n');
+    assert.deepEqual(findStrayLabels(source, 'screens/x.js'), [{ file: 'screens/x.js', line: 2, text: 'Ativa' }]);
+  });
 
   test('a hand-written map is red, with the file and the line of each label', () => {
     assert.deepEqual(findStrayLabels(map, 'screens/x.js'), [

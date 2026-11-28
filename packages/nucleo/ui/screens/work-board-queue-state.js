@@ -5,16 +5,14 @@
  of a card and the cards with a request in flight. The render parts are in work-board-queue.js, the wiring in work-board-queue-layer.js. */
 
 import { PLANNABLE_TYPES } from './work-board-plan.js';
+import { boardColumnLabel } from '../state-labels.js';
 
 /** The two columns a card may be dragged between: the person's order. The other four are facts of the session and of GitHub. */
 export const QUEUE_COLUMNS = new Set(['planning', 'queued']);
 
-const FACT_REFUSALS = {
-  running: 'Em execução vem da sessão: não recebe card. Solte em Planejamento ou Na fila.',
-  review: 'Em review vem do PR: não recebe card. Solte em Planejamento ou Na fila.',
-  blocked: 'Bloqueado vem da sessão, do PR e do CI: não recebe card. Solte em Planejamento ou Na fila.',
-  done: 'Concluído vem do GitHub: não recebe card. Solte em Planejamento ou Na fila.',
-};
+// What each fact column comes from; the column's name is state-labels.js's (issue 760).
+const FACT_SOURCES = { running: 'da sessão', review: 'do PR', blocked: 'da sessão, do PR e do CI', done: 'do GitHub' };
+const refusalOf = (column) => `${boardColumnLabel(column)} vem ${FACT_SOURCES[column]}: não recebe card. Solte em ${boardColumnLabel('planning')} ou ${boardColumnLabel('queued')}.`;
 const NO_PLAN = 'Planeje antes: item sem plano não entra na fila';
 const UNTRUSTED = 'Planeje antes: Fora da lista de confiança, só leitura';
 
@@ -35,7 +33,7 @@ export function enqueueRefusal(card) {
 }
 
 /** The pt-BR a column of facts answers a dragged card with. */
-export const factRefusal = (column) => FACT_REFUSALS[column] ?? FACT_REFUSALS.review;
+export const factRefusal = (column) => refusalOf(Object.hasOwn(FACT_SOURCES, column) ? column : 'review');
 
 /**
  * The `after` of POST /api/work/queue/order for putting `card` before the card `beforeKey` (null: at the end) among the

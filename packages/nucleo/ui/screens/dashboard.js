@@ -10,6 +10,7 @@ import { loading, error, errorBand, empty } from '../states.js';
 import { lastAvailability, loadAvailability, messageAction, useMessageStyle } from './session-message.js';
 import { attentionOf, attentionOfItem, attentionPill, attentionTone, attentionDot, isBlocked, isIdle, reasonChip, statusWithoutAttention } from '../attention.js';
 import { openAction } from '../open-action.js';
+import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { attentionForChoice, createMachineFilter, isRemote, itemHref, itemKey, machineTag, remoteParts, sessionHref, whereText } from '../machine-filter.js';
 
@@ -24,7 +25,8 @@ const BACKGROUND_MS = 30_000;
 const IN_INBOX = 5;
 const IN_IDLE_ROW = 3;
 
-export const STATUS_LABEL = { active: 'Ativa', completed: 'Concluída', error: 'Com erro', abandoned: 'Abandonada' };
+// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+export const STATUS_LABEL = stateLabels(['active', 'completed', 'error', 'abandoned']);
 // A subagent has no attention of its own (issue 245): a waiting one does not wait on the person, so it is active.
 const SUBAGENT_STATUS = { working: 'active', waiting: 'active', completed: 'completed', error: 'error' };
 /** The sessions screen filtered on the idle ones, and on the blocked ones. */
@@ -189,7 +191,7 @@ function inbox(attention, agents, write, navigate = () => {}) {
     el('span', { class: total ? 'c-waiting' : 'c-dim' }, inboxTitle(total)),
     el('a', { class: 'r', href: BLOCKED_SESSIONS_HREF }, 'travadas até você agir · quem espera há mais tempo primeiro', icon('chevron-right')),
   );
-  if (!total) return el('section', { class: 'card inbox calm', 'aria-label': 'Precisam de você' }, title);
+  if (!total) return el('section', { class: 'card inbox calm', 'aria-label': stateLabel('blocked', { plural: true }) }, title);
   const mini = inboxCards(attention, agents).map((c) => {
     // #61 (C53): with the availability known, the foot has "Mandar mensagem" (or "sem processo vivo")
     // beside the open icon and "Abrir ›", and the age goes up beside the reason; unknown, it is the C1 foot.
@@ -212,7 +214,7 @@ function inbox(attention, agents, write, navigate = () => {}) {
       el('div', { class: 'foot' }, lead, c.href ? miniActions(c, write) : null),
     );
   });
-  return el('section', { class: 'card inbox', 'aria-label': 'Precisam de você' }, title, el('div', { class: 'grid4' }, ...mini));
+  return el('section', { class: 'card inbox', 'aria-label': stateLabel('blocked', { plural: true }) }, title, el('div', { class: 'grid4' }, ...mini));
 }
 
 /**
@@ -236,7 +238,7 @@ function idleRow(attention) {
   if (!total) return null;
   return el(
     'section',
-    { class: 'card dash-idle', 'aria-label': 'Ociosas' },
+    { class: 'card dash-idle', 'aria-label': stateLabel('idle', { plural: true }) },
     el('span', { class: 'dash-idle-title' }, attentionDot('idle'), el('b', {}, idleTitle(total)), ' · sem pressa'),
     ...idleChips(attention).map((c) => el('span', { class: 'dash-idle-item', 'data-session': c.session, 'data-key': c.key }, reasonChip(c.attention), el('span', { class: 'mono trunc' }, c.name))),
     el('a', { class: 'dash-idle-link', href: IDLE_SESSIONS_HREF }, 'Ver em Sessões', icon('chevron-right')),

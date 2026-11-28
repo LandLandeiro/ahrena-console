@@ -10,19 +10,26 @@ import { loading, error, errorBand, empty } from '../states.js';
 import { attentionBadges, attentionOf, statusWithoutAttention } from '../attention.js';
 import { lastAvailability, loadAvailability, messageAction, useMessageStyle } from './session-message.js';
 import { openAction } from '../open-action.js';
+import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
 // The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-// old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`).
+// old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`). The words are in
+// state-labels.js (issue 760): each pill is `[value, label]` and its label is read when the pill is drawn.
+const pill = (value, id, options) => {
+  const p = [value, null];
+  Object.defineProperty(p, 1, { enumerable: true, get: () => stateLabel(id, options) });
+  return p;
+};
 export const PILLS = [
   ['all', 'Todas'],
-  ['active', 'Ativas'],
-  ['blocked', 'Precisam de você'],
-  ['idle', 'Ociosas'],
-  ['completed', 'Concluídas'],
-  ['error', 'Erro'],
-  ['abandoned', 'Abandonadas'],
+  pill('active', 'active', { plural: true }),
+  pill('blocked', 'blocked', { plural: true }),
+  pill('idle', 'idle', { plural: true }),
+  pill('completed', 'completed', { plural: true }),
+  pill('error', 'failed'),
+  pill('abandoned', 'abandoned', { plural: true }),
 ];
 
 // O rótulo da ordem diz também o sentido: o ⇅ ao lado inverte.
@@ -32,12 +39,7 @@ const ORDERS = {
   cost: { desc: 'Custo: maior', asc: 'Custo: menor' },
 };
 
-export const STATUS = {
-  active: 'Ativa',
-  completed: 'Concluída',
-  error: 'Com erro',
-  abandoned: 'Abandonada',
-};
+export const STATUS = stateLabels(['active', 'completed', 'error', 'abandoned']);
 
 /** An old bookmark's `?status=waiting` opens the ones that need you. */
 const STATUS_ALIASES = { waiting: 'blocked' };

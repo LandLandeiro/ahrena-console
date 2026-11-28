@@ -7,6 +7,7 @@ import { el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
+import { stateLabel } from '../state-labels.js';
 import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
 import { newSessionButton } from '../new-session.js';
@@ -30,12 +31,21 @@ export const agentOf = (c) => AGENTS[c?.identity?.provider] ?? 'Claude';
 export const PARKED_PAGE = 7;
 export const PARKED_MAX = 100;
 
+// The state words are in state-labels.js (issue 760): `rotulo` is read when the filter is drawn, so a change of mode shows.
 // ADR-0028: the filter is the section of the card; "Concluídas" has no filter of its own and shows under "Todas".
+const stateFilter = (id, passa, vazio) => ({
+  id,
+  get rotulo() {
+    return stateLabel(id, { plural: true });
+  },
+  passa,
+  vazio,
+});
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas', passa: () => true, vazio: 'Nenhuma sessão aberta' },
-  { id: 'blocked', rotulo: 'Precisam de você', passa: (c) => sectionOf(c) === 'blocked', vazio: 'Ninguém precisa de você agora' },
-  { id: 'active', rotulo: 'Ativas', passa: (c) => sectionOf(c) === 'active', vazio: 'Nenhuma sessão ativa' },
-  { id: 'idle', rotulo: 'Ociosas', passa: (c) => sectionOf(c) === 'idle', vazio: 'Nenhuma sessão ociosa' },
+  stateFilter('blocked', (c) => sectionOf(c) === 'blocked', 'Ninguém precisa de você agora'),
+  stateFilter('active', (c) => sectionOf(c) === 'active', 'Nenhuma sessão ativa'),
+  stateFilter('idle', (c) => sectionOf(c) === 'idle', 'Nenhuma sessão ociosa'),
 ];
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
@@ -142,7 +152,7 @@ export function parkedContent(parked) {
   const total = parked?.total ?? 0;
   if (!(total > 0)) return null;
   const shown = parked.items?.length ?? 0;
-  return { title: `Paradas (${total})`, shown, total, more: Math.max(0, Math.min(total, PARKED_MAX) - shown) };
+  return { title: `${stateLabel('parked')} (${total})`, shown, total, more: Math.max(0, Math.min(total, PARKED_MAX) - shown) };
 }
 
 // ---------- Peças ----------
@@ -310,7 +320,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
           { class: 'wall-kid', role: 'listitem', 'data-parked-row': c.id },
           link,
           el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
-          el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? 'Sua vez' : '—')),
+          el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? stateLabel('turn_ended') : '—')),
           el('span', { class: 'wall-muted wall-kid-age' }, sinceText(c.since)),
           openLink,
         );
@@ -535,9 +545,9 @@ export async function mount(area, ctx) {
         if (cell.i === null) return el('div', { class: `wall-filler${cell.last ? ' wall-last' : ''}${cell.first ? ' wall-first' : ''}`, 'aria-hidden': 'true' });
         return row(by.active[cell.i], ctx.write, nest, known, mono, ` wall-${cell.side}${cell.first ? ' wall-first' : ''}${cell.last ? ' wall-last' : ''}`).node;
       });
-      sections.push(section('active', 'Ativas', by.active.length, list('active', nodes, ' wall-duo')));
+      sections.push(section('active', stateLabel('active', { plural: true }), by.active.length, list('active', nodes, ' wall-duo')));
     }
-    const pair = ['idle', 'completed'].filter((id) => by[id].length).map((id) => section(id, id === 'idle' ? 'Ociosas' : 'Concluídas', by[id].length, list(id, rowsOf(id))));
+    const pair = ['idle', 'completed'].filter((id) => by[id].length).map((id) => section(id, stateLabel(id, { plural: true }), by[id].length, list(id, rowsOf(id))));
     if (pair.length) sections.push(el('div', { class: 'wall-pair' }, ...pair));
     const body = sections.length
       ? el('div', { class: 'wall-body' }, ...sections)

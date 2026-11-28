@@ -13,6 +13,7 @@ import { el, icon } from '../dom.js';
 import { loading, error, errorBand } from '../states.js';
 import { duration, modelName, num } from './workflow-format.js';
 import { lineageStrip, loopPanel } from './workflow-loop.js';
+import { stateLabel, stateLabels } from '../state-labels.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const REREAD_ACTIVE_MS = 10_000;
@@ -146,7 +147,8 @@ export function nodeDetail(n) {
   return { texto: [who, duration(n.durationMs)].filter(Boolean).join(' · '), ajustes: false };
 }
 
-const STATE_LABEL = { active: 'Ativa', completed: 'Concluída', error: 'Erro' };
+// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+const STATE_LABEL = stateLabels({ active: 'active', completed: 'completed', error: 'failed' });
 // The class of each node state is its API value: `wfd-e-<state>`.
 const stateClass = (state) => `wfd-e-${state}`;
 
@@ -224,8 +226,8 @@ function legend(w) {
   return el(
     'div',
     { class: 'wfd-legend' },
-    el('span', {}, el('i', { class: 'wfd-ball wfd-e-active' }), 'Ativo'),
-    el('span', {}, el('i', { class: 'wfd-ball wfd-e-completed' }), 'Concluído'),
+    el('span', {}, el('i', { class: 'wfd-ball wfd-e-active' }), stateLabel('active_item')),
+    el('span', {}, el('i', { class: 'wfd-ball wfd-e-completed' }), stateLabel('completed_item')),
     el('span', {}, dashed, 'review pediu ajustes: volta para o dev'),
     el('span', {}, 'Rodadas de review ', el('b', { class: 'mono' }, num(w.reviewRounds))),
     el('span', {}, 'Ajustes ', el('b', { class: 'mono' }, num(w.changesRequested))),
