@@ -589,7 +589,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     known = known.map((m) => (m.id === LOCAL ? m : { ...m, held: held.get(m.id) ?? null }));
   }
 
-  // Issue 754: the sidebar read again; the band follows it only when the map changed, and the listener leaves with the screen.
+  // #754: the sidebar read again; the band follows it only when the map changed, and the listener leaves with the screen.
   const stopFollowing = ctx.heldMachines?.onChange?.(() => {
     if (ctx.signal?.aborted) return;
     const next = new Map(ctx.heldMachines.get());
