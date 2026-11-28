@@ -47,14 +47,23 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {},
   // The one re-read pending while a machine is being updated; never two at once. (ADR-0024)
   let updatingTimer = null;
 
+  // #767: what each item last said, so a number that changed rolls in and the same one drawn again does not.
+  const said = new Map();
+  function rolls(id, text) {
+    const before = said.get(id);
+    said.set(id, text);
+    return before !== undefined && before !== text ? text : null;
+  }
+
   function side(id) {
     const tag = tags.get(id);
     if (tag) {
       const text = tag.note ? `${tag.text} ${tag.note}` : tag.text;
-      return el('span', { class: 'cc-nav-tag', 'data-tone': tag.tone, title: tag.note ? text : null }, tag.text, tag.note ? el('span', { class: 'cc-sr-only' }, ` ${tag.note}`) : null);
+      return el('span', { class: 'cc-nav-tag', 'data-tone': tag.tone, 'data-roll': rolls(id, text), title: tag.note ? text : null }, tag.text, tag.note ? el('span', { class: 'cc-sr-only' }, ` ${tag.note}`) : null);
     }
     const n = counts.get(id);
-    return n ? el('span', { class: 'cc-nav-count' }, String(n)) : null;
+    if (!n) said.delete(id);
+    return n ? el('span', { class: 'cc-nav-count', 'data-roll': rolls(id, String(n)) }, String(n)) : null;
   }
 
   function draw() {

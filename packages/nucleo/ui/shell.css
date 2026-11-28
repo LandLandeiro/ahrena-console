@@ -132,7 +132,7 @@ button { font: inherit; cursor: pointer; }
    States: :hover, :active, :focus-visible, [aria-busy="true"], [data-state="done"|"failed"] and one
    disabled look for :disabled and [aria-disabled="true"] (say why in `title` or in text beside it).
    Busy keeps the focus: the button stays enabled and ignores repeated clicks (ui/button-action.js). */
-.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; }
+.btn { --btn-h: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: var(--btn-h); padding: 0 13px; border-radius: var(--radius-control); font-family: var(--font-sans); font-size: 13px; line-height: 1; color: var(--text); background: transparent; border: 1px solid transparent; white-space: nowrap; flex: none; cursor: pointer; --btn-press-scale: .96; --btn-press-in: 80ms; transition: transform var(--motion-fast) var(--ease-out); }
 .btn.sm { --btn-h: 28px; padding: 0 10px; gap: 6px; font-size: 12px; }
 .btn.lg { --btn-h: 40px; padding: 0 18px; gap: 8px; font-size: 14px; }
 .btn.icon-only { width: var(--btn-h); padding: 0; }
@@ -148,13 +148,16 @@ button { font: inherit; cursor: pointer; }
 .btn.primary:hover:not(:disabled):not([aria-disabled="true"]) { filter: brightness(1.15); }
 .btn.danger:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-badge); }
 .btn.danger.filled:hover:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-dot); filter: brightness(1.1); }
-.btn:active:not(:disabled):not([aria-disabled="true"]) { transform: translateY(1px); }
+/* ADR-0028: the press is 96% in 80 ms and back in --motion-fast; transform only. */
+.btn:active:not(:disabled):not([aria-disabled="true"]) { transform: scale(var(--btn-press-scale)); transition-duration: var(--btn-press-in); }
 .btn.outline:active:not(:disabled):not([aria-disabled="true"]), .btn.ghost:active:not(:disabled):not([aria-disabled="true"]) { background: var(--bg); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 28%, transparent); }
 .btn.filled:active:not(:disabled):not([aria-disabled="true"]) { filter: brightness(.86); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 30%, transparent); }
 .btn.primary:active:not(:disabled):not([aria-disabled="true"]) { filter: brightness(.9); }
 .btn.danger:active:not(:disabled):not([aria-disabled="true"]) { background: color-mix(in srgb, var(--status-error-badge) 60%, var(--bg)); box-shadow: inset 0 2px 3px color-mix(in srgb, var(--gray-900) 28%, transparent); }
 .btn.danger.filled:active:not(:disabled):not([aria-disabled="true"]) { background: var(--status-error-dot); }
 .btn[data-state="done"] { color: var(--status-completed-text); border-color: color-mix(in srgb, var(--status-completed-dot) 55%, var(--border-control)); background: color-mix(in srgb, var(--status-completed-badge) 70%, var(--surface)); }
+/* ADR-0028: the check of a button that is done, when its label has no icon of its own; the label says it too. */
+.btn[data-state="done"]:not(:has(.icon))::before { content: "\2713"; font-weight: var(--weight-semibold); }
 .btn[data-state="failed"] { color: var(--status-error-text); border-color: var(--status-error-dot); background: color-mix(in srgb, var(--status-error-badge) 70%, var(--surface)); }
 .btn:disabled, .btn[aria-disabled="true"]:not([aria-busy="true"]) { opacity: .5; cursor: not-allowed; }
 .btn[aria-busy="true"] { cursor: progress; }
@@ -211,6 +214,16 @@ button { font: inherit; cursor: pointer; }
 @keyframes girar { to { transform: rotate(360deg); } }
 @keyframes btn-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .btn[aria-busy="true"] .icon, .btn[aria-busy="true"]::before { animation: none; } }
+/* ADR-0028: reduced motion: the button does not shrink and no number rolls; everything just swaps. */
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:active:not(:disabled):not([aria-disabled="true"]) { transform: none; }
+}
+/* ADR-0028: a number that changed enters with opacity and 3 px of slide (the bar, the menu button, the title of a section). */
+@media (prefers-reduced-motion: no-preference) {
+  [data-roll] { --roll-offset: 3px; animation: roll-in var(--motion-fast) var(--ease-out); }
+}
+@keyframes roll-in { from { opacity: 0; transform: translateY(var(--roll-offset)); } }
 
 /* ---------- the switch of screen (issue 765): the screen that was open stays under .cc-ghost, then a skeleton with the shape of the new one. No motion. ---------- */
 .cc-col { position: relative; }

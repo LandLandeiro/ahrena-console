@@ -1,8 +1,8 @@
 // #767-micro-interactions (ADR-0028): answering from the Mural gives something back. The press, the busy button and its check,
-// the card that leaves and comes back with the toast "Desfazer", the line of the toast that waits for who is reading, the keys
-// A, N and 1-9 on a card, the rolling count, the copy of the command and the empty list. Without `prefers-reduced-motion` things
-// move; with it everything just swaps. "Segurar para confirmar" is omitted on purpose (the declaration of commands is not built).
-// Timers are the mock ones of node:test; the promises are settled with `setImmediate`, which stays real.
+// #767-micro-interactions: the card that leaves and comes back with the toast "Desfazer", the line of the toast that waits for who is reading, the keys
+// #767-micro-interactions: A, N and 1-9 on a card, the rolling count, the copy of the command and the empty list. Without `prefers-reduced-motion` things
+// #767-micro-interactions: move; with it everything just swaps. "Segurar para confirmar" is omitted on purpose (the declaration of commands is not built).
+// #767-micro-interactions: Timers are the mock ones of node:test; the promises are settled with `setImmediate`, which stays real.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, mock, test } from 'node:test';
@@ -100,6 +100,7 @@ afterEach(() => {
 });
 
 async function mountWith(initial: Card) {
+  mock.timers.reset();
   mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: NOW });
   const s = start(initial);
   const unmount = await s.mounted;
@@ -277,8 +278,8 @@ describe('#767: reduced motion', () => {
     assert.match(shell, /--btn-press-in: 80ms/);
     assert.match(shell, /\.btn:active:not\(:disabled\):not\(\[aria-disabled="true"\]\) \{[^}]*transform: scale\(var\(--btn-press-scale\)\)/);
     assert.match(shell, /\.btn \{[^}]*transition: transform var\(--motion-fast\) var\(--ease-out\)/);
-    const reducedShell = shell.match(/@media \(prefers-reduced-motion: reduce\) \{[^@]*\.btn:active[^@]*\}/)?.[0] ?? '';
-    assert.match(reducedShell, /transform: none/);
+    assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{\s*\.btn \{[^}]*transition: none;[^}]*\}\s*\.btn:active[^}]*transform: none/);
+    assert.match(shell, /@media \(prefers-reduced-motion: no-preference\) \{\s*\[data-roll\] \{[^}]*animation: roll-in/);
     const wallCss = css('wall.css');
     assert.match(wallCss, /\.wall-card\[data-leaving\] \{[^}]*opacity: 0;[^}]*transform: translateX\(12px\)/);
     assert.match(wallCss, /\.wall-card \{[^}]*transition: [^;]*var\(--motion-move\)/);

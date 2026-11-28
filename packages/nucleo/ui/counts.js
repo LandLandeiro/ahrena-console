@@ -93,6 +93,10 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
         }
       }
     },
+    // #767: the screen knows a number the core has not said yet (a card answered on it); the next read of the core replaces it.
+    show(n) {
+      nav.tag('wall', waitingTag(Math.max(0, n)));
+    },
     wrote(route) {
       if (typeof route === 'string' && (route === '/api/work' || route.startsWith('/api/work/'))) later('work', loadWork);
     },

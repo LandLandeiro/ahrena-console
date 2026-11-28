@@ -5,6 +5,7 @@
 
 import { el, icon } from '../dom.js';
 import { error, errorBand, empty } from '../states.js';
+import { runButtonAction } from '../button-action.js';
 import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
 import { stateLabel } from '../state-labels.js';
@@ -17,6 +18,8 @@ import { machineShown, techLine } from '../wall-display.js';
 import { clockOf, countsOf, duoCells, sectionOf, sectionsOf, summaryOf, summaryText } from '../wall-sections.js';
 import { liveChanges, snapshotOf } from '../wall-live.js';
 import { createNotices } from '../wall-notices.js';
+import { createToasts } from '../toast.js';
+import { LEAVE_MS, answerButtons, answerKeyOf, choicesOf, copyButton, keyHint, reducedMotion, toastText } from '../wall-answers.js';
 import { shortcutOf, shortcutsButton, stepIndex } from '../wall-keys.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceText, whereText } from '../machine-filter.js';
 
@@ -222,8 +225,19 @@ function tree(c, summary, opened, nest) {
   return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids', role: 'list', 'aria-label': `Filhas de ${c.title}` }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
 }
 
+// #767-micro-interactions: the answer of a card runs on this, the screen alone: nothing is sent to the core until the call of Permitir and Negar for real exists (#757-answers).
+const sendAnswer = async () => {};
+
+// #767-micro-interactions: a command the person may copy: the ask of a permission, in Dev.
+function askLine(c, v) {
+  const ask = el('p', { class: 'wall-ask', title: v.ask }, v.ask);
+  if (displayMode() !== 'dev' || c.attention?.reason !== 'permission') return ask;
+  return el('div', { class: 'wall-cmd' }, ask, copyButton(v.ask));
+}
+
 function card(c, write, nest, known, mono, view) {
   const v = cardContent(c);
+  const choices = choicesOf(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
@@ -236,12 +250,15 @@ function card(c, write, nest, known, mono, view) {
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${view.moved.has(v.key) ? ' wall-moved' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono, view.show),
-    el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
-    action || see ? el('div', { class: 'wall-act' }, action ?? see) : null,
+    el('div', { class: 'wall-head' }, titleLine(link, parentTitle), askLine(c, v)),
+    action || see || choices.length ? el('div', { class: 'wall-act' }, ...answerButtons(choices, (choice, button) => view.answer(c, choice, button)), action ?? see) : null,
+    displayMode() === 'dev' ? keyHint(choices) : null,
     ...tree(c, summary, opened, nest),
     techOf(c, view),
     foot(v, machineOf(c, known, view, 'card'), view.show),
   );
+  node.addEventListener('mouseenter', () => view.hover(v.key));
+  node.addEventListener('mouseleave', () => view.hover(null, v.key));
   return { node, link };
 }
 
@@ -312,10 +329,10 @@ function kidRows(nodes, depth, leader, nest) {
 }
 
 /** ADR-0028: nothing needs the person; what the empty "Precisam de você" says instead of an empty list. Not a live region: the sentence of the header says it. */
-function calmBlock() {
+function calmBlock(entering = false) {
   return el(
     'div',
-    { class: 'wall-calm' },
+    { class: 'wall-calm', 'data-enter': entering ? 'true' : null },
     el('span', { class: 'wall-calm-tile', 'aria-hidden': 'true' }, icon('done')),
     el('span', { class: 'wall-calm-text' }, el('b', {}, 'Nada precisa de você agora'), el('span', {}, 'Quando um agente pedir uma decisão ou uma permissão, ela aparece aqui primeiro.')),
   );
@@ -406,6 +423,13 @@ export async function mount(area, ctx) {
   const moved = new Set();
   let movedTimer = null;
   const notices = createNotices({ linkLabel: SEE_SESSION });
+  const toasts = createToasts({ host: notices.node });
+  // #767-micro-interactions: the sessions the person answered on this screen, by key: the card is out of "Precisam de você" and the session shows as working, until the core says it is no longer blocked or the person undoes it.
+  const answered = new Map();
+  let hoveredKey = null;
+  // #767-micro-interactions: the last number of each section title, so only a number that changed rolls; and whether the last card has just left.
+  const sectionNumbers = new Map();
+  let calmEnters = false;
   const shortcuts = shortcutsButton();
 
   // ADR-0028: the state filter, persistent buttons (label and number) so a redraw never replaces the one with the focus.
@@ -444,6 +468,64 @@ export async function mount(area, ctx) {
     filter = id;
     for (const [k, b] of buttons) b.setAttribute('aria-pressed', k === id ? 'true' : 'false');
     draw();
+  }
+
+  // #767-micro-interactions: the cards as the person sees them: a session answered here shows as working, until the core agrees it is no longer blocked.
+  function cardsNow() {
+    return (wall?.cards ?? []).map((c) => (answered.has(itemKey(c)) ? { ...c, attention: null, status: 'active', state: 'active' } : c));
+  }
+
+  const blockedNow = () => countsOf(cardsNow()).blocked;
+  const findCard = (key) => (key ? ([...area.querySelectorAll('.wall-card[data-key]')].find((n) => n.getAttribute('data-key') === key) ?? null) : null);
+  const hover = (key, from = null) => {
+    if (key) hoveredKey = key;
+    else if (hoveredKey === from) hoveredKey = null;
+  };
+  const leaving = new Set();
+
+  // #767-micro-interactions: where the focus goes when a card leaves: the next card (else the one before), else the session that moved. Never the body.
+  function focusAfter(next, key) {
+    const card = findCard(next);
+    const spot = card?.querySelector('[data-answer]') ?? card?.querySelector('a.wall-link') ?? [...area.querySelectorAll('a.wall-link[data-key]')].find((n) => n.getAttribute('data-key') === key);
+    spot?.focus();
+  }
+
+  function undo(c, choice) {
+    const key = itemKey(c);
+    answered.delete(key);
+    draw();
+    ctx.waiting?.(blockedNow());
+    const node = findCard(key);
+    const mine = choice.kind === 'option' ? `[data-answer="option"][data-option="${choice.n}"]` : `[data-answer="${choice.kind}"]`;
+    (node?.querySelector(mine) ?? node?.querySelector('a.wall-link'))?.focus();
+  }
+
+  // #767-micro-interactions: after the check the card leaves (opacity and 12 px, LEAVE_MS) and the session shows in "Trabalhando"; reduced motion swaps at once.
+  function leave(c, choice) {
+    const key = itemKey(c);
+    const nodes = [...area.querySelectorAll('.wall-sec-blocked .wall-card[data-key]')];
+    const at = nodes.findIndex((n) => n.getAttribute('data-key') === key);
+    const next = (nodes[at + 1] ?? nodes[at - 1])?.getAttribute('data-key') ?? null;
+    const settle = () => {
+      answered.set(key, true);
+      calmEnters = blockedNow() === 0;
+      draw();
+      calmEnters = false;
+      ctx.waiting?.(blockedNow());
+      toasts.push({ text: toastText(choice, titled(c.title)), action: { label: 'Desfazer', onClick: () => undo(c, choice) } });
+      focusAfter(next, key);
+    };
+    const node = findCard(key);
+    if (!node || reducedMotion()) return settle();
+    node.setAttribute('data-leaving', 'true');
+    const timer = setTimeout(() => (leaving.delete(timer), settle()), LEAVE_MS);
+    timer?.unref?.();
+    leaving.add(timer);
+  }
+
+  async function answer(c, choice, button) {
+    const result = await runButtonAction(button, sendAnswer, { doneLabel: choice.done });
+    if (result.ok) leave(c, choice);
   }
 
   // ADR-0028: the redraw keeps what the person was on: the focus, the scroll and the nodes that did not change.
@@ -546,7 +628,7 @@ export async function mount(area, ctx) {
       keepRetry(shown, fresh);
       return [head, segs, ...machines.parts(), shown];
     }
-    const all = wall.cards ?? [];
+    const all = cardsNow();
     const counts = countsOf(all);
     const total = all.length;
     // ADR-0028: nothing is known about a chosen machine that is down: no sentence, no numbers.
@@ -570,13 +652,15 @@ export async function mount(area, ctx) {
     };
     const known = machines.hasRemotes();
     // ADR-0029, issue 754: the Exibir choice of the current mode, read at every draw.
-    const view = { ...getDisplay(), mode: displayMode(), moved };
+    const view = { ...getDisplay(), mode: displayMode(), moved, answer, hover };
     // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn, in every section, have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
     const by = sectionsOf(cards);
     const sections = [];
     const section = (id, title, count, ...content) => {
-      const h = el('h2', { class: 'wall-h', id: `wall-h-${id}` }, `${title} `, el('span', { class: 'wall-h-n' }, String(count)));
+      const before = sectionNumbers.get(id);
+      sectionNumbers.set(id, count);
+      const h = el('h2', { class: 'wall-h', id: `wall-h-${id}` }, `${title} `, el('span', { class: 'wall-h-n', 'data-roll': before !== undefined && before !== count ? String(count) : null }, String(count)));
       return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content);
     };
     const list = (id, nodes, extra = '') => el('div', { class: `wall-list${extra}`, role: 'list', 'aria-labelledby': `wall-h-${id}` }, ...nodes);
@@ -585,7 +669,7 @@ export async function mount(area, ctx) {
     if (by.blocked.length) {
       sections.push(section('blocked', ATTENTION_PLURAL.blocked, by.blocked.length, el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...by.blocked.map((c) => card(c, ctx.write, nest, known, mono, view).node))));
     } else if (calm) {
-      sections.push(section('blocked', ATTENTION_PLURAL.blocked, 0, calmBlock()));
+      sections.push(section('blocked', ATTENTION_PLURAL.blocked, 0, calmBlock(calmEnters)));
     }
     if (by.active.length) {
       const spans = by.active.map((c) => Boolean(treeSummary(c.tree)) && nest.isOpen(c.id));
@@ -635,6 +719,7 @@ export async function mount(area, ctx) {
       if (mine !== request) return;
       machines.update(fresh);
       wall = fresh;
+      for (const key of [...answered.keys()]) if (!(fresh.cards ?? []).some((c) => itemKey(c) === key && sectionOf(c) === 'blocked')) answered.delete(key);
       failure = null;
       follow(fresh.cards ?? []);
     } catch (e) {
@@ -705,6 +790,18 @@ export async function mount(area, ctx) {
   };
   doc?.addEventListener?.('keydown', onKey);
 
+  // #767-micro-interactions: A allows, N denies and 1-9 choose an option, on the card under the mouse or holding the focus; the keys of the field and the modifiers are left alone.
+  const onAnswerKey = (ev) => {
+    const choice = answerKeyOf(ev);
+    if (!choice) return;
+    const holder = doc.activeElement?.closest?.('.wall-card[data-key]') ?? findCard(hoveredKey);
+    const button = holder?.querySelector(choice.kind === 'option' ? `[data-answer="option"][data-option="${choice.n}"]` : `[data-answer="${choice.kind}"]`);
+    if (!button) return;
+    ev.preventDefault?.();
+    button.click();
+  };
+  doc?.addEventListener?.('keydown', onAnswerKey);
+
   draw();
   startTicker();
   await read();
@@ -714,6 +811,9 @@ export async function mount(area, ctx) {
     stopTicker();
     doc?.removeEventListener?.('visibilitychange', onVisibility);
     doc?.removeEventListener?.('keydown', onKey);
+    doc?.removeEventListener?.('keydown', onAnswerKey);
+    for (const timer of leaving) clearTimeout(timer);
+    toasts.clear();
     notices.clear();
     shortcuts.close();
     stopDisplay();

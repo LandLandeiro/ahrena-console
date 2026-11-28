@@ -42,6 +42,9 @@ export function createDrawer({ button, side, scrim, background, closeButton = nu
   function waiting(next) {
     const text = next?.text ?? '';
     if (count) {
+      // #767: a number that changed rolls in (the attribute is the style's hook); the same one again, or none, does not.
+      if (text && waitingText && text !== waitingText) count.setAttribute('data-roll', text);
+      else count.removeAttribute('data-roll');
       count.textContent = text;
       count.hidden = !text;
     }

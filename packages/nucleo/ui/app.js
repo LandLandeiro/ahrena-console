@@ -260,6 +260,8 @@ function screenContext(params, leave) {
     signal: leave.signal,
     navigate,
     counter,
+    // #767: a card answered on the Mural moves the number of the bar at once; the next read of the core says the truth.
+    waiting: (n) => counts.show(n),
     title: (text) => (document.title = `Ahrena Console · ${text}`),
     onChange: (f) => (listeners.change.add(f), leave.signal.addEventListener('abort', () => listeners.change.delete(f))),
     onRestart: (f) => (listeners.restart.add(f), leave.signal.addEventListener('abort', () => listeners.restart.delete(f))),
