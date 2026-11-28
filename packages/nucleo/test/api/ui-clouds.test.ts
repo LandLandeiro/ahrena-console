@@ -417,6 +417,44 @@ describe('issue 277: Conexões › AWS (C58, C59)', () => {
     await new Promise((r) => setTimeout(r, 20));
     assert.deepEqual(m.writes, []);
   });
+
+  // #765: a first read that fails with anything but 404 must not leave the pending card, which would hold the ghost over the screen for good.
+  for (const [what, make] of [
+    ['a 500', () => Object.assign(new Error('falhou'), { name: 'ReadError', status: 500 })],
+    ['a network error', () => new TypeError('Failed to fetch')],
+  ] as [string, () => Error][]) {
+    test(`#765: the first read failing with ${what} leaves no pending mark, shows the error band, and keeps Atualizar and the machine picker`, async () => {
+      let calls = 0;
+      const m = await mountScreen(awsScreen, '/ui/connections/aws', async (route) => {
+        if (route === '/api/machines') return MACHINES;
+        if (route === '/api/connectors') {
+          calls += 1;
+          if (calls === 1) throw make();
+          return connectorsBody();
+        }
+        return [];
+      });
+      assert.equal(m.area.querySelector('[data-swap-pending]'), null, 'no first-read card left to hold the ghost');
+      assert.match(texto(m.area), /Sem conexão com o núcleo\./);
+      assert.match(texto(m.area), /Tentar de novo/);
+      assert.ok(m.area.querySelector('button[data-cl-action="refresh"]'), 'Atualizar stays');
+      assert.deepEqual(m.area.querySelectorAll('.cl-seg button').map((b) => texto(b)), ['Este Mac', 'Workstation'], 'the machine picker stays');
+      const retry = m.area.querySelectorAll('button').find((b) => /Tentar de novo/.test(texto(b)))!;
+      retry.click();
+      await until(() => calls === 2 && m.area.querySelector('[data-session]') !== null);
+      assert.equal(m.area.querySelector('[data-swap-pending]'), null);
+    });
+  }
+
+  test('#765: a 404 on the first read still takes its own path (the "missing" card), with no band and no pending mark', async () => {
+    const m = await mountScreen(awsScreen, '/ui/connections/aws', async (route) => {
+      if (route === '/api/connectors') throw notFound();
+      return [];
+    });
+    assert.equal(m.area.querySelector('[data-swap-pending]'), null);
+    assert.match(texto(m.area), /Este núcleo não tem os conectores de nuvem/);
+    assert.doesNotMatch(texto(m.area), /Sem conexão com o núcleo/);
+  });
 });
 
 describe('issue 277: the Perfis de nuvem card (C66, C67)', () => {
