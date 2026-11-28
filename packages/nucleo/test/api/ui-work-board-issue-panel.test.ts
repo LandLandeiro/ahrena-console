@@ -318,8 +318,9 @@ describe('the Planejar confirmation anchored on the card (465-6)', () => {
     assert.equal(root.getAttribute('aria-label'), 'Planejar a #509 com a Athena');
     assert.equal(texto(one(root, 'h3')), 'Planejar a #509 com a Athena');
     const rows = texto(one(root, 'dl'));
-    for (const part of ['Repositório', REPO, 'Conta', 'Ahrena · Team', 'Abrir em']) assert.ok(rows.includes(part), part);
+    for (const part of ['Repositório', REPO, 'Conta', 'Ahrena · Team']) assert.ok(rows.includes(part), part);
     assert.ok(!rows.includes('Pasta'));
+    assert.ok(texto(one(root, '[data-field="target"]')).includes('Abrir em'), 'the destination is its own field, under the context');
     assert.equal(all(root, '.wb-plan-prompt').length, 0);
     assert.ok(texto(root).includes('planejando…'), 'says what the card shows next');
     assert.ok(texto(root).includes('Não conta no limite de execuções'));
@@ -345,11 +346,11 @@ describe('the Planejar confirmation anchored on the card (465-6)', () => {
     const asked: string[] = [];
     const root = planConfirm({ ...base, target: 'terminal', onTarget: (t: string) => asked.push(t) });
     const group = one(root, '[role="radiogroup"]');
-    assert.equal(group.getAttribute('aria-label'), 'Abrir em');
+    assert.equal(texto(one(root, `#${group.getAttribute('aria-labelledby')}`)), 'Abrir em');
     const radios = all(group, '[role="radio"]');
     assert.deepEqual(radios.map((r) => texto(r)), ['Claude Desktop', 'Terminal']);
     assert.deepEqual(radios.map((r) => r.getAttribute('aria-checked')), ['false', 'true']);
-    assert.deepEqual(radios.map((r) => r.getAttribute('data-target')), ['desktop', 'terminal']);
+    assert.deepEqual(radios.map((r) => r.getAttribute('data-value')), ['desktop', 'terminal']);
     click(radios[0]!);
     assert.deepEqual(asked, ['desktop']);
   });
@@ -360,8 +361,9 @@ describe('the Planejar confirmation anchored on the card (465-6)', () => {
     const cancel = one(root, '[data-action="cancel"]');
     const confirm = one(root, '[data-action="confirm"]');
     assert.equal(texto(cancel), 'Cancelar');
-    assert.equal(texto(confirm), 'Planejar');
-    assert.ok(confirm.classList.contains('filled'));
+    assert.equal(texto(confirm), 'Planejar no Claude Desktop');
+    assert.ok(confirm.classList.contains('primary'));
+    assert.ok(cancel.classList.contains('outline'));
     click(cancel);
     click(confirm);
     assert.deepEqual(calls, ['cancel', 'confirm']);
@@ -386,7 +388,7 @@ describe('the Planejar confirmation anchored on the card (465-6)', () => {
   test('replanning reuses the confirmation: Replanejar in the title and on the button', () => {
     const root = planConfirm({ ...base, target: 'desktop', replan: true });
     assert.equal(root.getAttribute('aria-label'), 'Replanejar a #509 com a Athena');
-    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Replanejar');
+    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Replanejar no Claude Desktop');
     assert.ok(texto(root).includes('plano atual'), 'says the current plan goes to the session');
   });
 });
@@ -401,8 +403,8 @@ describe('the missing folder (465-6)', () => {
     assert.equal(texto(one(root, 'h3')), 'Falta a pasta do repositório nesta máquina');
     assert.ok(texto(root).includes(REPO));
     assert.ok(texto(root).includes('o card fica onde estava'));
-    assert.equal(texto(one(root, '.wb-plan-cmd')), command);
-    assert.equal(one(root, '.wb-plan-cmd').getAttribute('aria-label'), 'Comando');
+    assert.equal(texto(one(root, '.pop-code')), command);
+    assert.equal(one(root, '.pop-code').getAttribute('aria-label'), 'Comando');
     assert.equal(texto(one(root, '[data-action="close"]')), 'Fechar');
     assert.equal(texto(one(root, '[data-action="copy"]')), 'Copiar comando');
     for (const button of all(root, 'button')) assert.ok(labelOf(button).length > 0);
@@ -438,7 +440,7 @@ describe('the missing folder (465-6)', () => {
     assert.equal(closed, 2);
     const bare = missingFolder({ repo: REPO });
     assert.equal(all(bare, '[data-action="copy"]').length, 0);
-    assert.equal(all(bare, '.wb-plan-cmd').length, 0);
+    assert.equal(all(bare, '.pop-code').length, 0);
   });
 });
 

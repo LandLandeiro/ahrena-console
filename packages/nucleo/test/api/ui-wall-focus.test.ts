@@ -181,7 +181,7 @@ describe('#751: the redraw of the wall keeps the focus', () => {
     const select = one(s.area, 'select.ns-folder');
     select.focus();
     await s.refresh();
-    assert.equal(one(s.area, '.ns-pop').getAttribute('hidden'), null, 'the popover is still open');
+    assert.equal(s.area.querySelectorAll('.pop').length, 1, 'the popover is still open');
     assert.equal(one(s.area, 'select.ns-folder'), select, 'the same select');
     assert.equal(active(), select);
     assert.equal(focusLog.filter((f) => f.node === select).length, 0, 'the select was not focused again');

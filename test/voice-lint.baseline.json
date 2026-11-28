@@ -30,18 +30,6 @@
     "count": 1
   },
   {
-    "file": "packages/nucleo/ui/new-session.js",
-    "rule": "limit-title-words",
-    "text": "Abre o terminal padrão e roda claude nesta pasta",
-    "count": 1
-  },
-  {
-    "file": "packages/nucleo/ui/new-session.js",
-    "rule": "limit-title-words",
-    "text": "Abre uma sessão nova do Claude Code no Claude Desktop, nesta pasta",
-    "count": 1
-  },
-  {
     "file": "packages/nucleo/ui/open-action.js",
     "rule": "limit-title-words",
     "text": "Abre o terminal padrão e roda claude --resume na pasta da sessão",

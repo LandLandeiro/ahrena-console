@@ -8,6 +8,7 @@
 import { el } from '../dom.js';
 import { CONNECT_STATE, CONNECT_UI } from '../github-connect.js';
 import { githubDownReason, workCard } from './work-board-parts.js';
+import { rememberedTarget } from '../popover.js';
 import { cardPlanParts, missingFolder, planConfirm } from './work-board-plan.js';
 import { issuePanel, issuePanelFailure, issuePanelLoading, issuePanelStage } from './work-board-issue-panel.js';
 import { createEditLayer } from './work-board-issue-edit-layer.js';
@@ -92,7 +93,7 @@ function createIssueView({ area, state, apply, cardFor, retry, reconnect, confir
     onAsk?.();
     anchorInPanel = Boolean(button?.closest?.('.wb-panel'));
     const base = cardFor(card.key) ?? card;
-    apply(askPlan(state(), base, { replan }), { kind: 'popup' });
+    apply(askPlan(state(), base, { replan, target: rememberedTarget() }), { kind: 'popup' });
   };
   const handlers = { onPlan: ask(false), onReplan: ask(true) };
 
@@ -101,24 +102,24 @@ function createIssueView({ area, state, apply, cardFor, retry, reconnect, confir
     if (!entry || !POPUP_PHASES.has(entry.phase)) return null;
     const base = cardFor(card.key) ?? card;
     const where = () => ({ kind: 'plan-button', key: card.key });
-    let node;
-    if (entry.phase === 'missing-folder') {
-      node = missingFolder({ repo: card.repo, message: entry.message, command: entry.command, onClose: () => apply(closeMissingFolder(state(), base), where()) });
-    } else {
-      node = planConfirm({
-        repo: card.repo,
-        number: card.number,
-        replan: entry.replan,
-        target: entry.target,
-        busy: entry.phase === 'posting',
-        onTarget: (target) => apply(chooseTarget(state(), base, target), { kind: 'popup' }),
-        onCancel: () => apply(cancelPlan(state(), base), where()),
-        onConfirm: () => confirm(card),
-      });
-    }
-    // issue 508: Escape on the confirmation closes only it, not the panel it may sit in.
-    node.addEventListener('keydown', (ev) => ev.key === 'Escape' && ev.stopPropagation?.());
-    return node;
+    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise.
+    const trigger = () => {
+      const k = `${hostedInPanel(card) ? 'panel:' : ''}${card.key}`;
+      return area.querySelector(`button[data-action="plan"][data-key="${k}"]`) ?? area.querySelector(`button[data-action="replan"][data-key="${k}"]`);
+    };
+    return entry.phase === 'missing-folder'
+      ? missingFolder({ repo: card.repo, message: entry.message, command: entry.command, trigger, onClose: () => apply(closeMissingFolder(state(), base), where()) })
+      : planConfirm({
+          repo: card.repo,
+          number: card.number,
+          replan: entry.replan,
+          target: entry.target,
+          busy: entry.phase === 'posting',
+          trigger,
+          onTarget: (target) => apply(chooseTarget(state(), base, target), { kind: 'popup' }),
+          onCancel: () => apply(cancelPlan(state(), base), where()),
+          onConfirm: () => confirm(card),
+        });
   }
 
   const panelHolds = (card) => state().panel.open && state().panel.key === card.key;
@@ -186,7 +187,7 @@ function createIssueView({ area, state, apply, cardFor, retry, reconnect, confir
       kind === 'panel' ? area.querySelector('aside.wb-panel')
       : kind === 'card' ? area.querySelector(card)
       : kind === 'plan-button' ? (area.querySelector(`aside.wb-panel button[data-action="plan"]`) ?? area.querySelector(`aside.wb-panel button[data-action="replan"]`) ?? area.querySelector(`${card} button[data-action="plan"]`) ?? area.querySelector(card))
-      : (area.querySelector('.wb-plan-pop [aria-checked="true"]') ?? area.querySelector('.wb-plan-pop button'));
+      : (area.querySelector('.pop [aria-checked="true"]') ?? area.querySelector('.pop button'));
     target?.focus();
   }
 

@@ -206,11 +206,11 @@ describe('anchorPopover: a popover drawn by a screen, placed on its trigger', ()
     assert.ok(left >= 16 && left + 344 <= 1084, `left ${left}`);
     assert.ok(top >= 16 && top + 260 <= 784, `top ${top}`);
     key(shell, 'Escape');
-    documentoFalso.dispatchEvent({ type: 'pointerdown', target: el('div') } as never);
-    documentoFalso.dispatchEvent({ type: 'pointerdown', target: trigger } as never);
+    documentoFalso.dispatchEvent({ type: 'click', target: el('div') } as never);
+    documentoFalso.dispatchEvent({ type: 'click', target: trigger } as never);
     assert.deepEqual(dismissed, ['escape', 'outside']);
     stop();
-    documentoFalso.dispatchEvent({ type: 'pointerdown', target: el('div') } as never);
+    documentoFalso.dispatchEvent({ type: 'click', target: el('div') } as never);
     assert.equal(dismissed.length, 2, 'stopped');
   });
 

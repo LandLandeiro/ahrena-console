@@ -7,6 +7,7 @@
  card; the screen asks it for the columns (a booting card is drawn in Em execução), the notices and the focus. */
 
 import { openStatusView, requestOpen } from '../open-action.js';
+import { rememberedTarget } from '../popover.js';
 import { missingFolder } from './work-board-plan.js';
 import { cardRunParts, runConfirm, runNotice } from './work-board-run.js';
 import {
@@ -129,7 +130,7 @@ export function createRunLayer({ ctx, area, cards, redraw, reread, onAsk = null 
   const ask = (card, button) => {
     onAsk?.();
     anchorInPanel = Boolean(button?.closest?.('.wb-panel'));
-    apply(askRun(s, find(card.key) ?? card), { kind: 'popup' });
+    apply(askRun(s, find(card.key) ?? card, { target: rememberedTarget() }), { kind: 'popup' });
   };
 
   /** issue 532: the screen closes this layer's confirmation when the other layer opens its own. */
@@ -145,25 +146,24 @@ export function createRunLayer({ ctx, area, cards, redraw, reread, onAsk = null 
     if ((place === 'panel') !== inPanel) return null;
     const base = find(card.key) ?? card;
     const back = { kind: 'run-button', key: card.key };
-    const node =
-      entry.phase === 'missing-folder'
-        ? missingFolder({ repo: card.repo, message: entry.message, command: entry.command, onClose: () => apply(closeRunMissingFolder(s, base), back) })
-        : runConfirm({
-            repo: card.repo,
-            number: card.number,
-            target: entry.target,
-            full: entry.full,
-            busy: entry.phase === 'posting',
-            onTarget: (target) => {
-              lastTarget = target;
-              apply(chooseRunTarget(s, base, target), { kind: 'popup' });
-            },
-            onCancel: () => apply(cancelRun(s, base), back),
-            onConfirm: () => apply(confirmRun(s, base)),
-          });
-    // issue 532: Escape on the confirmation closes only it, not the panel it may sit in.
-    node.addEventListener('keydown', (ev) => ev.key === 'Escape' && ev.stopPropagation?.());
-    return node;
+    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise.
+    const trigger = () => area.querySelector(`button[data-action="run"][data-key="${inPanel ? 'panel:' : ''}${card.key}"]`);
+    return entry.phase === 'missing-folder'
+      ? missingFolder({ repo: card.repo, message: entry.message, command: entry.command, trigger, onClose: () => apply(closeRunMissingFolder(s, base), back) })
+      : runConfirm({
+          repo: card.repo,
+          number: card.number,
+          target: entry.target,
+          full: entry.full,
+          busy: entry.phase === 'posting',
+          trigger,
+          onTarget: (target) => {
+            lastTarget = target;
+            apply(chooseRunTarget(s, base, target), { kind: 'popup' });
+          },
+          onCancel: () => apply(cancelRun(s, base), back),
+          onConfirm: () => apply(confirmRun(s, base)),
+        });
   }
 
   function learn() {
@@ -198,7 +198,7 @@ export function createRunLayer({ ctx, area, cards, redraw, reread, onAsk = null 
     const target =
       kind === 'run-button'
         ? (area.querySelector('aside.wb-panel button[data-action="run"]') ?? area.querySelector(`${card} button[data-action="run"]`) ?? area.querySelector(card))
-        : (area.querySelector('.wb-plan-pop [aria-checked="true"]') ?? area.querySelector('.wb-plan-pop button'));
+        : (area.querySelector('.pop [aria-checked="true"]') ?? area.querySelector('.pop button'));
     target?.focus();
   }
 
