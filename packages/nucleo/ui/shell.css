@@ -230,7 +230,7 @@ button { font: inherit; cursor: pointer; }
 .sk-notice { height: 48px; border-radius: 12px; background: var(--raised); }
 .sk-block { height: 88px; border-radius: 12px; background: var(--raised); }
 
-/* ---------- segment (issue 763): the one segmented control of the /ui, for the Kanban, the Quadro and the Feed ----------
+/* ---------- segment (issue 763): the one segmented control of the /ui, for the Kanban, the Quadro and the Sessions ----------
    A group of buttons with `aria-pressed`; the pressed one is also bolder, so it is not told by colour alone. The 24 px touch
    area of #764 (WCAG 2.5.8) is the ::after: the drawing keeps its size. */
 .seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--segment); border: 1px solid var(--border-control); border-radius: var(--radius-segment); }

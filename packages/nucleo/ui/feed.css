@@ -1,5 +1,5 @@
 /* O Feed de atividade (C8, #94). Carregado pela tela ao montar e tirado ao sair; toda cor vem de
-   marca.css. As peças da linguagem do console que a moldura ainda não tem (pílula de status, chip,
+   marca.css. As peças da linguagem do console que a moldura ainda não tem (estado, chip,
    campo, linha, bloco de ferramenta) estão aqui, com os nomes do wireframe. */
 
 /* issue 763: the state of a row is the icon and the label of state-icon.css, in a column of its own width. */

@@ -84,7 +84,7 @@ export async function mount(area, ctx) {
   const about = el(
     'details',
     { class: 'card feed-about' },
-    el('summary', {}, icon('info'), el('b', {}, 'Sobre eventos, filtros e agrupamento'), el('span', {}, ' · como ler as pílulas, o ciclo de vida e os filtros')),
+    el('summary', {}, icon('info'), el('b', {}, 'Sobre eventos, filtros e agrupamento'), el('span', {}, ' · como ler o estado, o ciclo de vida e os filtros')),
     el(
       'div',
       { class: 'feed-about-body' },

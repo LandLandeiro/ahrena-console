@@ -122,9 +122,6 @@ article[data-selected] { border-color: var(--accent); box-shadow: 0 0 0 1px var(
 .wb-edit-steps li.wb-edit-new-step { border-color: var(--accent); color: var(--accent-text); }
 
 /* ---------- Executar plano (issue 532, wireframes 465-2 and 465-6): "subindo…", the notice ---------- */
-.wb-run-boot .icon { animation: wb-run-spin 1.2s linear infinite; }
-@keyframes wb-run-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .wb-run-boot .icon { animation: none; } }
 .wb-run-notice { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: var(--radius-card); font-size: 12.5px; background: var(--raised); border: 1px solid var(--border); box-shadow: 0 8px 24px color-mix(in srgb, var(--mono-black) 40%, transparent); }
 .wb-run-notice > .icon { flex: none; color: var(--status-completed-text); }
 

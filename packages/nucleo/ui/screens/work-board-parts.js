@@ -53,7 +53,7 @@ export const SWITCH_PROJECT_HREF = '/ui/project';
 
 const PATH_LABELS = { initiative: 'Iniciativa', epic: 'Épico' };
 const REASON_ICONS = { 'needs-you': 'hand', 'review-rounds': 'repeat', 'ci-failed': 'error' };
-// issue 763: the kind of state-icon.js each fact draws, with its words; a session says its state with the id of state-labels.js.
+// ADR-0028: the kind of state-icon.js each fact draws, with its words; a session says its state with the id of state-labels.js.
 const CI = { ok: ['CI ✓', 'completed'], failed: ['CI ✕', 'error'], running: ['CI …', 'queued'] };
 const REVIEW = { approved: ['aprovado', 'completed'], 'changes-requested': ['ajustes', 'error'], pending: ['review', 'queued'] };
 const SESSIONS = { working: ['active', 'working'], 'needs-you': ['blocked', 'needs'], idle: ['idle', 'paused'] };

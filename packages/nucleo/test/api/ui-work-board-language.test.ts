@@ -1,7 +1,7 @@
-// #763: the work board, the Kanban and the Feed in the new language (ADR-0028, ux-review A7 and A8).
-// - A8: no flat orange button on a card of the board: "Planejar" is outlined, the dark primary lives only in the pop-up.
-// - A7: the state is an icon and its label from state-labels.js (never a coloured pill), one `.seg` for the three screens,
-//   and the radius of cards and controls comes from the tokens, not from 12, 9 or 7 px written on the spot.
+/* #763: the work board, the Kanban and the Feed in the new language (ADR-0028, ux-review A7 and A8).
+   - A8: no flat orange button on a card of the board: "Planejar" is outlined, the dark primary lives only in the pop-up.
+   - A7: the state is an icon and its label from state-labels.js (never a coloured pill), one `.seg` for the three screens,
+     and the radius of cards and controls comes from the tokens, not from 12, 9 or 7 px written on the spot. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';

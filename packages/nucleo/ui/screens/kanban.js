@@ -133,7 +133,7 @@ const emptyFor = (view, where = 'nesta máquina') =>
     ? { title: 'Nenhum agente ainda', text: `Quando uma sessão do Claude Code começar ${where}, os agentes dela aparecem aqui.` }
     : { title: 'Nenhuma sessão ainda', text: `Quando uma sessão do Claude Code começar ${where}, ela aparece aqui.` };
 
-/** issue 763: the state of a card is the icon and the label of the map (the one tag of the Mural); a pause keeps its reason as plain text. */
+/** ADR-0028: the state of a card is the icon and the label of the map (the one tag of the Mural); a pause keeps its reason as plain text. */
 function badges(item) {
   const { kind, label } = stateOfSession({ attention: item.attention, status: item.status });
   const why = attentionOf(item.attention)?.level === 'idle' ? reasonLabel(item.attention) : null;
