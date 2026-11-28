@@ -156,7 +156,7 @@ export async function mount(area, ctx) {
     // issue 610: over several origins the header counts the organizations; a core with no list, or an empty one, names the one Project.
     const organizations = data?.organizations?.length ? data.organizations : null;
     const loading = state.multiOrigin && !data && state.phase === 'loading';
-    return workBoardHeader({ project: data?.project ?? null, organizations, githubDown: state.githubDown, loading, fetchedAt: data?.fetchedAt ?? null, now, stale: state.stale, reading: state.phase === 'loading', busy: state.busy, onRefresh: refresh });
+    return workBoardHeader({ project: data?.project ?? null, organizations, columns: data?.columns ?? null, githubDown: state.githubDown, loading, fetchedAt: data?.fetchedAt ?? null, now, stale: state.stale, reading: state.phase === 'loading', busy: state.busy, onRefresh: refresh });
   }
 
   // issue 610: what the actions of the warning bands and of the empty states do; a link opens GitHub outside the Console.
@@ -299,7 +299,7 @@ export async function mount(area, ctx) {
     const hit = focusable.find((n) => focusKey(n) === key);
     if (hit?.hasAttribute('disabled')) pendingFocus = key;
     else if (hit) hit.focus();
-    else area.querySelector('button.wb-level[aria-pressed="true"]')?.focus();
+    else area.querySelector('.seg button[aria-pressed="true"]')?.focus();
   }
 
   ctx.onRestart(() => run(startLoad(state)));

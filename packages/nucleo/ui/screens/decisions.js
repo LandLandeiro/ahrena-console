@@ -36,7 +36,7 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'decision',
     title: 'Decisões',
-    sub: 'O que você e os agentes decidiram, em todas as sessões',
+    sub: null,
     actions: [
       toggle({ label: 'Agrupar por', options: [['session', 'Sessão'], ['family', 'Família'], ['branch', 'Branch']], current: filters.groupBy, onSwitch: (v) => ((filters.groupBy = v), (filters.group = null), draw()) }),
       refresh,

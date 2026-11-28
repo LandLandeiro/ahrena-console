@@ -58,7 +58,7 @@ export function orderStatus(order) {
     case 'queued':
       return { kind: 'busy', icon: 'wall-loader', title: `Pedindo ${label} à sessão…`, text: 'A ordem espera o mod do painel, que roda dentro da sessão, buscá-la.' };
     case 'running':
-      return { kind: 'busy', icon: 'wall-loader', title: `Rodando ${label}…`, text: 'O comando roda quando a sessão estiver ociosa.' };
+      return { kind: 'busy', icon: 'wall-loader', title: `Rodando ${label}…`, text: 'O comando roda quando a sessão estiver em pausa.' };
     case 'done':
       return { kind: 'ok', icon: 'check-circle-2', title: order.kind === 'remote-control' ? 'Remote Control ligado.' : `${label} rodou.`, text: 'O resultado aparece na conversa da sessão.' };
     case 'failed':
@@ -507,8 +507,8 @@ export function createComposeBox(ctx, sessionId, { head = () => null, openContro
     const button = (kind, className, title, ...children) =>
       el('button', { type: 'button', class: className, disabled: off, title, 'aria-busy': order?.kind === kind && orderOpen() ? 'true' : null, onClick: () => runOrder(kind) }, ...children);
     return [
-      button('compact', 'sm-cmd mono', 'Compacta a conversa; roda quando a sessão estiver ociosa', '/compact'),
-      button('clear', 'sm-cmd mono', 'Limpa a conversa; roda quando a sessão estiver ociosa', '/clear'),
+      button('compact', 'sm-cmd mono', 'Compacta a conversa; roda quando a sessão estiver em pausa', '/compact'),
+      button('clear', 'sm-cmd mono', 'Limpa a conversa; roda quando a sessão estiver em pausa', '/clear'),
       remoteControl ? null : button('remote-control', 'sm-cmd', 'Liga o Remote Control desta sessão', icon('live'), 'Remote control'),
     ];
   }
@@ -522,7 +522,7 @@ export function createComposeBox(ctx, sessionId, { head = () => null, openContro
   function sendButton(label = 'Enviar', { busy = false, iconName = 'your-turn', enabled = sendable() } = {}) {
     return el(
       'button',
-      { type: 'button', class: 'btn filled sm-send', disabled: !enabled, 'aria-busy': busy ? 'true' : null, onClick: () => send() },
+      { type: 'button', class: 'btn primary sm-send', disabled: !enabled, 'aria-busy': busy ? 'true' : null, onClick: () => send() },
       icon(iconName),
       label,
       label === 'Enviar' ? el('span', { class: 'sm-kbd mono' }, kbd) : null,
@@ -631,7 +631,7 @@ export function createComposeBox(ctx, sessionId, { head = () => null, openContro
     if (voiceState === 'recording') {
       actions.replaceChildren(
         el('button', { type: 'button', class: 'btn outline sm-cancel', onClick: () => cancelDictation() }, icon('x'), 'Cancelar'),
-        el('button', { type: 'button', class: 'btn filled sm-stop', onClick: () => void finishDictation() }, icon('stop'), 'Parar e transcrever'),
+        el('button', { type: 'button', class: 'btn primary sm-stop', onClick: () => void finishDictation() }, icon('stop'), 'Parar e transcrever'),
       );
     } else actions.replaceChildren(...commandButtons(a.remoteControl).filter(Boolean), micButton(), ...send);
     if (wantFocus && !textarea.disabled) {

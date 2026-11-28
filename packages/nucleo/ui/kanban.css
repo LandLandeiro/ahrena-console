@@ -1,25 +1,19 @@
 /* Kanban (#31, C9 e C10). Carregado pela tela (telas/kanban.js) só enquanto ela está aberta.
    Toda cor vem de marca.css: nenhuma é escrita aqui. */
 
-/* ---------- alternador Agentes | Sessões ---------- */
-.kb-seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; }
-.kb-seg button { font-size: var(--text-xs); color: var(--muted); background: none; border: 0; padding: 4px 10px; border-radius: 6px; white-space: nowrap; }
-.kb-seg button:hover { color: var(--text); }
-.kb-seg button[aria-pressed="true"] { background: var(--raised); color: var(--text); }
-.kb-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- o quadro ---------- */
 /* Colunas lado a lado; se não couberem, o quadro rola na horizontal. Ele ocupa o resto da altura e
    rola por dentro, para a barra de rolagem horizontal ficar sempre à vista. */
 .kb-kanban { flex: 1 1 auto; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(150px, 1fr); gap: 10px; align-items: start; overflow: auto; padding-bottom: 4px; }
-.kb-kanban:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 12px; }
+.kb-kanban:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-card); }
 
-.kb-col { container-type: inline-size; background: color-mix(in srgb, var(--surface) 60%, var(--bg)); border: 1px solid var(--border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.kb-col { container-type: inline-size; background: color-mix(in srgb, var(--surface) 60%, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 10px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .kb-col .kb-head { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: var(--weight-semibold); padding: 2px 4px; }
 /* "Precisam de você" (issue 245) breaks in two lines in a narrow column instead of being cut. */
 .kb-col .kb-head { min-height: 32px; line-height: 1.25; }
 .kb-col .kb-head > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; }
-.kb-col .kb-head .kb-n { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); background: var(--raised); border-radius: 99px; padding: 0 8px; letter-spacing: 0; }
+.kb-col .kb-head .kb-n { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); background: var(--raised); border-radius: var(--radius-tag); padding: 0 8px; letter-spacing: 0; }
 .kb-col .kb-cards { display: flex; flex-direction: column; gap: 10px; }
 .kb-col .kb-cards:empty { display: none; }
 
@@ -33,7 +27,7 @@
 /* issue 245: the idle column is dashed and neutral, without the column fill. */
 .kb-col.kb-col-idle { background: transparent; border-style: dashed; }
 
-.kb-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border); border-radius: 8px; }
+.kb-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border-control); border-radius: var(--radius-card); }
 .kb-more:hover:not(:disabled) { color: var(--text); background: var(--raised); }
 .kb-more:disabled { cursor: progress; }
 .kb-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -49,7 +43,7 @@
 .kb-kc.kb-st-error { border-left-color: var(--status-error-dot); } .kb-kc.kb-st-abandoned { border-left-color: var(--status-abandoned-dot); }
 
 .kb-kc .kb-l1 { display: flex; gap: 8px; align-items: flex-start; min-width: 0; }
-.kb-kc .kb-av { width: 24px; height: 24px; border-radius: 7px; background: var(--raised); display: grid; place-items: center; color: var(--muted); flex: none; font-size: 14px; }
+.kb-kc .kb-av { width: 24px; height: 24px; border-radius: var(--radius-control); background: var(--raised); display: grid; place-items: center; color: var(--muted); flex: none; font-size: 14px; }
 .kb-kc .kb-name { flex: 1; min-width: 0; }
 .kb-kc .kb-tt { font-size: 12.5px; font-weight: var(--weight-semibold); }
 .kb-kc small { display: block; color: var(--muted); font-family: var(--font-mono); font-size: 10.5px; }
@@ -73,13 +67,8 @@
   .kb-kc .kb-foot .kb-dur { grid-column: auto; }
 }
 
-/* Selo de status e selo do motivo da espera. */
-.kb-kc .kb-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.kb-badge-st { display: inline-flex; align-items: center; gap: 6px; height: 20px; padding: 0 7px; border-radius: 99px; font-size: 11px; font-weight: var(--weight-medium); white-space: nowrap; }
-.kb-badge-st .kb-p { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.kb-b-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.kb-b-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.kb-b-error { background: var(--status-error-badge); color: var(--status-error-text); }
-.kb-b-abandoned { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
-.kb-kc .attention-pill { height: 20px; padding: 0 7px; font-size: 11px; }
-.kb-kc .attention-chip { height: 17px; font-size: 10px; }
+/* issue 763: the state of a card is the icon and the label (state-icon.css), no fill; a pause keeps its reason as plain text. */
+.kb-kc .kb-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.kb-kc .kb-badges > [data-state-kind] { font-size: 12px; }
+.kb-kc .kb-reason { font-size: 11px; color: var(--muted); }
+

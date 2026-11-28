@@ -85,7 +85,7 @@ describe('Executar plano on the card (465-2)', () => {
       const run = one(parts.actions, '[data-action="run"]');
       assert.equal(texto(run), 'Executar plano');
       assert.equal(run.getAttribute('aria-label'), 'Executar o plano da #506');
-      assert.ok(run.classList.contains('filled'), 'the primary action is a filled button');
+      assert.ok(run.classList.contains('outline') && !run.classList.contains('filled'), 'the action is an outlined button, never a flat orange one (issue 763)');
       assert.equal(all(parts.actions, '[data-action="plan"]').length, 0, 'no Planejar once there is a plan');
       const replan = one(parts.actions, '[data-action="replan"]');
       assert.equal(texto(replan), 'Replanejar');
@@ -175,7 +175,7 @@ describe('"subindo…" and Abrir sessão on the card (465-2, 465-6)', () => {
     assert.equal(texto(parts.badge), 'subindo…');
     assert.equal(parts.badge.getAttribute('role'), 'status');
     assert.equal(parts.badge.getAttribute('data-state'), 'booting');
-    assert.ok(parts.badge.classList.contains('wb-pill-waiting'));
+    assert.equal(parts.badge.querySelectorAll('.state-tag').length, 1, 'a state tag, not a pill');
     assert.equal(parts.actions, null);
     const root = workCard(subject, { now: NOW, parts });
     assert.equal(texto(one(root, '.wb-badges [role="status"]')), 'subindo…');
@@ -234,7 +234,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
     assert.deepEqual(radios.map((r) => texto(r)), ['Claude Desktop', 'Terminal']);
     assert.equal(radios[0]!.getAttribute('aria-checked'), 'true');
     assert.equal(texto(one(root, '[data-field="prompt"]')), base.prompt);
-    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Executar plano');
+    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Executar no Claude Desktop');
     assert.equal(all(root, '[data-field="limit"]').length, 0);
   });
 
@@ -245,7 +245,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
 
   test('the hint says the card goes straight to Em execução and counts against the limit when the count is known', () => {
     const root = runConfirm({ ...base, running: 1, limit: 2 });
-    const hint = texto(one(root, '.wb-plan-hint'));
+    const hint = texto(one(root, '.pop-note'));
     assert.ok(hint.includes('o card vai direto para Em execução'));
     assert.ok(hint.includes('Conta como 1 das 2 execuções; hoje há 1 rodando.'));
     assert.ok(!texto(runConfirm(base)).includes('Conta como'));
@@ -285,7 +285,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
     const button = one(root, '[data-action="confirm"]');
     assert.equal(texto(button), 'Executar mesmo assim');
     assert.equal(all(root, '[data-action="confirm"]').length, 1);
-    assert.ok(texto(one(root, '.wb-plan-hint')).includes('Executar mesmo assim abre a sessão agora.'));
+    assert.ok(texto(one(root, '.pop-note')).includes('Executar mesmo assim abre a sessão agora.'));
     click(button);
     assert.deepEqual(calls, ['force']);
   });

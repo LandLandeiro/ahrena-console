@@ -1,5 +1,5 @@
 /* Kanban do projeto (C11, #80): carregado pela tela (ui/screens/project.js). Só variáveis de marca.css. */
-.prj-milestone { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 200px; cursor: pointer; }
+.prj-milestone { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 200px; cursor: pointer; }
 .prj-milestone > .icon { margin-left: auto; pointer-events: none; }
 .prj-milestone:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .prj-sel { appearance: none; -webkit-appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; padding: 0; flex: 1; min-width: 0; cursor: pointer; outline: none; }

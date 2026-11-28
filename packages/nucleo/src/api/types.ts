@@ -53,7 +53,7 @@ export interface PanelSession {
   reason: AwaitingReason | null;
   urgent: boolean;
   /**
-   * #245: `blocked` ("Precisa de você": the session is stuck until you act) or `idle` ("Ociosa": the
+   * #245: `blocked` ("Precisa de você": the session is stuck until you act) or `idle` ("Em pausa": the
    * turn ended), with the reason; `null` when it is not waiting on you and not in error.
    * `sessionAttention` in api/attention.ts; the old routes leave it out.
    */
