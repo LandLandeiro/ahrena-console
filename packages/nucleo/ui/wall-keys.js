@@ -1,6 +1,6 @@
-// ADR-0028, #758-wall-polish: the keys of the Mural. J and K move the focus between the cards and the rows, Enter opens the one in focus
-// (the focus lands on its link, which the platform opens) and ? shows the list. They never act while the person types (a field, a
-// select, a text area, an editable area, a dialog) or with Ctrl, Meta or Alt, so the search on Cmd+K and the browser keep theirs.
+/* ADR-0028, #758-wall-polish: the keys of the Mural. J and K move the focus between the cards and the rows, Enter opens the one in focus
+   (the focus lands on its link, which the platform opens) and ? shows the list. They never act while the person types (a field, a
+   select, a text area, an editable area, a dialog) or with Ctrl, Meta or Alt, so the search on Cmd+K and the browser keep theirs. */
 
 import { el } from './dom.js';
 import { openPopover, popoverFooter, trapFocus } from './popover.js';

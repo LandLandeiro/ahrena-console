@@ -1,6 +1,6 @@
-// #758 (ADR-0028): the finish of the wall. The "há N min" that walks by itself, the skeleton and the error band, what a live
-// change shows (a short highlight, a notice in the corner), the keys J, K and ?, and the quiet hover row.
-// Timers are the mock ones of node:test; the promises of the reads are settled with `setImmediate`, which stays real.
+/* #758 (ADR-0028): the finish of the wall. The "há N min" that walks by itself, the skeleton and the error band, what a live
+   change shows (a short highlight, a notice in the corner), the keys J, K and ?, and the quiet hover row.
+   Timers are the mock ones of node:test; the promises of the reads are settled with `setImmediate`, which stays real. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, mock, test } from 'node:test';
@@ -78,7 +78,7 @@ function start(initial: Card, { gate = null as Promise<void> | null, failRead = 
     state,
     mounted,
     leave,
-    // A change of the core: the read comes after the throttle, or at once for a request (`needs-you`).
+    // #758: a change of the core: the read comes after the throttle, or at once for a request (`needs-you`).
     async reread(next: Card, changeList: unknown = [{ type: 'state' }]) {
       state.wall = next;
       for (const f of changes) f(changeList);
