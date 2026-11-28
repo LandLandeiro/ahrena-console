@@ -1,16 +1,22 @@
 // The screen registry: the route, the sidebar item and the file of each screen (see README.md).
 //
 // - `route`: the path in the browser; `:id` matches one segment.
-// - `item`: the sidebar item, `{ label, icon, section }`. `section` is the id of a `SECTIONS` entry
+// - `item`: the sidebar item, `{ label, icon, section, project? }`. `section` is the id of a `SECTIONS` entry
 //   and says which block of the sidebar the item goes in; inside the block, the order of this
 //   registry holds. Without `item`, the screen is not in the sidebar and `highlights` says which
-//   item stays lit while it is open (the session detail lights Sessions, as in A5).
+//   item stays lit while it is open (the session detail lights Sessions, as in A5; a merged screen lights the item
+//   that receives it, decision 0029).
+// - `item.project`: the item in the Projeto mode (#754). Without it, the mode hides the item (never its route: the screen
+//   opens by link). With it, `{ label?, section?, order? }` say what changes there: the label and the block (the Dev
+//   ones when missing) and the place inside the block (`order`, ascending; the registry order when missing). The labels
+//   of the two modes are here and nowhere else.
 // - `file`: the screen module in `ui/screens/`. Without it, the shell shows the header and the empty state.
 // - `title`, `sub` and `icon`: the header of the empty state and the window title.
 
-// The sidebar blocks: the everyday screens ("Agora", ADR-0028), then Delivery, Decisions, Machines and
-// Control. A block without items does not show. Decisions holds the session decisions ("Das sessões")
-// and the architecture (ADR) and product (PDR) records of the repositories (issue 174).
+// The sidebar blocks (decision 0029): the everyday screens ("Agora", ADR-0028), Delivery, Machines and the foot, which
+// has Configuração and no title. A block without items does not show. The merged screens (Histórico, Kanban, Feed,
+// Workflows, the project Kanban, Dev Console, ADR, PDR, Conexões) have no item: they light the one that receives them
+// and carry a row of tabs (`TAB_SETS`, below).
 import { coreOutdated, normalizeCore } from './screens/machine-core-format.js';
 import { OWNER_AUTH } from './screens/machine-format.js';
 import { normalizeUpdate, updatingNow } from './screens/machine-update-format.js';
@@ -18,16 +24,15 @@ import { normalizeUpdate, updatingNow } from './screens/machine-update-format.js
 export const SECTIONS = [
   { id: 'main', label: 'Agora' },
   { id: 'delivery', label: 'Entrega' },
-  { id: 'decisions', label: 'Decisões' },
   { id: 'machines', label: 'Máquinas' },
-  { id: 'control', label: 'Controle' },
+  { id: 'foot', label: null },
 ];
 
 export const SCREENS = [
   {
     id: 'dashboard',
     route: '/ui',
-    item: { label: 'Dashboard', icon: 'dashboard', section: 'main' },
+    highlights: 'analytics',
     title: 'Dashboard',
     sub: 'O agora das suas sessões',
     icon: 'dashboard',
@@ -36,7 +41,7 @@ export const SCREENS = [
   {
     id: 'wall',
     route: '/ui/wall',
-    item: { label: 'Mural ao vivo', icon: 'wall', section: 'main' },
+    item: { label: 'Mural ao vivo', icon: 'wall', section: 'main', project: { label: 'Sua atenção', order: 1 } },
     title: 'Mural ao vivo',
     sub: 'Um card por sessão aberta nesta máquina',
     icon: 'wall',
@@ -45,7 +50,7 @@ export const SCREENS = [
   {
     id: 'sessions',
     route: '/ui/sessions',
-    item: { label: 'Sessões', icon: 'sessions', section: 'main' },
+    item: { label: 'Sessões', icon: 'sessions', section: 'main', project: { label: 'Conversas', order: 2 } },
     title: 'Sessões',
     sub: 'As sessões registradas nesta máquina',
     icon: 'sessions',
@@ -54,7 +59,7 @@ export const SCREENS = [
   {
     id: 'feed',
     route: '/ui/feed',
-    item: { label: 'Feed de atividade', icon: 'activity', section: 'main' },
+    highlights: 'sessions',
     title: 'Feed de atividade',
     sub: 'Todos os eventos das sessões, ao vivo',
     icon: 'activity',
@@ -63,7 +68,7 @@ export const SCREENS = [
   {
     id: 'kanban',
     route: '/ui/kanban',
-    item: { label: 'Kanban', icon: 'kanban', section: 'main' },
+    highlights: 'sessions',
     title: 'Kanban',
     sub: 'As sessões por status, só leitura',
     icon: 'kanban',
@@ -88,6 +93,15 @@ export const SCREENS = [
     sub: null,
     icon: 'sessions',
     file: '/ui/screens/agent-view.js',
+  },
+  {
+    id: 'work',
+    route: '/ui/work',
+    item: { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery', project: { order: 1 } },
+    title: 'Quadro do trabalho',
+    sub: 'As issues de um GitHub Project pelo ciclo do agente',
+    icon: 'columns-3',
+    file: '/ui/screens/work-board.js',
   },
   {
     id: 'repos',
@@ -121,25 +135,16 @@ export const SCREENS = [
   {
     id: 'project',
     route: '/ui/project',
-    item: { label: 'Kanban do projeto', icon: 'github', section: 'delivery' },
+    highlights: 'work',
     title: 'Kanban do projeto',
     sub: 'O GitHub Project por Status',
     icon: 'github',
     file: '/ui/screens/project.js', // #80 (C11)
   },
   {
-    id: 'work',
-    route: '/ui/work',
-    item: { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery' },
-    title: 'Quadro do trabalho',
-    sub: 'As issues de um GitHub Project pelo ciclo do agente',
-    icon: 'columns-3',
-    file: '/ui/screens/work-board.js',
-  },
-  {
     id: 'dev-console',
     route: '/ui/dev-console',
-    item: { label: 'Dev Console', icon: 'gauge', section: 'delivery' },
+    highlights: 'repos',
     title: 'Dev Console',
     sub: 'PRs, issues e sessões dos repositórios do contexto',
     icon: 'gauge',
@@ -148,7 +153,7 @@ export const SCREENS = [
   {
     id: 'analytics',
     route: '/ui/analytics',
-    item: { label: 'Analytics', icon: 'analytics', section: 'main' },
+    item: { label: 'Uso e custo', icon: 'analytics', section: 'main', project: { label: 'Custo', section: 'delivery', order: 3 } },
     title: 'Analytics',
     sub: 'Uso, custo e produtividade das sessões',
     icon: 'analytics',
@@ -167,7 +172,7 @@ export const SCREENS = [
   {
     id: 'workflows',
     route: '/ui/workflows',
-    item: { label: 'Workflows', icon: 'workflows', section: 'main' },
+    highlights: 'analytics',
     title: 'Workflows',
     sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado',
     icon: 'workflows',
@@ -176,7 +181,7 @@ export const SCREENS = [
   {
     id: 'history',
     route: '/ui/history',
-    item: { label: 'Histórico', icon: 'history', section: 'main' },
+    highlights: 'sessions',
     title: 'Histórico',
     sub: 'Sessões encerradas, por dia',
     icon: 'history',
@@ -185,7 +190,7 @@ export const SCREENS = [
   {
     id: 'decisions',
     route: '/ui/decisions',
-    item: { label: 'Das sessões', icon: 'decision', section: 'decisions' },
+    item: { label: 'Decisões', icon: 'decision', section: 'delivery', project: { order: 2 } },
     title: 'Decisões',
     sub: 'O que você e os agentes decidiram, em todas as sessões',
     icon: 'decision',
@@ -195,7 +200,7 @@ export const SCREENS = [
     // As decisões de arquitetura dos repositórios da conta (C28, issue 174).
     id: 'adrs',
     route: '/ui/adrs',
-    item: { label: 'ADR', icon: 'scroll-text', section: 'decisions' },
+    highlights: 'decisions',
     title: 'ADR',
     sub: 'Decisões de arquitetura dos repositórios da sua conta',
     icon: 'scroll-text',
@@ -205,7 +210,7 @@ export const SCREENS = [
     // As decisões de produto (C38): a mesma tela, com outro rótulo.
     id: 'pdrs',
     route: '/ui/pdrs',
-    item: { label: 'PDR', icon: 'lightbulb', section: 'decisions' },
+    highlights: 'decisions',
     title: 'PDR',
     sub: 'Decisões de produto dos repositórios da sua conta',
     icon: 'lightbulb',
@@ -217,7 +222,7 @@ export const SCREENS = [
     route: '/ui/adrs/:owner/:repo/:id',
     // O id é o nome do arquivo: acento e espaço valem (`0004-decisão de fila`).
     params: { id: 'record' },
-    highlights: 'adrs',
+    highlights: 'decisions',
     title: 'ADR',
     sub: null,
     icon: 'scroll-text',
@@ -227,7 +232,7 @@ export const SCREENS = [
     id: 'pdr',
     route: '/ui/pdrs/:owner/:repo/:id',
     params: { id: 'record' },
-    highlights: 'pdrs',
+    highlights: 'decisions',
     title: 'PDR',
     sub: null,
     icon: 'lightbulb',
@@ -254,12 +259,12 @@ export const SCREENS = [
     icon: 'server',
     file: '/ui/screens/machine.js',
   },
-  { id: 'agent-config', route: '/ui/agent-config', item: { label: 'Agent Config', icon: 'bot', section: 'control' }, title: 'Agent Config', sub: 'Seu Claude Code: skills, subagentes, comandos, MCP, hooks e memória', icon: 'bot', file: '/ui/screens/agent-config.js' }, // #63
+  { id: 'agent-config', route: '/ui/agent-config', item: { label: 'Configuração', icon: 'bot', section: 'foot' }, title: 'Agent Config', sub: 'Seu Claude Code: skills, subagentes, comandos, MCP, hooks e memória', icon: 'bot', file: '/ui/screens/agent-config.js' }, // #63
   {
     // The console's own connections (C39 to C44, issue 241): GitHub, by the device flow.
     id: 'connections',
     route: '/ui/connections',
-    item: { label: 'Conexões', icon: 'plug', section: 'control' },
+    highlights: 'agent-config',
     title: 'Conexões',
     sub: 'As contas de fora que o console usa',
     icon: 'plug',
@@ -269,7 +274,7 @@ export const SCREENS = [
     // The GitHub detail (C39 to C44) once Conexões is a catalog (issue 277, C57): the same screen.
     id: 'connections-github',
     route: '/ui/connections/github',
-    highlights: 'connections',
+    highlights: 'agent-config',
     title: 'Conexões · GitHub',
     sub: null,
     icon: 'github',
@@ -279,7 +284,7 @@ export const SCREENS = [
     // The AWS sessions and profiles of this Mac or a remote machine (`?machine=<id>`, C58 to C60, issue 277).
     id: 'connections-aws',
     route: '/ui/connections/aws',
-    highlights: 'connections',
+    highlights: 'agent-config',
     title: 'Conexões · AWS',
     sub: null,
     icon: 'cloud',
@@ -319,6 +324,10 @@ const updatingOf = (m) => {
   return Boolean(u && updatingNow(u));
 };
 
+// A machine asks for action when its state says so (Sem conexão, Acesso bloqueado, Versão diferente, Sem configuração) or
+// its núcleo is older than the app (the arrow). "Parada por você" and "Atualizando" do not, even with the arrow (0029).
+const asksForAction = (state, outdated) => state !== 'stopped' && state !== 'updating' && (outdated || state !== 'connected');
+
 /** The sidebar entries of the remote machines in `GET /api/machines` (this machine is in SCREENS). */
 export function machineItems(machines) {
   if (!Array.isArray(machines)) return [];
@@ -330,14 +339,17 @@ export function machineItems(machines) {
     const label = typeof m.label === 'string' && m.label.trim() ? m.label.slice(0, 40) : m.id;
     const updating = !stoppedByYou(m) && updatingOf(m);
     const auth = stoppedByYou(m) || updating ? null : ownerAuthOf(m);
+    const state = stoppedByYou(m) ? 'stopped' : updating ? 'updating' : auth ? 'owner-auth' : MACHINE_STATES.has(m.state) ? m.state : 'unreachable';
+    const outdated = coreOutdated(normalizeCore(m.core));
     out.push({
       id: machineItemId(m.id),
       route: `/ui/machines/${m.id}`,
-      item: { label, icon: 'server', section: 'machines' },
-      state: stoppedByYou(m) ? 'stopped' : updating ? 'updating' : auth ? 'owner-auth' : MACHINE_STATES.has(m.state) ? m.state : 'unreachable',
+      // In Projeto the item stays only while the alert lasts (decision 0029); the label and the block are the same.
+      item: { label, icon: 'server', section: 'machines', ...(asksForAction(state, outdated) ? { project: {} } : {}) },
+      state,
       ...(auth ? { stateLabel: OWNER_AUTH[auth].dot } : {}),
       // The núcleo over there is older than the app (issue 449): a yellow arrow beside the name, nothing else of `core`.
-      ...(coreOutdated(normalizeCore(m.core)) ? { coreOutdated: true } : {}),
+      ...(outdated ? { coreOutdated: true } : {}),
       title: label,
       icon: 'server',
     });
@@ -355,11 +367,31 @@ export function litItem(screen, params = {}) {
  * The sidebar blocks with their items, in `SECTIONS` order; empty blocks are left out. An item
  * without a known `section` falls in the first block, so a screen never disappears from the sidebar
  * (the registry test refuses such an item).
+ *
+ * `mode` is `dev` (every item, as registered) or `project` (#754): only the items that carry `item.project`, each with
+ * the label and the block it says there, in the order it says; the others are not here, so nothing draws them and Tab
+ * does not reach them. The registry itself is not changed: the screen of a hidden item still opens by its route.
  */
-export function sidebarSections(screens = SCREENS, sections = SECTIONS) {
+export function sidebarSections(screens = SCREENS, sections = SECTIONS, mode = 'dev') {
   const known = new Set(sections.map((s) => s.id));
   const sectionOf = (t) => (known.has(t.item.section) ? t.item.section : sections[0].id);
-  return sections.map((s) => ({ ...s, items: screens.filter((t) => t.item && sectionOf(t) === s.id) })).filter((s) => s.items.length);
+  const shown = mode === 'project' ? screens.filter((t) => t.item?.project).map(inProject) : screens;
+  return sections
+    .map((s) => ({ ...s, items: orderedFor(shown.filter((t) => t.item && sectionOf(t) === s.id), mode) }))
+    .filter((s) => s.items.length);
+}
+
+// The screen as the Projeto bar draws it: the label and the block of `item.project`, the Dev ones where it is silent.
+function inProject(screen) {
+  const { label = screen.item.label, section = screen.item.section } = screen.item.project;
+  return { ...screen, item: { ...screen.item, label, section } };
+}
+
+// In Projeto, `project.order` sets the place inside a block; an item without one goes after, in registry order.
+function orderedFor(items, mode) {
+  if (mode !== 'project') return items;
+  const place = (t) => t.item.project?.order ?? Number.POSITIVE_INFINITY;
+  return items.map((t, i) => [t, i]).sort((a, b) => place(a[0]) - place(b[0]) || a[1] - b[1]).map(([t]) => t);
 }
 
 // A session id or a GitHub name (dot, hyphen and underscore); `.` and `..` never.
@@ -391,4 +423,82 @@ export function findScreen(path, screens = SCREENS) {
     if (matches) return { screen, params };
   }
   return null;
+}
+
+// ---------- The tabs of the merged screens (decision 0029) ----------
+//
+// A screen that lost its item to a merge keeps its route and gets, at its top, a row of tabs: links to routes that already
+// exist (ui/screen-tabs.js draws it). Each set is named after the item that receives its screens; its first tab is that item's
+// screen. A tab names the screens it covers (`screens`, the first one gives the route; the others are the same screen with a
+// parameter and keep the tab current) and may be for one mode only (`mode`).
+export const TAB_SETS = [
+  {
+    id: 'sessions',
+    label: 'Sessões',
+    tabs: [
+      { label: 'Sessões', screens: ['sessions'] },
+      { label: 'Encerradas', screens: ['history'] },
+      { label: 'Por estado', screens: ['kanban'] },
+      { label: 'Eventos', screens: ['feed'], mode: 'dev' },
+    ],
+  },
+  {
+    id: 'usage',
+    label: 'Uso e custo',
+    tabs: [
+      { label: 'Uso', screens: ['analytics', 'analytics-tab'] },
+      { label: 'Orquestração', screens: ['workflows'] },
+      { label: 'Resumo', screens: ['dashboard'] },
+    ],
+  },
+  {
+    id: 'work',
+    label: 'Quadro do trabalho',
+    tabs: [
+      { label: 'Quadro', screens: ['work'] },
+      { label: 'Por status do Project', screens: ['project'] },
+    ],
+  },
+  {
+    id: 'repos',
+    label: 'Repositórios',
+    tabs: [
+      { label: 'Repositórios', screens: ['repos'] },
+      { label: 'Do contexto', screens: ['dev-console'] },
+    ],
+  },
+  {
+    id: 'decisions',
+    label: 'Decisões',
+    tabs: [
+      { label: 'Nas sessões', screens: ['decisions'] },
+      { label: 'Técnicas', screens: ['adrs'] },
+      { label: 'Produto', screens: ['pdrs'] },
+    ],
+  },
+  {
+    id: 'config',
+    label: 'Configuração',
+    tabs: [
+      { label: 'Configuração do Claude', screens: ['agent-config'] },
+      { label: 'Conexões', screens: ['connections', 'connections-github', 'connections-aws'] },
+    ],
+  },
+];
+
+/**
+ * The tab row of a screen: `{ label, tabs: [{ label, route, current }] }`, or `null` when the screen is in no set. A tab of the
+ * other mode is left out unless it is the screen open. The routes are read from the registry, so they cannot drift.
+ */
+export function tabsFor(screenId, mode = 'dev', screens = SCREENS, sets = TAB_SETS) {
+  const set = sets.find((s) => s.tabs.some((t) => t.screens.includes(screenId)));
+  if (!set) return null;
+  const tabs = [];
+  for (const t of set.tabs) {
+    const current = t.screens.includes(screenId);
+    const route = screens.find((s) => s.id === t.screens[0])?.route;
+    if (!route || (t.mode && t.mode !== mode && !current)) continue;
+    tabs.push({ label: t.label, route, current });
+  }
+  return { label: set.label, tabs };
 }

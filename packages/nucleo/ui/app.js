@@ -5,14 +5,15 @@ import { write, read } from './api.js';
 import { startLive } from './live.js';
 import { header } from './dom.js';
 import { error, empty } from './states.js';
-import { findScreen, litItem } from './screens.js';
+import { findScreen, litItem, tabsFor } from './screens.js';
 import { createNav } from './nav.js';
 import { afterWrite, createCounts } from './counts.js';
 import { internalRoute } from './internal-link.js';
 import { createGithubFooter, connectionChanged } from './github-connect.js';
 import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
 import { createTheme } from './theme.js';
-import { createModeButton, onModeChange } from './mode.js';
+import { createModeButton, onModeChange, appMode } from './mode.js';
+import { createScreenTabs } from './screen-tabs.js';
 import { createLiveBlock, LIVE_LABELS } from './live-block.js';
 import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
@@ -154,6 +155,10 @@ startLive({
 
 // ---------- Routing ----------
 
+// #754: the tab row of the merged screens (decision 0029) sits above the screen, outside what a screen redraws.
+const screenTabs = createScreenTabs({ host: document.getElementById('screen-tabs') });
+let openScreenId = null;
+
 let leaving = null;
 let screenFailed = false;
 // issue 754: the open of a switch of the mode leaves the drawer as it is, so the focus stays on the button that was pressed.
@@ -186,12 +191,16 @@ async function showScreen() {
   const found = findScreen(location.pathname);
   if (!found) {
     highlight(null);
+    openScreenId = null;
+    screenTabs.draw(null);
     document.title = 'Ahrena Console';
     area.replaceChildren(empty({ title: 'Página não encontrada', text: `Nada em ${location.pathname}.`, action: { label: 'Ir para o Dashboard', onClick: () => navigate('/ui') } }));
     return;
   }
   const { screen, params } = found;
   highlight(litItem(screen, params));
+  openScreenId = screen.id;
+  screenTabs.draw(tabsFor(screen.id, appMode()));
   document.title = `Ahrena Console · ${screen.title}`;
   if (!screen.file) {
     area.replaceChildren(
@@ -241,6 +250,8 @@ document.addEventListener('click', (ev) => {
 addEventListener('popstate', open);
 // #754: a switch of the mode redraws the current screen; one that follows it by itself keeps its focus and scroll, the others open again (the drawer stays as it is).
 onModeChange(() => {
+  // The Dev-only tab (Eventos) follows the mode; the open screen keeps its own tab.
+  if (openScreenId) screenTabs.draw(tabsFor(openScreenId, appMode()));
   if (listeners.mode.size === 0) return ((keepDrawer = true), open());
   for (const f of [...listeners.mode]) f();
 });

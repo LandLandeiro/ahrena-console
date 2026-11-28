@@ -1,13 +1,15 @@
 // The sidebar (C1, C24): one block per section of the registry, and the remote machines (issue 178).
 //
+// The bar follows the mode (#754): `sidebarSections` gets `appMode()` and a switch draws it again, keeping what a redraw keeps.
 // The registry is static; the remote machines come from `machines.json`, which only the core reads.
 // `readMachines()` reads `GET /api/machines` and, when the list changed, draws the sidebar again with
 // `machineItems(list)` added: each remote is an item of the Máquinas block, after "Esta máquina",
 // with its state dot. The counters, the tags and the lit item survive the redraw (ADR-0028).
-// `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Conexões the dot that sums up the
-// worst cloud connector; a core without the route (404) shows no dot.
+// `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Configuração (which receives Conexões) the dot
+// that sums up the worst cloud connector; a core without the route (404) shows no dot.
 
 import { el, icon } from './dom.js';
+import { appMode, onModeChange } from './mode.js';
 import { machineItems, MACHINES_ROUTE, SCREENS, sidebarSections } from './screens.js';
 import { CONNECTORS_ROUTE, connectorsDot } from './screens/cloud-format.js';
 
@@ -19,6 +21,9 @@ const UPDATING_REREAD_MS = 5000;
 
 /** The yellow arrow of a remote whose núcleo is older than the app (issue 449): the color alone does not say it. */
 const CORE_OUTDATED_LABEL = 'Núcleo defasado';
+
+/** Conexões has no item of its own since decision 0029: its dot goes on Configuração, the item that receives it. */
+const CONNECTIONS_ITEM = 'agent-config';
 
 /** A label this long gets a tooltip with the full text: the item cuts it with an ellipsis (ADR-0028). */
 const LONG_LABEL = 24;
@@ -54,7 +59,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     const keepInView = litInView();
     items.clear();
     const groups = [];
-    for (const section of sidebarSections([...screens, ...remoteItems])) {
+    for (const section of sidebarSections([...screens, ...remoteItems], undefined, appMode())) {
       const titleId = section.label ? `cc-nav-title-${section.id}` : null;
       const group = el(
         'div',
@@ -160,13 +165,15 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
       if (e?.status !== 404) return;
       next = null;
     }
-    const before = dots.get('connections') ?? null;
+    const before = dots.get(CONNECTIONS_ITEM) ?? null;
     if (JSON.stringify(before) === JSON.stringify(next)) return;
-    if (next) dots.set('connections', next);
-    else dots.delete('connections');
+    if (next) dots.set(CONNECTIONS_ITEM, next);
+    else dots.delete(CONNECTIONS_ITEM);
     draw();
   }
 
+  // #754: the bar follows the mode; the screen's own redraw is the shell's, and this one runs first (it is registered first).
+  const stop = onModeChange(() => draw());
   draw();
-  return { draw, readMachines, readConnectors, highlight, counter, tag };
+  return { draw, readMachines, readConnectors, highlight, counter, tag, stop };
 }
