@@ -326,11 +326,11 @@ describe('The tabs (#759, 0029)', () => {
     assert.doesNotMatch(/\.sd-tab(\.on)?\s*\{([^}]*)\}/.exec(css)?.[2] ?? '', /background:\s*var\(--(?!bg|surface)/);
     assert.deepEqual(css.match(/border-radius:\s*\d+px/g) ?? [], [], 'radii come from the --radius-* tokens');
   });
-  test('under 640 px the event head hides the state tag, so the summary keeps its column', () => {
+  test('under 640 px the event head hides the state tag by its data-state-kind, so the summary keeps its column', () => {
     const block = /@media \(max-width: 640px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     const hide = /([^{}]*)\{\s*display:\s*none/.exec(block.split('\n').filter((l) => l.includes('.sd-event-head') && l.includes('display: none')).join('\n'))?.[1] ?? '';
-    assert.match(hide, /\.sd-event-head \.state-tag/);
+    assert.match(hide, /\.sd-event-head \[data-state-kind\]/);
     assert.doesNotMatch(hide, /\.sd-status/);
-    assert.match(css, /\.sd-event-head \.state-tag,? [^{]*\{[^}]*justify-self:\s*start/);
+    assert.match(css, /\.sd-event-head \[data-state-kind\],? [^{]*\{[^}]*justify-self:\s*start/);
   });
 });
