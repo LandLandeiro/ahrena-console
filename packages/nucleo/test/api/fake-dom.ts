@@ -212,6 +212,9 @@ export class ElementoFalso extends NoFalso {
     this.dispatchEvent({ type: 'click' });
   }
   querySelectorAll(seletor: string): ElementoFalso[] {
+    return nodeListMode ? (asNodeList(this.matchAll(seletor)) as unknown as ElementoFalso[]) : this.matchAll(seletor);
+  }
+  private matchAll(seletor: string): ElementoFalso[] {
     const list = selectorList(seletor);
     const matches: ElementoFalso[] = [];
     const visitar = (no: ElementoFalso) => {
@@ -224,9 +227,38 @@ export class ElementoFalso extends NoFalso {
     return matches;
   }
   querySelector(seletor: string): ElementoFalso | null {
-    return this.querySelectorAll(seletor)[0] ?? null;
+    return this.matchAll(seletor)[0] ?? null;
   }
 }
+
+// The browser's `querySelectorAll` returns a NodeList: length, index, item, forEach, entries and iteration, and none
+// of the Array methods (`find`, `filter`, `map`, `some`, `slice`...). The default stays an array, which the older
+// tests rely on; a suite that wants the browser's shape turns this on, and code that calls an Array method on the
+// result then fails here as it fails in Chromium.
+let nodeListMode = false;
+export function querySelectorAllComoNodeList(ligado: boolean): void {
+  nodeListMode = ligado;
+}
+class NodeListFalsa<T> {
+  readonly length: number;
+  [indice: number]: T;
+  constructor(itens: T[]) {
+    this.length = itens.length;
+    itens.forEach((item, i) => {
+      this[i] = item;
+    });
+  }
+  item(i: number): T | null {
+    return this[i] ?? null;
+  }
+  forEach(fn: (item: T, i: number, lista: NodeListFalsa<T>) => void): void {
+    for (let i = 0; i < this.length; i++) fn(this[i] as T, i, this);
+  }
+  *[Symbol.iterator](): Iterator<T> {
+    for (let i = 0; i < this.length; i++) yield this[i] as T;
+  }
+}
+const asNodeList = <T,>(itens: T[]) => new NodeListFalsa(itens);
 
 const ATTRIBUTE = String.raw`\[\s*([\w-]+)\s*(?:([~|^$*]?)=\s*(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|([^\s\]"'\\]+))\s*)?\]`;
 const COMPOUND = String.raw`(?:\[\s*[\w-]+\s*(?:[~|^$*]?=\s*(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s\]"'\\]+)\s*)?\]|\\.|[^\s\[\\,>])+`;

@@ -3,7 +3,7 @@
 // the fake's `activeElement`. No workbench, visual or axe tool in this project (component map: node:test).
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, test } from 'node:test';
-import { ElementoFalso, documentoFalso, instalarDomFalso, texto } from './fake-dom.ts';
+import { ElementoFalso, documentoFalso, instalarDomFalso, querySelectorAllComoNodeList, texto } from './fake-dom.ts';
 
 instalarDomFalso();
 const {
@@ -29,7 +29,8 @@ const { planConfirm, missingFolder } = await import('../../ui/screens/work-board
 const { issuePanelLoading } = await import('../../ui/screens/work-board-issue-panel.js');
 
 const el = (tag = 'div') => new ElementoFalso(tag);
-const all = (root: ElementoFalso, selector: string) => root.querySelectorAll(selector);
+// `querySelectorAll` answers a NodeList here, as in Chromium; the tests turn it into an array to assert on it.
+const all = (root: ElementoFalso, selector: string) => Array.from(root.querySelectorAll(selector));
 const one = (root: ElementoFalso, selector: string) => {
   const found = root.querySelector(selector);
   assert.ok(found, `no ${selector}`);
@@ -48,6 +49,7 @@ const storage = new Map<string, string>();
 const setViewport = (width: number, height: number) => Object.assign(globalThis, { innerWidth: width, innerHeight: height });
 
 beforeEach(() => {
+  querySelectorAllComoNodeList(true);
   storage.clear();
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -58,6 +60,7 @@ beforeEach(() => {
   documentoFalso.activeElement = null;
 });
 afterEach(() => {
+  querySelectorAllComoNodeList(false);
   delete (globalThis as Record<string, unknown>).localStorage;
   setStateLabelMode('dev');
 });
