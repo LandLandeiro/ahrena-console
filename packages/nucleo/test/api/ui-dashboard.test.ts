@@ -145,10 +145,10 @@ describe('Dashboard: formatação', () => {
   test('#761: Sua vez is one of the ones that need you at the Início: in the blocked items and the cards, never in the idle ones', () => {
     const turn = { level: 'blocked', reason: 'turn_ended' };
     const mk = (session: string, attention: { level: string; reason: string }) => ({ session, title: session, project: `p-${session}`, account: null, level: 'needs', reason: attention.reason, attention, shortReason: 'Sua vez', longReason: 'o turno terminou', since: '', minutes: 3, local: null });
-    const atencao = { total: 2, blocked: 2, idle: 0, items: [mk('t', turn), mk('i', { level: 'idle', reason: 'interrupted' })] };
-    assert.deepEqual(tela.blockedItems(atencao).map((i: { session: string }) => i.session), ['t']);
-    assert.deepEqual(tela.idleItems(atencao).map((i: { session: string }) => i.session), ['i']);
-    const cards = tela.inboxCards(atencao, []);
+    const attention = { total: 2, blocked: 2, idle: 0, items: [mk('t', turn), mk('i', { level: 'idle', reason: 'interrupted' })] };
+    assert.deepEqual(tela.blockedItems(attention).map((i: { session: string }) => i.session), ['t']);
+    assert.deepEqual(tela.idleItems(attention).map((i: { session: string }) => i.session), ['i']);
+    const cards = tela.inboxCards(attention, []);
     assert.deepEqual(cards.map((c: { session: string }) => c.session), ['t']);
     assert.deepEqual(cards[0].attention, turn);
     assert.equal(tela.sessionsDetail({ blocked: 2, idle: 0 }), '2 precisam de você');

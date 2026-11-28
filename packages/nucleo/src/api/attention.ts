@@ -22,14 +22,14 @@ export type NivelDeAtencao = 'precisa' | 'sua-vez';
 export type MotivoDaAtencao = 'permissao' | 'pergunta' | 'plano' | 'decisao' | 'erro' | 'sua-vez' | 'interrompida' | 'no-prompt';
 
 export function atencaoDe(inbox: Pick<InboxReading, 'status' | 'state' | 'reason'>, r: Pick<ResumoDosEventos, 'pendentes' | 'pedidoNoFechamento' | 'ultimoPedido'> | null): { nivel: NivelDeAtencao; porque: MotivoDaAtencao } {
-  const porque = motivoDe(inbox, r);
-  return { nivel: precisaDeVoce(porque) ? 'precisa' : 'sua-vez', porque };
+  const porque = reasonOf(inbox, r);
+  return { nivel: needsYouOf(porque) ? 'precisa' : 'sua-vez', porque };
 }
 
-/** The `nivel` follows the one rule (`needsYou`): `precisa` for the reasons it names, `sua-vez` only for Esc and the prompt. */
-const precisaDeVoce = (porque: MotivoDaAtencao): boolean => needsYou(REASON_OF[porque]);
+/** The `nivel` follows the one rule (`needsYou`): `precisa` for the reasons it names, `sua-vez` only for Esc and the prompt (#761). */
+const needsYouOf = (porque: MotivoDaAtencao): boolean => needsYou(REASON_OF[porque]);
 
-function motivoDe(inbox: Pick<InboxReading, 'status' | 'state' | 'reason'>, r: Pick<ResumoDosEventos, 'pendentes' | 'pedidoNoFechamento' | 'ultimoPedido'> | null): MotivoDaAtencao {
+function reasonOf(inbox: Pick<InboxReading, 'status' | 'state' | 'reason'>, r: Pick<ResumoDosEventos, 'pendentes' | 'pedidoNoFechamento' | 'ultimoPedido'> | null): MotivoDaAtencao {
   if (inbox.state === 'error' || inbox.status === 'error') return 'erro';
   const pendente = r?.pendentes.at(-1)?.ferramenta ?? null;
   if (inbox.reason === 'notification') {

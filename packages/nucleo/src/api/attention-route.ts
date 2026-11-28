@@ -208,7 +208,7 @@ export async function montarAtencao(
       if (Number.isInteger(body.withError) && (body.withError as number) >= 0) withError += Math.min(body.withError as number, MAX_REMOTE_COUNT);
     }
   }
-  // Precisa de você (0), antes de parada num erro (1), antes da sua vez (2), antes das ociosas (3).
+  // Precisa de você (0), antes de parada num erro (1), antes da sua vez (2), antes das ociosas (3) (#761).
   const grupo = (i: ItemDaAtencao) => (i.level === 'your-turn' ? 3 : i.reason === 'error' ? 1 : i.reason === 'your-turn' ? 2 : 0);
   items.sort((a, b) => grupo(a) - grupo(b) || a.since.localeCompare(b.since) || a.session.localeCompare(b.session) || (a.machine?.id ?? '').localeCompare(b.machine?.id ?? ''));
   for (const s of await frota.live()) {

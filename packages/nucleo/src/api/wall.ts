@@ -209,7 +209,7 @@ export class MontadorDoMural {
     );
     // A child nests in its leader's card; on its own it stays on the wall only when it needs you.
     const onWall = lidas.filter((l) => !l.parentId || l.leitura.sessao.attention?.level === 'blocked');
-    // 0 a card that needs you, 1 "Sua vez" (needs you too, a row), 2 idle, 3 the rest.
+    // 0 a card that needs you, 1 "Sua vez" (needs you too, a row), 2 idle, 3 the rest (#761).
     const rank = (l: LeituraDaSessao) => (l.sessao.attention?.level === 'blocked' ? (isYourTurn(l.sessao.attention.reason) ? 1 : 0) : l.sessao.attention?.level === 'idle' ? 2 : 3);
     onWall.sort((a, b) => {
       const [x, y] = [a.leitura, b.leitura];
