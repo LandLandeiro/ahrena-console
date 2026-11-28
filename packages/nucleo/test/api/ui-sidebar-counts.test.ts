@@ -670,7 +670,7 @@ describe('#750 M4: the shell reads each route once on cold load, after the scree
     assert.match(app, /createAppUpdate\(\{ read: shellRead,/);
     assert.match(app, /await shellRead\('\/api\/overview'\)/);
     // #750: the screen's own reads are not shared: they carry the signal that leaving the screen aborts.
-    assert.match(app, /read: \(route, options\) => read\(route, \{ signal: leave\.signal, \.\.\.options \}\)/);
+    assert.match(app, /const asked = read\(route, \{ signal: leave\.signal, \.\.\.options \}\)/);
     const restart = /function restart\(\) \{([^]*?)\n\}/.exec(app)![1]!;
     assert.doesNotMatch(restart, /read(Version|Machines|Connectors)|refresh\(\)/, 'the restart reads through the shell load, not by itself');
     assert.match(restart, /if \(!shell\.restart\(\)\) return;/);
