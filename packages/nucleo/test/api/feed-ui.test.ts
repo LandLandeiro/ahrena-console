@@ -387,21 +387,21 @@ describe('Feed de atividade: a tela', () => {
     limpar();
   });
 
-  test('#760: a frase de ajuda diz os estados com as palavras do modo', async () => {
+  test('#760: the help sentence says the states in the words of the mode', async () => {
     // @ts-expect-error: idem
     const labels = await import('../../ui/state-labels.js');
-    const vazio = () => ({ events: [], cursor: null, older: null, options: null });
-    const ajuda = async () => {
+    const empty = () => ({ events: [], cursor: null, older: null, options: null });
+    const help = async () => {
       const area = new Elemento('main');
-      const limpar = await mount(area, ctxFalso(vazio).ctx);
-      const texto = area.querySelector('.feed-about-body')!.querySelectorAll('p')[0]!.textContent;
+      const limpar = await mount(area, ctxFalso(empty).ctx);
+      const text = area.querySelector('.feed-about-body')!.querySelectorAll('p')[0]!.textContent;
       limpar();
-      return texto;
+      return text;
     };
     try {
-      assert.match(await ajuda(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
       labels.setStateLabelMode('project');
-      assert.match(await ajuda(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
     } finally {
       labels.setStateLabelMode('dev');
     }
