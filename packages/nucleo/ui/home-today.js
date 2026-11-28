@@ -34,10 +34,10 @@ const dayStart = (now, offset = 0) => {
 
 const EMPTY = Object.freeze({ today: null, yesterday: null, completed: null, hours: [] });
 
-/** The rows of the page that carry a start and a last activity, with them as numbers. */
+/** The rows of the page that carry a start and a last activity, with them as numbers (`GET /api/sessions` answers its rows as `items`). */
 function rowsOf(page) {
-  if (!Array.isArray(page?.sessions)) return null;
-  return page.sessions
+  if (!Array.isArray(page?.items)) return null;
+  return page.items
     .map((s) => ({ session: s, start: Date.parse(s?.start), last: Date.parse(s?.lastActivity) }))
     .filter((r) => Number.isFinite(r.start) && Number.isFinite(r.last));
 }
