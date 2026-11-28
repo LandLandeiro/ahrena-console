@@ -102,12 +102,12 @@ O Analytics tem duas abas, que são a mesma tela: em `screens.js`, a entrada `an
    import { loading, empty, error } from '../states.js';
 
    export async function mount(area, ctx) {
-     const head = header({ icon: 'sessions', title: 'Sessões', sub: null }); // a subtitle says the state now (setHeaderSub, after the read), or there is none
+     const head = header({ icon: 'sessions', title: 'Itens', sub: null }); // a subtitle says the state now (setHeaderSub, after the read), or there is none
      area.replaceChildren(head, loading());
      async function draw() {
        try {
          const data = await ctx.read('/api/...');
-         setHeaderSub(head, data.length ? `${data.length} sessões` : null);
+         setHeaderSub(head, data.length ? `${data.length} ${data.length === 1 ? 'item espera' : 'itens esperam'} você.` : null);
          area.replaceChildren(head, data.length ? list(data) : empty({ title: 'Nenhuma sessão ainda', text: '…' }));
        } catch (e) {
          if (e.name === 'AbortError') return;
