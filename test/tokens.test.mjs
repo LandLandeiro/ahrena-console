@@ -519,7 +519,7 @@ test('#749: error text reaches 4.5:1 on the background set in its own rule or in
   for (const needle of known) {
     assert.ok([...found].some((f) => f.includes(needle)), `the guard does not find ${needle}: it would pass with nothing to check`)
   }
-  for (const file of ['repos.css', 'sessions.css', 'history.css', 'screens/machine-connection.css', 'screens/clouds.css', 'screens/machine.css', 'screens/workflows.css']) {
+  for (const file of ['repos.css', 'history.css', 'screens/machine-connection.css', 'screens/clouds.css', 'screens/machine.css', 'screens/workflows.css']) {
     assert.ok(found.has(`${file} .b-error`), `the guard does not find .b-error in ${file}`)
   }
   assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)

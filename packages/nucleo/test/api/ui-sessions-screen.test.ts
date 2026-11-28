@@ -115,7 +115,7 @@ describe('Sessões: the filters in the one .seg (issue 759)', () => {
   test('Todas, Precisam de você, Trabalhando, Em pausa, Concluídas and Com erro, each up to 28 characters and 4 words', () => {
     assert.deepEqual(
       sessions.PILLS.map(([v, label]: [string, string]) => `${v}:${label}`),
-      ['all:Todas', 'active:Trabalhando', 'blocked:Precisam de você', 'idle:Em pausa', 'completed:Concluídas', 'error:Com erro'],
+      ['all:Todas', 'blocked:Precisam de você', 'active:Trabalhando', 'idle:Em pausa', 'completed:Concluídas', 'error:Com erro'],
     );
     for (const mode of ['dev', 'project']) {
       labels.setStateLabelMode(mode);
@@ -136,7 +136,7 @@ describe('Sessões: the filters in the one .seg (issue 759)', () => {
     try {
       const seg = one(area, '.seg')!;
       const buttons = all(seg, 'button');
-      assert.deepEqual(buttons.map((b) => texto(b)), ['Todas 4', 'Trabalhando 1', 'Precisam de você 1', 'Em pausa 1', 'Concluídas 1', 'Com erro 0']);
+      assert.deepEqual(buttons.map((b) => texto(b)), ['Todas 4', 'Precisam de você 1', 'Trabalhando 1', 'Em pausa 1', 'Concluídas 1', 'Com erro 0']);
       assert.equal(one(seg, 'button[aria-pressed="true"]')!.getAttribute('data-status'), 'all');
     } finally {
       done();
@@ -146,7 +146,7 @@ describe('Sessões: the filters in the one .seg (issue 759)', () => {
   test('a filter without a count from the core says only its label', async () => {
     const { area, done } = await draw({ ...list, counts: {} });
     try {
-      assert.deepEqual(all(one(area, '.seg')!, 'button').map((b) => texto(b)), ['Todas', 'Trabalhando', 'Precisam de você', 'Em pausa', 'Concluídas', 'Com erro']);
+      assert.deepEqual(all(one(area, '.seg')!, 'button').map((b) => texto(b)), ['Todas', 'Precisam de você', 'Trabalhando', 'Em pausa', 'Concluídas', 'Com erro']);
     } finally {
       done();
     }

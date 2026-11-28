@@ -552,7 +552,7 @@ describe('Sessões with every machine (C45, C48)', () => {
     return { f, area, cleanup };
   }
 
-  test('with only this machine: the status pills where they were, no Máquina, no Status label, no tag', async () => {
+  test('with only this machine: the status pills where they were, no Máquina filter, no Estado label, no tag', async () => {
     setUrl('/ui/sessions');
     const { f, area, cleanup } = await mountSessions(() => list([row('s1', { machine: { id: 'local', label: 'Esta máquina' } })], onlyLocal));
     assert.match(f.routes[0]!, /^\/api\/sessions\?.*&machine=all$/);
@@ -573,7 +573,7 @@ describe('Sessões with every machine (C45, C48)', () => {
       assert.match(f.routes[0]!, /status=active.*&machine=all$/);
       const machineRow = one(area, '.sessions-machine-row')!;
       assert.ok(one(machineRow, '.mf-filter'));
-      assert.equal(texto(one(machineRow, '.sessions-filter-label')), 'Status');
+      assert.equal(texto(one(machineRow, '.sessions-filter-label')), 'Estado');
       assert.ok(one(machineRow, '.seg'), 'the status pills moved into the row');
       assert.equal(one(area, '.sub'), null, '#766: the numbers are in the filter; Sessões has only its title');
       const rows = all(area, 'tr.session-row');

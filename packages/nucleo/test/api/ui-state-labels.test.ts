@@ -598,7 +598,7 @@ describe('#760 the two columns: "Pede permissão" and "Com erro" in the same scr
     assert.ok(both.project.includes('Esperando sua resposta') && !both.project.includes('Sua vez'));
   });
 
-  test('Sessions: the status badge and the reason chip of a row, and the filter pills', async () => {
+  test('Sessions: the state tag of a row, and the filters', async () => {
     setUrl('/ui/sessions');
     const row = (id: string, extra: Record<string, unknown> = {}) => ({ id, title: `Sessão ${id}`, status: 'active', attention: null, lastActivity: '2026-10-22T22:00:00Z', running: false, durationMs: 60_000, agents: 1, costUsd: 1, cwd: '/simulacao/x', account: null, open: { target: 'none', command: null }, machine: { id: 'local', label: 'Esta máquina' }, ...extra });
     const items = [row('p', { status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), row('e', { status: 'error' }), row('a', { status: 'abandoned' })];
@@ -622,8 +622,8 @@ describe('#760 the two columns: "Pede permissão" and "Com erro" in the same scr
     });
     assertBothColumns(both);
     assert.ok(both.dev.includes('Abandonada') && !both.dev.includes('Encerrada sem terminar'));
-    assert.ok(both.project.includes('Encerrada sem terminar') && !both.project.includes('Abandonada'), 'the badge says the Projeto word');
-    assert.ok(both.project.includes('Encerradas sem terminar'), 'the filter pill says the Projeto plural');
+    assert.ok(both.project.includes('Encerrada sem terminar') && !both.project.includes('Abandonada'), 'the tag says the Projeto word');
+    assert.ok(both.dev.includes('Com erro') && both.project.includes('Parou com erro'), 'the filter says each mode its word (issue 759: no Abandonadas button, the six filters of the new language)');
   });
 
   test('Detail: the pill of the header and the band title', async () => {

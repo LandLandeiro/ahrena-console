@@ -1,11 +1,9 @@
 /* A tela Sessões (C3, #28), carregada por telas/sessions.js. Toda cor vem de marca.css. */
 
-.c-muted { color: var(--muted); }
-.c-active { color: var(--status-active-text); }
 
 /* ---------- filtros ---------- */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px; }
-.field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; position: relative; }
+.field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--radius-control); background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; position: relative; }
 .field:focus-within { border-color: var(--accent-line); outline: 2px solid var(--accent-line); outline-offset: 1px; }
 .field.search { flex: 1; min-width: 180px; }
 .field.search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
@@ -21,7 +19,7 @@
 .field > .icon:last-child { position: absolute; right: 12px; pointer-events: none; }
 .field.search > .icon:last-child, .field.square > .icon:last-child { position: static; }
 
-.sessions-pill-count { font-weight: var(--weight-medium); font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin-left: 5px; }
+.sessions-pill-count { font-weight: var(--weight-medium); font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); white-space: pre; }
 .sessions-pill-count:empty { display: none; }
 /* Issue 243 (C45): with a remote, the machine filter and the status pills take a row of their own under
    the search; in 1100 they fold into two rows (machine, then status), in 1440 they share one. */
@@ -37,7 +35,7 @@
  * these sizes give the count: one row, the table header and the pager. After it, the real rows do.
  */
 .sessions-body { display: flex; flex-direction: column; gap: 12px;
-  --sessions-row-height: 50px; --sessions-head-height: 37px; --sessions-footer-height: 30px; }
+  --sessions-row-height: 60px; --sessions-head-height: 37px; --sessions-footer-height: 30px; }
 .table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .table th { text-align: left; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: var(--weight-semibold); padding: 12px 10px; border-bottom: 1px solid var(--border); }
 .table td { padding: 11px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -46,84 +44,98 @@
 
 /*
  * Largura: a janela do app abre com 1100 px (inner_size do app desktop), e a tabela cabe nela sem rolagem horizontal.
- * O layout é fixo e as colunas dividem a largura em porcentagem, então nada empurra a tabela para
- * fora: o título quebra em até duas linhas, o motivo desce para baixo do status, o tempo da
- * duração desce para baixo do "rodando" e o diretório corta no começo, com o caminho inteiro no
- * title. #61 (C53): the Mensagem column takes the room of the Diretório up to 1240 px of window, where
- * its button keeps only the icon (beside the open icon of issue 285 the label no longer fits 1100 px); below
- * 900 px it leaves too, and the Detail's box stays the way to send.
+ * O layout é fixo e as colunas dividem a largura em porcentagem, então nada empurra a tabela para fora. Issue 759: a
+ * Sessão leva o resto da largura (monograma, título e uma linha de metadado); o estado, a máquina, a duração e a hora
+ * são colunas curtas. #61 (C53): the Mensagem column keeps its button with the label up to 1240 px of window, then only
+ * the icon (beside the open icon of issue 285); it has no room under 900 px, and the Detail's box stays the way to send.
+ * Under 860 px each session is one line (the end of this file).
  */
 .table { table-layout: fixed; }
-.table .c-session { width: 19%; }
-.table .c-status { width: 15.5%; }
-.table .c-activity { width: 9%; }
-.table .c-duration { width: 9.5%; }
-.table .c-agents { width: 8%; }
-.table .c-cost { width: 9.8%; }
-.table .c-dir { width: 9.6%; }
-.table .c-message { width: 15.6%; }
-.table .c-open { width: 4%; }
+.table .c-session { width: 29.5%; }
+.table .c-status { width: 16%; }
+.table .c-machine { width: 13%; }
+.table .c-duration { width: 10.5%; }
+.table .c-activity { width: 10%; }
+.table .c-message { width: 16%; }
+.table .c-open { width: 5%; }
 .table .nm, .table .st, .table .dur, .table th { white-space: normal; }
 .table th { overflow: hidden; text-overflow: ellipsis; letter-spacing: .05em; }
-.table .st { line-height: 1.9; }
 .table .dur { font-size: 12px; }
 .table .dur > span { white-space: nowrap; }
-.table .dir { direction: rtl; text-align: left; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+/* Issue 759 (M9): "rodando ·" is neutral text; the state is the tag's, never the colour of the duration. */
+.table .sessions-running { color: var(--muted); }
+.table .when, .table .mach { color: var(--muted); }
+.table .when { text-align: right; }
+.table th.c-activity { text-align: right; }
+/* This machine is drawn like a remote one (the tag of machine-filter.css): the same icon size, size and colour. */
+.table .sessions-machine { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.table .sessions-machine .icon { width: 12px; height: 12px; flex: none; }
 /* The open icon (issue 285): its state opens below it, over the row, so the cell does not clip it. */
 .table .sessions-open { padding-left: 0; text-align: right; overflow: visible; }
 .table .msg { padding-left: 4px; }
 @media (max-width: 1240px) {
-  .table .c-dir, .table .dir { display: none; }
   .table th, .table td { padding-left: 8px; padding-right: 8px; }
+  .table th { letter-spacing: .02em; }
   .table th:first-child, .table td:first-child { padding-left: 14px; }
-  .table .c-session { width: 21%; }
-  .table .c-status { width: 17.5%; }
-  .table .c-activity { width: 11%; }
-  .table .c-duration { width: 11%; }
-  .table .c-agents { width: 9%; }
-  .table .c-cost { width: 11%; }
-  .table .c-message { width: 14.5%; }
-  .table .c-open { width: 5%; }
+  .table .c-session { width: 25.2%; }
+  .table .c-status { width: 18%; }
+  .table .c-machine { width: 14%; }
+  .table .c-duration { width: 12%; }
+  .table .c-activity { width: 12%; }
+  .table .c-message { width: 14.2%; }
+  .table .c-open { width: 4.6%; }
 }
 @media (max-width: 900px) {
   .table .c-message, .table .msg { display: none; }
   .table th, .table td { padding-left: 6px; padding-right: 6px; }
   .table th { letter-spacing: .04em; }
-  .table .c-session { width: 21%; }
+  .table .c-session { width: 25%; }
   .table .c-status { width: 24%; }
-  .table .c-activity { width: 12%; }
+  .table .c-machine { width: 18%; }
   .table .c-duration { width: 13%; }
-  .table .c-agents { width: 10%; }
-  .table .c-cost { width: 14%; }
+  .table .c-activity { width: 14%; }
   .table .c-open { width: 6%; }
 }
 
 .table .session-row { cursor: pointer; }
 .table .session-row:hover td { background: var(--raised); }
 .table .nm a { display: block; }
-.table .nm a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.table .nm b { font-weight: var(--weight-medium); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
-.table .nm small { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font-size: 10.5px; }
-.table .nm small .mono { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.table .nm .account { white-space: nowrap; }
+.table .nm a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-tag); }
+.table .nm b { font-weight: var(--weight-medium); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Issue 759 (A9): the monogram, the session's name and under it the one-line metadata (folder, id, account). */
+.sessions-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.sessions-text { min-width: 0; flex: 1; }
+.table .sessions-meta { display: flex; align-items: center; gap: 0; min-width: 0; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; }
+.table .sessions-meta > * { flex: none; }
+/* Only the folder gives room: the id and the account stay whole. */
+.table .sessions-meta > .sessions-folder { flex: 0 1 auto; min-width: 3ch; overflow: hidden; text-overflow: ellipsis; }
+.table .sessions-meta > * + *::before { content: "\00b7"; margin: 0 6px; }
+.table .sessions-meta .account { overflow: visible; }
 
 .account { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-sans); }
-.account-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cor-da-conta, var(--muted)); }
-
-/* Os selos de status e de motivo: iguais aos do dashboard.css, para a ordem de carga não importar. */
-.badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 11.5px; font-weight: var(--weight-medium); white-space: nowrap; flex: none; }
-.badge .p { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.b-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.b-waiting { background: var(--status-waiting-badge); color: var(--status-waiting-text); }
-.b-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.b-error { background: var(--status-error-badge); color: var(--status-error-text); }
-.b-abandoned { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
-.reason { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-semibold); white-space: nowrap;
-  background: color-mix(in srgb, var(--status-waiting-text) 16%, transparent); color: var(--status-waiting-text); }
-.reason.soft { font-weight: var(--weight-medium); }
-.table .badge, .table .reason { vertical-align: middle; }
-.table .reason, .table .attention-chip { margin-left: 4px; }
+.account-dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: var(--cor-da-conta, var(--muted)); }
 
 .sessions-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted); }
 .sessions-footer .pages { display: flex; gap: 6px; }
 
+/*
+ * Issue 759 (M15): under 860 px of window a session is one line, a compact card, not a table row: the name and the
+ * open icon on top, then the state and when, then the machine and the duration. The header leaves the layout but
+ * stays for the reader; the Mensagem button leaves (the Detail's box stays the way to send).
+ */
+@media (max-width: 859.98px) {
+  .table, .table tbody { display: block; }
+  .table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .table .session-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "nm open" "st when" "mach dur"; gap: 6px 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  .table .session-row:last-child { border-bottom: 0; }
+  .table .session-row td, .table .session-row td:first-child { display: block; padding: 0; border: 0; min-width: 0; }
+  .table .session-row:hover td { background: none; }
+  .table .session-row:hover { background: var(--raised); }
+  .table .nm { grid-area: nm; }
+  .table .st { grid-area: st; }
+  .table .mach { grid-area: mach; }
+  .table .dur { grid-area: dur; text-align: right; }
+  .table .when { grid-area: when; }
+  .table .sessions-open { grid-area: open; }
+  .table .session-row td.msg { display: none; }
+}

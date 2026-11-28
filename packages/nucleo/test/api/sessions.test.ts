@@ -306,7 +306,7 @@ describe('#28 a tela Sessões', () => {
   // 787 with a classic 15 px scrollbar; from 1241 px up to 971, 928 with it; at 861 px, 548 with it. Each column needs what its widest text
   // asks for (measured in the browser, padding included), or the text is cut. #61 (C53): the Mensagem column takes the room of the
   // Diretório up to 1240 px of window, with only the icon of its button beside the open icon (#285); below 900 px it leaves too.
-  test('the table fits 1100 px without horizontal scroll; up to 1240 px Mensagem takes the room of Diretório, and below 900 px it leaves', () => {
+  test('the table fits 1100 px without horizontal scroll; up to 1240 px Mensagem keeps only the room of its text, and below 900 px it leaves', () => {
     const css = readFileSync(`${UI_FOLDER}sessions.css`, 'utf8');
     const mid = css.indexOf('@media (max-width: 1240px)');
     const corte = css.indexOf('@media (max-width: 900px)');
@@ -317,26 +317,25 @@ describe('#28 a tela Sessões', () => {
     const midWidths = { ...largas, ...larguras(css.slice(mid, corte)) };
     const estreitas = { ...midWidths, ...larguras(css.slice(corte)) };
     const classes = COLUMNS.map(([c]: [string]) => c);
-    const withoutDir = classes.filter((c: string) => c !== 'c-dir');
-    const narrowColumns = withoutDir.filter((c: string) => c !== 'c-message');
+    const narrowColumns = classes.filter((c: string) => c !== 'c-message');
     assert.deepEqual(Object.keys(largas).sort(), [...classes].sort(), 'toda coluna tem largura');
     assert.equal(sum(classes, largas), 100);
-    assert.equal(sum(withoutDir, midWidths), 100, 'sem o Diretório, o resto soma 100');
+    assert.equal(sum(classes, midWidths), 100, 'até 1240 px, as colunas somam 100');
     assert.equal(sum(narrowColumns, estreitas), 100, 'abaixo de 900 px, sem a Mensagem, também');
     assert.match(css, /\.table \{ table-layout: fixed; \}/);
-    assert.match(css.slice(mid, corte), /\.table \.c-dir, \.table \.dir \{ display: none; \}/);
     assert.match(css.slice(corte), /\.table \.c-message, \.table \.msg \{ display: none; \}/);
     assert.doesNotMatch(css, /overflow-x:\s*auto/, 'a tabela não rola');
     // #750: 8 px of side padding up to 1240 px (the bar took 28 px), the 14 px of the first column kept.
     assert.match(css.slice(mid, corte), /\.table th, \.table td \{ padding-left: 8px; padding-right: 8px; \}/);
     assert.match(css.slice(mid, corte), /\.table th:first-child, \.table td:first-child \{ padding-left: 14px; \}/);
     // Mínimos em px, com o respiro das células.
-    const MINIMO: Record<string, number> = { 'c-session': 170, 'c-status': 140, 'c-activity': 81, 'c-duration': 85, 'c-agents': 74, 'c-cost': 88.5, 'c-dir': 85, 'c-message': 142.5, 'c-open': 36 };
+    // Issue 759: the columns are Sessão, Estado, Máquina, Duração, Atualizada, Mensagem and the open icon (no Diretório, Agentes or Custo).
+    const MINIMO: Record<string, number> = { 'c-session': 170, 'c-status': 140, 'c-machine': 115, 'c-duration': 85, 'c-activity': 81, 'c-message': 142.5, 'c-open': 36 };
     // Up to 1240 px: 8 px of padding take 4 px from each need, and the message button is only its icon ("sem processo vivo").
-    const MINIMO_MEIO: Record<string, number> = { 'c-session': 160, 'c-status': 136, 'c-activity': 77, 'c-duration': 81, 'c-agents': 70.5, 'c-cost': 84.5, 'c-message': 111, 'c-open': 36 };
-    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 115, 'c-status': 131.5, 'c-activity': 65.5, 'c-duration': 71, 'c-agents': 54.5, 'c-cost': 76.5, 'c-open': 32 };
+    const MINIMO_MEIO: Record<string, number> = { 'c-session': 160, 'c-status': 136, 'c-machine': 108, 'c-duration': 81, 'c-activity': 77, 'c-message': 111, 'c-open': 36 };
+    const MINIMO_ESTREITO: Record<string, number> = { 'c-session': 115, 'c-status': 131.5, 'c-machine': 90, 'c-duration': 71, 'c-activity': 65.5, 'c-open': 32 };
     for (const c of classes) assert.ok((largas[c]! / 100) * 928 >= MINIMO[c]!, `${c} em 1241: ${(largas[c]! / 100) * 928} px`);
-    for (const c of withoutDir) assert.ok((midWidths[c]! / 100) * 787 >= MINIMO_MEIO[c]!, `${c} em 1100: ${(midWidths[c]! / 100) * 787} px`);
+    for (const c of classes) assert.ok((midWidths[c]! / 100) * 787 >= MINIMO_MEIO[c]!, `${c} em 1100: ${(midWidths[c]! / 100) * 787} px`);
     for (const c of narrowColumns) assert.ok((estreitas[c]! / 100) * 548 >= MINIMO_ESTREITO[c]!, `${c} em 861: ${(estreitas[c]! / 100) * 548} px`);
   });
 

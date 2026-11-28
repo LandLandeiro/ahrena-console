@@ -6,7 +6,7 @@ import { ElementoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 // @ts-expect-error: browser modules, plain JavaScript
 import * as attention from '../../ui/attention.js';
 // @ts-expect-error: idem
-import { PILLS, badgeEl, pillCount, stateFromQuery } from '../../ui/screens/sessions.js';
+import { PILLS, pillCount, stateCell, stateFromQuery } from '../../ui/screens/sessions.js';
 // @ts-expect-error: idem
 import { bandTitle, idleNote } from '../../ui/screens/session-detail.js';
 
@@ -77,7 +77,7 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
   test('the status pills: Precisam de você and Em pausa side by side, with the counts of the core', () => {
     assert.deepEqual(
       PILLS.map(([v, label]: [string, string]) => `${v}:${label}`),
-      ['all:Todas', 'active:Trabalhando', 'blocked:Precisam de você', 'idle:Em pausa', 'completed:Concluídas', 'error:Erro', 'abandoned:Abandonadas'],
+      ['all:Todas', 'blocked:Precisam de você', 'active:Trabalhando', 'idle:Em pausa', 'completed:Concluídas', 'error:Com erro'],
     );
     assert.equal(pillCount({ blocked: 5, idle: 3 }, 'blocked'), '5');
     assert.equal(pillCount({ blocked: 5 }, 'idle'), null);
@@ -90,14 +90,18 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
     assert.equal(stateFromQuery('?status=nonsense').status, 'all');
   });
 
-  test('the status cell: the attention pill and its reason; an error keeps only "Com erro"; no raw status', () => {
-    const cell = (status: string, a: unknown) => (badgeEl(status, a) as ElementoFalso[]).map((n) => texto(n));
-    assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'permission' }), ['Precisa de você', 'Pede permissão']);
-    assert.deepEqual(cell('waiting', { level: 'idle', reason: 'turn_ended' }), ['Em pausa', 'Sua vez']);
-    assert.deepEqual(cell('error', { level: 'blocked', reason: 'error' }), ['Com erro']);
-    assert.deepEqual(cell('active', null), ['Trabalhando']);
-    assert.deepEqual(cell('waiting', null), ['Trabalhando'], 'waiting without attention (delegating) is not waiting on you');
-    assert.deepEqual(cell('nonsense', null), [], 'nothing raw on screen');
+  test('the state cell (issue 759): the tag with the state or the reason of a block; a pause is "Em pausa"; an error keeps only "Com erro"; no raw status', () => {
+    const cell = (status: string, a: unknown) => {
+      const tag = stateCell(status, a) as ElementoFalso | null;
+      return tag ? texto(tag) : null;
+    };
+    assert.equal(cell('waiting', { level: 'blocked', reason: 'permission' }), 'Pede permissão');
+    assert.equal(cell('waiting', { level: 'blocked', reason: 'question' }), 'Pergunta');
+    assert.equal(cell('waiting', { level: 'idle', reason: 'turn_ended' }), 'Em pausa');
+    assert.equal(cell('error', { level: 'blocked', reason: 'error' }), 'Com erro');
+    assert.equal(cell('active', null), 'Trabalhando');
+    assert.equal(cell('waiting', null), 'Trabalhando', 'waiting without attention (delegating) is not waiting on you');
+    assert.equal(cell('nonsense', null), null, 'nothing raw on screen');
   });
 });
 
