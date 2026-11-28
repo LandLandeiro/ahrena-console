@@ -46,7 +46,7 @@ export function cardRunParts(card, { onRun = null, onReplan = null, onPlan = nul
   const state = runState(card);
   const number = ref(card?.number);
   if (state === 'booting') {
-    const badge = boardTag('working', 'subindo…', 'wb-session wb-run-boot', { role: 'status', 'data-state': 'booting' });
+    const badge = boardTag('working', 'subindo…', 'wb-session', { role: 'status', 'data-state': 'booting' });
     return { badge, note: null, actions: null };
   }
   if (state === 'live' || state === 'planningLive') {
