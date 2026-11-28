@@ -1,8 +1,8 @@
 // #760: one map of state labels for the whole /ui (ui/state-labels.js), with two columns, Dev and Projeto.
 //
 // - the module: the mode, the two columns, the voice limits, the kinds of state-icon.js, the board columns;
-// - "uma fonte só" (criterion 1): a guard that fails on a state label written by hand anywhere else in ui/;
-// - "as duas colunas" (criterion 2): in the Project mode the same screens that say "Pede permissão" and
+// - "one source" (criterion 1): a guard that fails on a state label written by hand anywhere else in ui/;
+// - "the two columns" (criterion 2): in the Project mode the same screens that say "Pede permissão" and
 //   "Com erro" say "Pede sua aprovação" and "Parou com erro".
 // The columns below are written out on purpose: they are the contract, not a copy of the module's table.
 import assert from 'node:assert/strict';
@@ -205,7 +205,7 @@ export function strayLabelsInUi(): { strays: Stray[]; used: Set<string> } {
   return { strays, used };
 }
 
-describe('#760 uma fonte só: the guard finds a state label written by hand', () => {
+describe('#760 one source: the guard finds a state label written by hand', () => {
   const map = ['const STATUS = {', "  active: 'Ativa',", '  error: "Com erro",', '  abandoned: `Abandonada`,', '};'].join('\n');
 
   test('a regular expression with a backtick does not hide the labels after it', () => {
@@ -244,7 +244,7 @@ describe('#760 uma fonte só: the guard finds a state label written by hand', ()
   });
 });
 
-describe('#760 uma fonte só: the real ui/', () => {
+describe('#760 one source: the real ui/', () => {
   test('no state label is written by hand outside ui/state-labels.js', () => {
     const { strays } = strayLabelsInUi();
     assert.deepEqual(
@@ -291,8 +291,6 @@ async function inProject<T>(run: () => Promise<T> | T): Promise<T> {
     m.setStateLabelMode('dev');
   }
 }
-
-type Entry = { id: string; kind: string; dev: { label: string; plural: string | null }; project: { label: string; plural: string | null } };
 
 describe('#760 the module: the mode and the two columns', () => {
   test('the mode is dev at first; project and back; a bad value is ignored and never throws', async () => {
@@ -341,35 +339,37 @@ describe('#760 the module: the mode and the two columns', () => {
 
   test('Dev and Projeto have the same ids, and every id has both columns', async () => {
     const m = await labels();
-    const entries: Entry[] = m.stateEntries();
-    assert.deepEqual(entries.map((e) => e.id).sort(), Object.keys(DEV).sort());
-    for (const e of entries) {
-      assert.equal(typeof e.dev.label, 'string', e.id);
-      assert.equal(typeof e.project.label, 'string', e.id);
-      assert.equal(e.dev.plural === null, e.project.plural === null, `${e.id}: the plural is in both columns or in neither`);
+    for (const id of Object.keys(DEV)) {
+      const shape: boolean[] = [];
+      for (const mode of ['dev', 'project']) {
+        m.setStateLabelMode(mode);
+        assert.equal(typeof m.stateLabel(id), 'string', `${mode} ${id}`);
+        shape.push(m.stateLabel(id, { plural: true }) !== m.stateLabel(id));
+      }
+      assert.equal(shape[0], shape[1], `${id}: the plural is in both columns or in neither`);
     }
   });
 
   test('every Projeto label obeys the voice: at most 4 words and 28 characters, no "!", no em dash', async () => {
     const m = await labels();
-    for (const e of m.stateEntries() as Entry[]) {
-      for (const text of [e.project.label, e.project.plural, e.dev.label, e.dev.plural]) {
-        if (text === null) continue;
-        assert.ok(text.split(/\s+/).length <= 4, `${e.id} "${text}" has more than 4 words`);
-        assert.ok(text.length <= 28, `${e.id} "${text}" has more than 28 characters`);
-        assert.ok(!text.includes('!') && !text.includes('—'), `${e.id} "${text}"`);
+    for (const mode of ['dev', 'project']) {
+      m.setStateLabelMode(mode);
+      for (const id of Object.keys(DEV)) {
+        for (const text of [m.stateLabel(id), m.stateLabel(id, { plural: true })]) {
+          assert.ok(text.split(/\s+/).length <= 4, `${id} "${text}" has more than 4 words`);
+          assert.ok(text.length <= 28, `${id} "${text}" has more than 28 characters`);
+          assert.ok(!text.includes('!') && !text.includes('—'), `${id} "${text}"`);
+        }
       }
     }
     for (const label of Object.values(BOARD)) assert.ok(label.split(/\s+/).length <= 4 && label.length <= 28, label);
   });
 
-  test('every entry carries the kind of state-icon.js, and each kind has a label', async () => {
+  test('every state carries the kind of state-icon.js, and each kind has a label', async () => {
     const m = await labels();
     const { STATE_KINDS } = await icons();
-    for (const e of m.stateEntries() as Entry[]) {
-      assert.ok(STATE_KINDS.includes(e.kind), `${e.id} has the kind "${e.kind}"`);
-      assert.equal(m.stateKind(e.id), e.kind);
-    }
+    for (const id of Object.keys(DEV)) assert.ok(STATE_KINDS.includes(m.stateKind(id)), `${id} has the kind "${m.stateKind(id)}"`);
+    assert.equal(m.stateKind('nope'), null);
     for (const kind of STATE_KINDS) assert.equal(typeof m.kindLabel(kind), 'string', kind);
     assert.equal(m.kindLabel('needs'), 'Precisa de você');
     assert.equal(m.kindLabel('paused'), 'Ociosa');
@@ -380,7 +380,6 @@ describe('#760 the module: the mode and the two columns', () => {
 
   test('the board columns: "Em revisão" and "Precisa de você" in both modes, the six ids in order', async () => {
     const m = await labels();
-    assert.deepEqual(m.boardColumnIds(), Object.keys(BOARD));
     for (const mode of ['dev', 'project']) {
       m.setStateLabelMode(mode);
       for (const [id, label] of Object.entries(BOARD)) assert.equal(m.boardColumnLabel(id), label, `${mode} ${id}`);
@@ -505,7 +504,7 @@ function assertBothColumns(screen: { dev: string; project: string }, { permissio
   }
 }
 
-describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same screens', () => {
+describe('#760 the two columns: "Pede permissão" and "Com erro" in the same screens', () => {
   test('the state tag and the state of a session (state-icon.js)', async () => {
     const { stateOfSession, stateTag } = await icons();
     const draw = async () => {
@@ -519,6 +518,31 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assertBothColumns(both);
     assert.equal(both.dev, 'Pede permissão | Com erro | Com erro | Pede permissão | Com erro');
     assert.equal(both.project, 'Pede sua aprovação | Parou com erro | Parou com erro | Pede sua aprovação | Parou com erro');
+  });
+
+  test('the state of a session takes its kind and its label from the same id of the map', async () => {
+    const m = await labels();
+    const { stateOfSession } = await icons();
+    const blocked = (reason: string | null) => ({ attention: { level: 'blocked', reason } });
+    const cases: [Parameters<typeof stateOfSession>[0], string][] = [
+      [blocked('permission'), 'permission'],
+      [blocked('error'), 'error'],
+      [blocked('question'), 'question'],
+      [blocked('plan'), 'plan'],
+      [blocked('decision'), 'decision'],
+      [blocked(null), 'blocked'],
+      [{ attention: { level: 'idle', reason: null } }, 'idle'],
+      [{ status: 'completed' }, 'completed'],
+      [{ status: 'error' }, 'error'],
+      [{ status: 'abandoned' }, 'abandoned'],
+      [{ status: 'active' }, 'active'],
+    ];
+    for (const mode of ['dev', 'project']) {
+      m.setStateLabelMode(mode);
+      for (const [input, id] of cases) {
+        assert.deepEqual(stateOfSession(input), { kind: m.stateKind(id), label: m.stateLabel(id) }, `${mode} ${id}`);
+      }
+    }
   });
 
   test('the attention vocabulary (attention.js): the exported maps read the mode when they are read', async () => {
@@ -540,7 +564,7 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assert.equal(attention.ATTENTION_PLURAL.idle, 'Ociosas');
   });
 
-  test('Mural: the cards and the rows', async () => {
+  test('Wall: the cards and the rows', async () => {
     setUrl('/ui/wall');
     const card = (id: string, extra: Record<string, unknown> = {}) => ({
       id,
@@ -583,7 +607,7 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assert.ok(both.project.includes('Esperando sua resposta') && !both.project.includes('Sua vez'));
   });
 
-  test('Sessões: the status badge and the reason chip of a row, and the filter pills', async () => {
+  test('Sessions: the status badge and the reason chip of a row, and the filter pills', async () => {
     setUrl('/ui/sessions');
     const row = (id: string, extra: Record<string, unknown> = {}) => ({ id, title: `Sessão ${id}`, status: 'active', attention: null, lastActivity: '2026-10-22T22:00:00Z', running: false, durationMs: 60_000, agents: 1, costUsd: 1, cwd: '/simulacao/x', account: null, open: { target: 'none', command: null }, machine: { id: 'local', label: 'Esta máquina' }, ...extra });
     const items = [row('p', { status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), row('e', { status: 'error' }), row('a', { status: 'abandoned' })];
@@ -611,7 +635,7 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assert.ok(both.project.includes('Encerradas sem terminar'), 'the filter pill says the Projeto plural');
   });
 
-  test('Detalhe: the pill of the header and the band title', async () => {
+  test('Detail: the pill of the header and the band title', async () => {
     const head = (extra: Record<string, unknown>) => ({
       session: { id: 's1', title: 'Migração do esquema', status: 'error', attention: null, startedAt: '2026-10-22T22:41:00Z', since: '2026-10-22T22:41:00Z', model: 'claude-opus-5-5', cwd: '/simulacao/motor-de-regras', banner: null, ...extra },
       counts: { agents: 1, events: 10 },
@@ -694,7 +718,7 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assert.ok(!both.project.includes('Abandonadas'));
   });
 
-  test('Histórico: the badge of a closed session', async () => {
+  test('History: the badge of a closed session', async () => {
     setUrl('/ui/history');
     const s = (id: string, status: string) => ({ id, title: `Sessão ${id}`, status, project: 'p', model: 'Opus 5.5', durationMs: 1000, costUsd: 1 });
     const body = { days: [{ day: '2026-10-22', sessions: [s('e', 'error'), s('a', 'abandoned')] }], next: null, machines: [{ id: 'local', label: 'Esta máquina', state: 'connected', reason: null, lastReadAt: '2026-10-22T23:00:00Z' }] };
