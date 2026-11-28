@@ -12,7 +12,7 @@
 //   of the two modes are here and nowhere else.
 // - `file`: the screen module in `ui/screens/`. Without it, the shell shows the header and the empty state.
 // - `title`, `sub` and `icon`: the header of the empty state and the window title. `sub` is always null (#766): a subtitle
-//   says the state now, which only the screen knows once it has read; it writes it with `setHeaderSub` (dom.js) or keeps only its title.
+//   #766: says the state now, which only the screen knows once it has read; it writes it with `setHeaderSub` (dom.js) or keeps only its title.
 
 // The sidebar blocks (decision 0029): the everyday screens ("Agora", ADR-0028), Delivery, Machines and the foot, which
 // has Configuração and no title. A block without items does not show. The merged screens (Histórico, Kanban, Feed,

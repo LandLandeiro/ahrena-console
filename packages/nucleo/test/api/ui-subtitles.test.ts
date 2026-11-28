@@ -1,6 +1,6 @@
 // #766: a subtitle says something about the state now (how many, who, what changed, what waits for the person) or the screen
-// has only its title. The registry holds no subtitle (a live number is not known there); each screen sets its own after it
-// reads, through `setHeaderSub`; the sentences are pure functions of what the screen already read.
+// #766: has only its title. The registry holds no subtitle (a live number is not known there); each screen sets its own after it
+// #766: reads, through `setHeaderSub`; the sentences are pure functions of what the screen already read.
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, test } from 'node:test';

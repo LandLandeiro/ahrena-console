@@ -217,7 +217,7 @@ export async function mount(area, ctx) {
       if (mine !== reading) return;
       machines.update(data);
       const columns = Array.isArray(data?.columns) ? data.columns : [];
-      // issue 766: the sentence of the sessions board; the agents board says nothing (its columns are not the sessions').
+      // #766-subtitles: the sentence of the sessions board; the agents board says nothing (its columns are not the sessions').
       setHeaderSub(head, v === 'sessions' ? sessionBoardSub(columns) : null);
       if (!columns.some((c) => c.total > 0)) {
         boardInFlight = false;
