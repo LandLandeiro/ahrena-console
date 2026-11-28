@@ -23,7 +23,7 @@ export const WALL_ROUTE = '/api/wall';
 export const THROTTLE_MS = 120;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
-// issue 754: in Projeto the use of the conversation is hidden below this percentage and, from it, says "Conversa quase cheia".
+// ADR-0029, issue 754: in Projeto the use of the conversation is hidden below this percentage and, from it, says "Conversa quase cheia".
 export const HIGH_CONTEXT_PROJECT = 80;
 // ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
 const AGENTS = { codex: 'Codex' };
@@ -78,7 +78,7 @@ const base = (c) => ({
   state: stateOfSession({ attention: c.attention, status: c.status }),
 });
 
-// issue 754: Dev says the number from 90% (or on a failure); Projeto says "Conversa quase cheia" from 80% and nothing below it.
+// ADR-0029, issue 754: Dev says the number from 90% (or on a failure); Projeto says "Conversa quase cheia" from 80% and nothing below it.
 function usageOf(pct, failed) {
   if (pct === null) return null;
   if (displayMode() === 'project') return pct >= HIGH_CONTEXT_PROJECT ? { pct, label: stateLabel('context_high'), high: true } : null;
@@ -183,10 +183,10 @@ function who(tag, since, agent, mono, show) {
   return el('div', { class: 'wall-who' }, mono && show.agent ? agentMonogram(agent) : null, show.agent ? el('b', { class: 'wall-name' }, agent) : null, el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
 }
 
-// issue 754, M7: a remote machine says its name; this one on a card once a remote is known, on a row only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
+// ADR-0029, issue 754, M7: a remote machine says its name; this one on a card once a remote is known, on a row only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
 const machineOf = (c, known, view, place) => (machineShown({ place, show: view.show, density: view.density, mode: view.mode, remote: isRemote(c), known }) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
 
-// issue 754: the mono line of Exibir (model, cost, use of the conversation, branch); `null` when no field of it is on.
+// ADR-0029, issue 754: the mono line of Exibir (model, cost, use of the conversation, branch); `null` when no field of it is on.
 const techOf = (c, view) => {
   const text = techLine(c, view.show);
   return text ? el('p', { class: 'wall-tech', 'data-line': 'tech', title: text }, text) : null;
@@ -545,7 +545,7 @@ export async function mount(area, ctx) {
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
-    // issue 754: the Exibir choice of the current mode, read at every draw.
+    // ADR-0029, issue 754: the Exibir choice of the current mode, read at every draw.
     const view = { ...getDisplay(), mode: displayMode() };
     // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn, in every section, have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
@@ -600,9 +600,9 @@ export async function mount(area, ctx) {
     draw();
   }
 
-  // issue 754: a choice made in the panel, or in another mode, draws the wall again.
+  // ADR-0029, issue 754: a choice made in the panel, or in another mode, draws the wall again.
   const stopDisplay = onDisplayChange(() => draw());
-  // issue 754: a switch of the mode redraws in place, so the focus and the scroll stay (the shell would open the screen again otherwise).
+  // ADR-0029, issue 754: a switch of the mode redraws in place, so the focus and the scroll stay (the shell would open the screen again otherwise).
   ctx.onModeChange?.(() => draw());
   ctx.onRestart(() => read());
   // ADR-0028, issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.

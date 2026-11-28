@@ -324,8 +324,8 @@ const updatingOf = (m) => {
   return Boolean(u && updatingNow(u));
 };
 
-// A machine asks for action when its state says so (Sem conexão, Acesso bloqueado, Versão diferente, Sem configuração) or
-// its núcleo is older than the app (the arrow). "Parada por você" and "Atualizando" do not, even with the arrow (0029).
+// A machine asks for action (#754) when its state says so (Sem conexão, Acesso bloqueado, Versão diferente, Sem configuração) or
+// its núcleo is older than the app (the arrow). "Parada por você" and "Atualizando" do not, even with the arrow (decision 0029, #754).
 const asksForAction = (state, outdated) => state !== 'stopped' && state !== 'updating' && (outdated || state !== 'connected');
 
 /** The sidebar entries of the remote machines in `GET /api/machines` (this machine is in SCREENS). */
@@ -344,7 +344,7 @@ export function machineItems(machines) {
     out.push({
       id: machineItemId(m.id),
       route: `/ui/machines/${m.id}`,
-      // In Projeto the item stays only while the alert lasts (decision 0029); the label and the block are the same.
+      // In Projeto the item stays only while the alert lasts (decision 0029); the label and the block are the same (#754).
       item: { label, icon: 'server', section: 'machines', ...(asksForAction(state, outdated) ? { project: {} } : {}) },
       state,
       ...(auth ? { stateLabel: OWNER_AUTH[auth].dot } : {}),
@@ -382,13 +382,13 @@ export function sidebarSections(screens = SCREENS, sections = SECTIONS, mode = '
 }
 
 // The screen as the Projeto bar draws it: the label, the block and the route of `item.project`, the Dev ones where it is silent
-// (Decisões opens the product decisions there, #754; the registry's routes are not changed).
+// (Decisões opens the product decisions there; the registry's routes are not changed) (#754).
 function inProject(screen) {
   const { label = screen.item.label, section = screen.item.section, route = screen.route } = screen.item.project;
   return { ...screen, route, item: { ...screen.item, label, section } };
 }
 
-// In Projeto, `project.order` sets the place inside a block; an item without one goes after, in registry order.
+// In Projeto, `project.order` sets the place inside a block; an item without one goes after, in registry order (#754).
 function orderedFor(items, mode) {
   if (mode !== 'project') return items;
   const place = (t) => t.item.project?.order ?? Number.POSITIVE_INFINITY;

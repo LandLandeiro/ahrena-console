@@ -337,7 +337,7 @@ describe('screen registry', () => {
     assert.equal(findScreen('/ui/sessions/a%20b'), null);
     assert.equal(findScreen('/ui/kanban').screen.id, 'kanban');
     assert.equal(findScreen('/ui/dev-console').screen.file, '/ui/screens/dev-console.js');
-    // Conexões (issue 241): a tab of Configuração, with an English route.
+    // Conexões (#241): a tab of Configuração, with an English route.
     assert.equal(findScreen('/ui/connections').screen.file, '/ui/screens/connections.js');
     assert.equal(findScreen('/ui/nao-existe'), null);
     // The old URLs match nothing: the shell shows "Página não encontrada" (#173, phase 6).
@@ -352,7 +352,7 @@ describe('screen registry', () => {
       { id: 'foot', label: null },
     ]);
     for (const t of SCREENS.filter((x: { item?: unknown }) => x.item)) assert.ok(SECTIONS.some((s: { id: string }) => s.id === t.item.section), t.id);
-    // A foot item registered before the everyday ones still goes in its block, after Máquinas.
+    // A foot item registered before the everyday ones still goes in its block, after Máquinas (#754).
     const screens = [
       { id: 'config', item: { label: 'Configuração', icon: 'x', section: 'foot' } },
       { id: 'dashboard', item: { label: 'Dashboard', icon: 'x', section: 'main' } },

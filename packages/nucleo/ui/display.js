@@ -21,7 +21,7 @@ const TECHNICAL = Object.freeze(['model', 'usage', 'branch']);
 const KEYS = Object.freeze({ dev: DISPLAY_KEY, project: DISPLAY_KEY_PROJECT });
 
 let mode = 'dev';
-// A storage that is denied or full: the choice lasts in memory, per mode.
+// A storage that is denied or full: the choice lasts in memory, per mode (#754, ADR-0028).
 const memory = { dev: null, project: null };
 const listeners = new Set();
 

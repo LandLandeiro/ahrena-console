@@ -18,7 +18,7 @@ import { setAppMode } from '../../ui/mode.js';
 import * as registry from '../../ui/screens.js';
 
 const { findScreen, litItem, machineItems, SCREENS, SECTIONS, sidebarSections, TAB_SETS, tabsFor } = registry as Record<string, any>;
-// The row component is loaded apart: while it does not exist, only the tests that draw it fail.
+// The row component is loaded apart: while it does not exist, only the tests that draw it fail (#754).
 const createScreenTabs: (a: { host: unknown }) => { draw: (t: unknown) => void } = (a) =>
   (globalThis as { __tabs?: any }).__tabs?.createScreenTabs(a) ?? (() => { throw new Error('ui/screen-tabs.js does not exist yet'); })();
 (globalThis as { __tabs?: unknown }).__tabs = await import('../../ui/screen-tabs.js').catch(() => null);
@@ -152,7 +152,7 @@ describe('#754 C: the Projeto bar', () => {
   });
 
   test('the labels of the bar have the voice limits: at most 4 words and 28 characters, no "!", no em dash', () => {
-    // The brief asked "O que precisa de você" (5 words); the voice rules (4 words) refuse it and "Precisa de você" is a state label (state-labels.js), so the Mural is "Sua atenção".
+    // The brief asked "O que precisa de você" (5 words); the voice rules (4 words) refuse it and "Precisa de você" is a state label (state-labels.js), so the Mural is "Sua atenção" (#754).
     for (const s of sidebarSections(SCREENS, SECTIONS, 'project') as Block[]) {
       for (const t of s.items) {
         assert.ok(t.item.label.length <= 28, t.item.label);
@@ -196,7 +196,7 @@ describe('#754 C: the Projeto bar', () => {
     const items = machineItems([stopped, updating]);
     assert.deepEqual(items.map((t: { state: string }) => t.state), ['stopped', 'updating']);
     assert.equal((sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).find((s) => s.id === 'machines'), undefined);
-    // In Dev they are in the bar as they were.
+    // In Dev they are in the bar as they were (#754).
     assert.equal((sidebarSections([...SCREENS, ...items], SECTIONS, 'dev') as Block[]).find((s) => s.id === 'machines')!.items.length, 3);
   });
 
@@ -402,7 +402,7 @@ describe('#754 C: the tab row', () => {
     assert.match(app, /createScreenTabs\(\{ host: document\.getElementById\('screen-tabs'\) \}\)/);
     assert.match(app, /screenTabs\.draw\(tabsFor\(screen\.id, appMode\(\)\)\)/);
     assert.match(app, /screenTabs\.draw\(null\)/);
-    // The Dev-only tab follows the mode.
+    // The Dev-only tab follows the mode (#754).
     assert.match(app, /onModeChange\([^)]*\)[^]*screenTabs\.draw/);
   });
 

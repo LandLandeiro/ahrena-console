@@ -10,7 +10,7 @@ import { setDisplayMode } from './display.js';
 
 export const MODE_KEY = 'ahrena-console-mode';
 export const MODES = Object.freeze(['dev', 'project']);
-// The label says what the click does.
+// The label says what the click does (#754).
 const LABELS = Object.freeze({ dev: 'Ver como Projeto', project: 'Ver como Dev' });
 
 let current = 'dev';

@@ -327,7 +327,7 @@ describe('#754: the Exibir panel (display-panel.js)', () => {
   });
 });
 
-// ---------- The wall ----------
+// ---------- The wall (#754) ----------
 
 type Card = Record<string, unknown>;
 const open = { target: 'desktop', command: null };
@@ -421,8 +421,8 @@ describe('#754: the wall with the choice', () => {
   test('changing a field in the panel redraws the wall at once', async () => {
     const { area, stop } = await start(sessions());
     const act = one(area, '.wall-top-act');
-    const exibir = all(act, 'button').find((b) => b.textContent === 'Exibir')!;
-    exibir.click();
+    const displayButton = all(act, 'button').find((b) => b.textContent === 'Exibir')!;
+    displayButton.click();
     const box = one(area, '.pop input[data-field="branch"]') as unknown as ElementoFalso & { checked: boolean };
     box.checked = true;
     box.dispatchEvent({ type: 'change' });

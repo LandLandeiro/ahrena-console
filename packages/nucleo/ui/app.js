@@ -161,7 +161,7 @@ let openScreenId = null;
 
 let leaving = null;
 let screenFailed = false;
-// issue 754: the open of a switch of the mode leaves the drawer as it is, so the focus stays on the button that was pressed.
+// #754: the open of a switch of the mode leaves the drawer as it is, so the focus stays on the button that was pressed.
 let keepDrawer = false;
 
 // `route` may carry the query (`/ui/agent-config?tab=skills`): it stays in the URL for the screen to read.
@@ -250,7 +250,7 @@ document.addEventListener('click', (ev) => {
 addEventListener('popstate', open);
 // #754: a switch of the mode redraws the current screen; one that follows it by itself keeps its focus and scroll, the others open again (the drawer stays as it is).
 onModeChange(() => {
-  // The Dev-only tab (Eventos) follows the mode; the open screen keeps its own tab.
+  // The Dev-only tabs (Eventos, Orquestração) follow the mode; the open screen keeps its own tab (#754).
   if (openScreenId) screenTabs.draw(tabsFor(openScreenId, appMode()));
   if (listeners.mode.size === 0) return ((keepDrawer = true), open());
   for (const f of [...listeners.mode]) f();
