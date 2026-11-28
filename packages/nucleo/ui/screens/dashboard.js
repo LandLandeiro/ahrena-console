@@ -357,12 +357,29 @@ export async function mount(area, ctx) {
   // re-read (BACKGROUND_MS) and its re-read on every change already cover the remotes: the filter adds no
   // timer and no debounce of its own (the slow /api/dashboard is never read twice for one tick).
   const machines = createMachineFilter(ctx, {
-    onChange: () => ((last = null), area.replaceChildren(head, ...machines.parts(), loading({ label: 'Lendo as sessões' })), draw()),
+    // Issue 765: the screen keeps what it shows until the new answer arrives; the area says it is busy meanwhile.
+    onChange: () => ((last = null), area.setAttribute('aria-busy', 'true'), draw()),
     onLayout: () => last && paint(last),
     periodic: false,
     watchChanges: false,
   });
   area.replaceChildren(head, loading({ label: 'Lendo as sessões' }));
+
+  // Issue 765: a redraw keeps the nodes that did not change and puts the focus back, as the Mural does (wall.js `place`).
+  function place(nodes) {
+    const doc = globalThis.document;
+    const was = doc?.activeElement && area.contains(doc.activeElement) ? doc.activeElement : null;
+    const key = was?.closest?.('[data-session]')?.getAttribute('data-session') ?? null;
+    const current = [...area.childNodes];
+    let kept = 0;
+    while (kept < nodes.length && current[kept] === nodes[kept]) kept++;
+    for (const node of current.slice(kept)) node.remove();
+    area.append(...nodes.slice(kept));
+    area.removeAttribute('aria-busy');
+    if (!was || area.contains(was)) return;
+    const same = key === null ? null : [...area.querySelectorAll('[data-session]')].find((n) => n.getAttribute('data-session') === key && n.getAttribute('class') === was.getAttribute('class'));
+    (same ?? refresh).focus({ preventScroll: true });
+  }
 
   const expanded = new Set();
   let last = null;
@@ -382,7 +399,7 @@ export async function mount(area, ctx) {
     if (attention.ok) parts.push(inbox(chosen, dashboard.agents, ctx.write, ctx.navigate), idleRow(chosen));
     else parts.push(errorBand({ title: 'Não deu para ler quem precisa de você.', text: attention.erro.message, action: { label: 'Tentar de novo', onClick: () => draw() } }));
     parts.push(el('div', { class: 'two' }, activeAgents(dashboard.agents, expanded, toggleOne), recentActivity(dashboard.activity)));
-    area.replaceChildren(...parts.filter(Boolean));
+    place(parts.filter(Boolean));
   }
 
   async function draw() {
@@ -393,7 +410,7 @@ export async function mount(area, ctx) {
       if (d.reason?.name === 'AbortError') return;
       if (machines.recover(d.reason)) return;
       last = null;
-      area.replaceChildren(head, ...machines.parts(), error({ text: d.reason?.message, retry: () => draw() }));
+      place([head, ...machines.parts(), error({ text: d.reason?.message, retry: () => draw() })]);
       return;
     }
     if (a.status === 'rejected' && a.reason?.name === 'AbortError') return;
