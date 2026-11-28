@@ -80,7 +80,7 @@ describe('#754 the account menu', () => {
     assert.equal(a.getAttribute('href'), '/ui/machines/old');
     assert.ok(a.classList.contains('cc-menu-item'));
     assert.equal(texto(a), 'Workstation Núcleo defasado');
-    assert.equal(a.querySelector('svg')!.innerHTML, icon('arrow-up-circle').innerHTML);
+    assert.equal(a.querySelector('svg')!.innerHTMLFalso, icon('arrow-up-circle').innerHTMLFalso);
     assert.equal(a.querySelector('.cc-sr-only'), null, 'the words are visible, not only read');
   });
 

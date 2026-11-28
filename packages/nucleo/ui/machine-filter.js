@@ -19,6 +19,8 @@
 // `machine-filter.css` (classes `mf-`), loaded once by `index.html`.
 
 import { el, icon } from './dom.js';
+import { appMode } from './mode.js';
+import { stoppedByYou, updatingOf } from './screens.js';
 
 export const ALL = 'all';
 export const LOCAL = 'local';
@@ -121,7 +123,14 @@ export const itemHref = (item, sessionId = item?.id) => sessionHref(sessionId, m
 
 // ---------- The machines ----------
 
-/** The `machines` of an answer, checked: `[{ id, label, state, reason, lastReadAt }]`, this machine first. */
+/**
+ * Why a remote that answers `connected` still needs a word on the band (#754): the person stopped its connection, or its núcleo is being
+ * updated. The two predicates are the sidebar's (screens.js), so the dot and the band cannot say different things; the precedence is theirs:
+ * stopped by you > updating. `null` for the others. Only `GET /api/machines` carries `connection` and `update`; the list routes do not.
+ */
+const heldOf = (m) => (stoppedByYou(m) ? 'stopped' : updatingOf(m) ? 'updating' : null);
+
+/** The `machines` of an answer, checked: `[{ id, label, state, reason, lastReadAt, held }]`, this machine first. */
 export function normalizeMachines(list) {
   const out = [];
   const seen = new Set();
@@ -130,7 +139,7 @@ export function normalizeMachines(list) {
     seen.add(m.id);
     const label = m.id === LOCAL ? LOCAL_LABEL : typeof m.label === 'string' && m.label.trim() ? m.label.trim().slice(0, 40) : 'Máquina remota';
     const lastReadAt = typeof m.lastReadAt === 'string' && Number.isFinite(Date.parse(m.lastReadAt)) ? m.lastReadAt : null;
-    out.push({ id: m.id, label, state: m.id === LOCAL ? 'connected' : STATES.has(m.state) ? m.state : 'unreachable', reason: typeof m.reason === 'string' ? m.reason : null, lastReadAt });
+    out.push({ id: m.id, label, state: m.id === LOCAL ? 'connected' : STATES.has(m.state) ? m.state : 'unreachable', reason: typeof m.reason === 'string' ? m.reason : null, lastReadAt, held: m.id === LOCAL ? null : heldOf(m) });
   }
   return out.sort((a, b) => (a.id === LOCAL ? -1 : b.id === LOCAL ? 1 : 0));
 }
@@ -141,10 +150,20 @@ export const remotesOf = (machines) => (machines ?? []).filter((m) => m.id !== L
 /** Whether a remote is not answering (its items are absent from the lists). */
 export const isDown = (m) => m.id !== LOCAL && m.state !== 'connected';
 
-/** The remotes that are down and concern the choice: every one with Todas, the chosen one, none with local. */
-export function downFor(machines, choice) {
+/**
+ * The remotes the band speaks of: the ones that are down and the ones held (stopped by you, updating), even when their state says `connected`.
+ * `isDown` is not this: it also decides the segmented control and "seus itens não aparecem", and a connected machine that updates keeps both.
+ */
+export const needsNotice = (m) => m.id !== LOCAL && (isDown(m) || (m.held ?? null) !== null);
+
+/**
+ * The remotes the band speaks of for the choice: every one with Todas, the chosen one, none with local. In Projeto the machine has no
+ * item in the bar, so its band is for every remote of the set, whatever the choice (#754); `mode` is `appMode()` where the screen draws.
+ */
+export function downFor(machines, choice, mode = 'dev') {
+  if (mode === 'project') return remotesOf(machines).filter(needsNotice);
   if (choice === LOCAL) return [];
-  return remotesOf(machines).filter((m) => isDown(m) && (choice === ALL || m.id === choice));
+  return remotesOf(machines).filter((m) => needsNotice(m) && (choice === ALL || m.id === choice));
 }
 
 /** "há 14 min", "há 2 h", "há 3 d"; under a minute, "há menos de 1 min". */
@@ -159,13 +178,28 @@ export function sinceText(iso, now = Date.now()) {
 const two = (n) => String(n).padStart(2, '0');
 
 /**
- * The C48 notice of a remote that is down: "Workstation sem conexão desde 22:41 (há 14 min)." and
- * "As sessões de lá voltam quando ela responder." Without a last read, just "sem conexão".
+ * The C48 notice of a remote the band speaks of: "Workstation sem conexão desde 22:41 (há 14 min)." and "As sessões de lá voltam
+ * quando ela responder.", or, by the precedence of `heldOf`, "Workstation parada por você." or "Workstation atualizando." (#754).
+ * Without a last read, just "sem conexão".
  */
 export function downText(machine, now = Date.now()) {
+  if (machine.held === 'stopped') return { title: `${machine.label} parada por você.`, text: 'As sessões de lá voltam quando você subir a conexão.' };
+  if (machine.held === 'updating') return { title: `${machine.label} atualizando.`, text: 'As sessões de lá podem sair da lista até ela terminar.' };
   const at = machine.lastReadAt ? new Date(machine.lastReadAt) : null;
   const since = at && !Number.isNaN(at.getTime()) ? ` desde ${two(at.getHours())}:${two(at.getMinutes())} (${sinceText(machine.lastReadAt, now)})` : '';
   return { title: `${machine.label} sem conexão${since}.`, text: 'As sessões de lá voltam quando ela responder.' };
+}
+
+/** What `GET /api/machines` says of each remote that the band speaks of for another reason than its state: `Map(id → 'stopped' | 'updating')`. */
+export const heldOfList = (list) => new Map(normalizeMachines(list).filter((m) => m.held).map((m) => [m.id, m.held]));
+
+/** The held state of one machine, read on `/api/machines` (the route the sidebar already reads); `null` when it is not held or the read fails. */
+export async function readHeld(read, id) {
+  try {
+    return heldOfList(await read(MACHINES_ROUTE)).get(id) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** The "3 na Workstation" pieces: how many of `count(entry)` each remote of `byMachine` has (zeros left out). */
@@ -270,13 +304,16 @@ export function machineMark(item) {
   return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', { title: m.text }, m.text));
 }
 
-/** The C48 band: neutral, the wifi-off icon, the text and "Ver a <label>" to the machine screen. */
+// The icon follows the state (#754), with icons that exist: wifi-off for a drop, pause for a stop of yours, rotate-cw for an update.
+const NOTICE_ICONS = { stopped: 'pause', updating: 'rotate-cw' };
+
+/** The C48 band: neutral, the icon of the state (wifi-off for a drop), the text and "Ver a <label>" to the machine screen. */
 export function downNotice(machine, { now = Date.now(), title = null } = {}) {
   const t = downText(machine, now);
   return el(
     'div',
     { class: 'mf-notice', role: 'status', 'data-machine': machine.id },
-    el('span', { class: 'mf-notice-icon' }, icon('wifi-off')),
+    el('span', { class: 'mf-notice-icon' }, icon(NOTICE_ICONS[machine.held] ?? 'wifi-off')),
     el('p', {}, el('b', {}, title ?? t.title), ` ${t.text}`),
     el('a', { class: 'btn outline mf-notice-link', href: `/ui/machines/${encodeURIComponent(machine.id)}` }, `Ver a ${machine.label}`, icon('chevron-right')),
   );
@@ -472,6 +509,9 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
   let known = [];
   let timer = null;
   let wait = null;
+  // #754: what `/api/machines` says of the remotes (stopped by you, updating); the list routes do not carry it, so a list answer keeps it.
+  let held = new Map();
+  let heldReading = false;
 
   const row = el('div', { class: 'mf-row' });
   const notices = el('div', { class: 'mf-notices' });
@@ -515,7 +555,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     const segment = (id) => (menuUi ? (remotes ? menuUi.button : menuUi.fallbackFocus()) : [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === id));
     if (held !== null) segment(held)?.focus({ preventScroll: true });
     const now = Date.now();
-    const down = remotes ? downFor(known, choice) : [];
+    const down = remotes ? downFor(known, choice, appMode()) : [];
     notices.replaceChildren(...down.map((m) => downNotice(m, { now })));
     notices.hidden = down.length === 0;
     if (heldNotice !== null) {
@@ -556,6 +596,32 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
       for (const m of fresh) byId.set(m.id, m);
       known = normalizeMachines([...byId.values()]);
     }
+    applyHeld();
+  }
+
+  function applyHeld() {
+    known = known.map((m) => (m.id === LOCAL ? m : { ...m, held: held.get(m.id) ?? m.held ?? null }));
+  }
+
+  /** Reads `/api/machines` for what the list routes leave out; draws again only when it changed. One read at a time. */
+  function readHeldNow() {
+    if (heldReading || ctx.signal?.aborted || !remotesOf(known).length) return;
+    heldReading = true;
+    Promise.resolve()
+      .then(() => ctx.read(MACHINES_ROUTE))
+      .then((list) => {
+        if (ctx.signal?.aborted) return;
+        const next = heldOfList(list);
+        if (JSON.stringify([...next]) === JSON.stringify([...held])) return;
+        held = next;
+        applyHeld();
+        draw();
+        onLayout();
+      })
+      .catch(() => {})
+      .finally(() => {
+        heldReading = false;
+      });
   }
 
   if (watchChanges) ctx.onChange?.((changes) => {
@@ -576,6 +642,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
       .then(() => ctx.read(MACHINES_ROUTE))
       .then((list) => {
         if (ctx.signal?.aborted) return;
+        held = heldOfList(list);
         merge(list, false);
         draw();
         onLayout();
@@ -593,6 +660,7 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
       if (menu) lastItems = menu.itemsOf(body) ?? [];
       merge(body.machines, choice === ALL);
       draw();
+      readHeldNow();
     },
     row,
     notices,

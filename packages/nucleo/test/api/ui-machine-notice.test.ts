@@ -45,7 +45,7 @@ const UPDATING = { update: { configured: true, state: 'running', kind: 'update',
 const ownerAuth = { state: 'unreachable', reason: 'owner-auth-required' };
 const notice = (m: Obj, now = Date.parse(AT) + 14 * 60_000) => mf.downNotice(mf.normalizeMachines([local, m])[1], { now });
 const svgOf = (n: ElementoFalso) => (n.querySelector('.mf-notice-icon') as ElementoFalso).children[0] as ElementoFalso;
-const sameIcon = (n: ElementoFalso, name: string) => svgOf(n).innerHTML === icon(name).innerHTML;
+const sameIcon = (n: ElementoFalso, name: string) => svgOf(n).innerHTMLFalso === icon(name).innerHTMLFalso;
 
 const mode = (value: 'dev' | 'project') => setAppMode(value, { root: new ElementoFalso('html'), storage: { getItem: () => null, setItem: () => {} }, persist: false });
 afterEach(() => mode('dev'));
@@ -246,5 +246,19 @@ describe('#754 in Projeto the band covers every remote of the set, whatever the 
     };
     assert.equal(await run('dev'), 0);
     assert.equal(await run('project'), 1);
+  });
+});
+
+describe('#754 the session Detail says the same as the band', () => {
+  test('readHeld reads the machines route the sidebar reads, and says stopped, updating or nothing; a failed read says nothing', async () => {
+    const answer = [local, remote({ state: 'unreachable', ...STOPPED }), { ...remote(UPDATING), id: 'lab', label: 'Laboratório' }, { ...remote(), id: 'calm' }];
+    const routes: string[] = [];
+    const read = async (route: string) => (routes.push(route), structuredClone(answer));
+    assert.equal(await mf.readHeld(read, 'ws'), 'stopped');
+    assert.equal(await mf.readHeld(read, 'lab'), 'updating');
+    assert.equal(await mf.readHeld(read, 'calm'), null);
+    assert.deepEqual([...new Set(routes)], ['/api/machines']);
+    assert.equal(await mf.readHeld(async () => { throw new Error('offline'); }, 'ws'), null);
+    assert.equal(await mf.readHeld(async () => ({}), 'ws'), null);
   });
 });
