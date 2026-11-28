@@ -13,12 +13,12 @@ export function techLine(card, show) {
 }
 
 /**
- * Whether a session names its machine. On a card (#751): a remote one always, this one once the core knows a remote.
+ * Whether a session names its machine. On a card (#751): a remote one always, this one once the core knows a remote, but not in Projeto (#754, ux-review §4).
  * On a row (M7): only when it is not this one; in the Dev compact on every row, once a remote is known. The field off hides it.
  */
 export function machineShown({ place, show, density, mode, remote, known }) {
   if (!show.machine) return false;
   if (remote) return true;
-  if (place === 'card') return known;
+  if (place === 'card') return known && mode !== 'project';
   return mode === 'dev' && density === 'compact' && known;
 }
