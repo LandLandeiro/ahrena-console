@@ -166,6 +166,8 @@ function watch(shell, { trigger, onDismiss, outsideEvent, escapeOnDocument = fal
 }
 
 let drawn = null;
+// Which popover the last call drew (kind and label), so a redraw of the same one skips the entrance (#762).
+let drawnIdentity = null;
 
 /**
  * Places and watches a popover that a screen drew: `trigger` is a node or a function that finds it, `onDismiss(how)` gets
@@ -175,7 +177,16 @@ let drawn = null;
  */
 export function anchorPopover(shell, { trigger, onDismiss = null }) {
   drawn?.();
-  const stop = watch(shell, { trigger, onDismiss, outsideEvent: 'click' });
+  // The screen redraws its whole area on each change, so the same popover comes back as a new node: it is settled, and
+  // `pop-in` must not play again. A dismissal forgets it, so the next opening plays the entrance (#762).
+  const identity = `${shell.getAttribute('data-kind')}|${shell.getAttribute('aria-label')}`;
+  if (identity === drawnIdentity) shell.setAttribute('data-settled', 'true');
+  drawnIdentity = identity;
+  const forgetAndDismiss = (how) => {
+    drawnIdentity = null;
+    onDismiss?.(how);
+  };
+  const stop = watch(shell, { trigger, onDismiss: forgetAndDismiss, outsideEvent: 'click' });
   drawn = stop;
   place(shell, trigger);
   // The screen puts the node on the page after this returns: place it again once it is there, before the first paint.
