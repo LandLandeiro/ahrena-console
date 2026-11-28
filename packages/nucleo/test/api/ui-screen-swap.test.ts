@@ -101,15 +101,40 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     const r = rig();
     r.swap.begin('sessions');
     assert.ok(r.watching);
-    r.area.append(node('h1', '', 'Sessões'), node('section', 'card state loading'));
-    r.area.children[1]!.setAttribute('aria-busy', 'true');
+    const body = node('div', 'sessions-body', node('section', 'card state loading'));
+    body.children[0]!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Sessões'), node('div', 'notices'), node('div', 'filters'), body);
     r.tick();
-    assert.equal(r.ghosts().length, 1, 'a loading card is not data');
-    r.area.children[1]!.remove();
-    r.area.append(node('div', 'table'));
+    assert.equal(r.ghosts().length, 1, 'a loading card inside the body is not data (the real shape of Sessões)');
+    body.children[0]!.remove();
+    body.append(node('div', 'table'));
     r.tick();
     assert.equal(r.ghosts().length, 0);
     assert.ok(!r.watching, 'the observer is gone');
+  });
+
+  test('Histórico puts its loading card inside the body too, and the ghost stays until the days arrive', () => {
+    const r = rig();
+    r.swap.begin('history');
+    const body = node('div', 'history-body', node('section', 'card state loading'));
+    body.children[0]!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Histórico'), node('div', 'machine-slot'), body);
+    r.tick();
+    assert.equal(r.ghosts().length, 1, 'the loading card is not data');
+    body.replaceChildren(node('div', 'days'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('the area is inert while the ghost is on screen and is free again when it leaves (A2)', () => {
+    const r = rig();
+    const inert = () => (r.area as unknown as { inert?: boolean }).inert;
+    r.swap.begin('wall');
+    assert.equal(inert(), true, 'a click or Tab cannot reach the hidden new screen');
+    r.timers.flush();
+    assert.equal(inert(), true, 'still inert once the skeleton shows');
+    r.swap.settle();
+    assert.equal(inert(), false);
   });
 
   test('settle with no ghost is a no-op, and a first load with nothing to keep shows a blank ghost then the skeleton', () => {
