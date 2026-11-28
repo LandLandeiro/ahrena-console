@@ -54,6 +54,7 @@ const storage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: str
 beforeEach(() => {
   useNodeListQueries(true);
   store.clear();
+  display.resetDisplayMemory();
   Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage });
   documentoFalso.activeElement = null;
   modeModule.setAppMode('dev', { root: new ElementoFalso('html'), storage });
