@@ -10,6 +10,7 @@ import { loading, error, errorBand, empty } from '../states.js';
 import { subagentNodeName } from './workflow-format.js';
 import { agentDepths, agentRouteId, agentViewHref } from './agent-view-format.js';
 import { openAction } from '../open-action.js';
+import { seedOf } from '../session-seed.js';
 import { create as workflowTab } from './session-detail-workflow.js';
 import { create as decisionsTab } from './session-detail-decisions.js';
 import { createComposeBox } from './session-message.js';
@@ -292,9 +293,19 @@ export async function mount(area, ctx) {
     }
   }
 
+  // Issue 765: until the head answers, the header is what the list knew (title, state, reason) and the body says it is loading.
+  function paintSeed() {
+    const seed = headData ? null : seedOf(id);
+    if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+    const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
+    top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
+    body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
+    area.replaceChildren(noticeSlot, top, body);
+  }
+
   async function first() {
     // C49: while the remote is down and nothing was read, a retry keeps the notice on screen.
-    if (!(remoteId && down)) area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+    if (!(remoteId && down)) paintSeed();
     if (!(await readHead())) return;
     tab ??= attentionOf(headData.session.attention) ? 'conversation' : 'agents';
     area.replaceChildren(noticeSlot, top, tabs, body);
@@ -735,13 +746,45 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
     while (list.childNodes[i]) list.childNodes[i].remove();
   }
 
+  // Issue 765: the first paint is the last block of 30 messages; the older ones come in the next turns of the loop,
+  // each put above the ones on screen with the scroll held where the reader is. A turn that arrives (a live delta, a
+  // new full read) cancels what is left and builds the whole list.
+  const BLOCK = 30;
+  let blocksToken = null;
+  const cancelBlocks = () => (blocksToken = null);
+  // A tool-only assistant message folds into the reply that follows it, so a cut never falls inside such a run.
+  const foldsForward = (m) => m.role !== 'you' && !m.text && !m.tools.some((f) => f.state === 'permission');
+  function renderInBlocks(all) {
+    cancelBlocks();
+    let from = all.length - BLOCK;
+    while (from > 0 && foldsForward(all[from - 1])) from--;
+    if (from <= 0) return render(buildEntries(all));
+    render(buildEntries(all.slice(from)));
+    const token = (blocksToken = {});
+    const step = () => {
+      if (blocksToken !== token || ctx.signal?.aborted) return;
+      let start = Math.max(0, from - BLOCK);
+      while (start > 0 && foldsForward(all[start - 1])) start--;
+      const older = buildEntries(all.slice(start, from));
+      const s = scroller();
+      const before = s?.scrollHeight ?? 0;
+      const first = list.firstChild;
+      for (const e of older) list.insertBefore(e.node, first);
+      if (s && !stuck) s.scrollTop += s.scrollHeight - before;
+      from = start;
+      if (from > 0) setTimeout(step, 0);
+      else blocksToken = null;
+    };
+    setTimeout(step, 0);
+  }
+
   function applyFull(c) {
     messages = c.messages ?? [];
     cursor = c.cursor ?? null;
     agent = c.agent;
     selector.replaceChildren(...c.agents.map((a) => el('option', { value: a.id, selected: a.id === c.agent }, a.name)));
     count.replaceChildren(icon('conversation'), `${num(c.total)} mensage${c.total === 1 ? 'm' : 'ns'}`);
-    render(buildEntries(messages));
+    renderInBlocks(messages);
     content.replaceChildren(bar, list, newPill);
     pending = 0;
     // Match the real scroll position: on the first draw the scroller is not attached yet (so this is
@@ -785,6 +828,7 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
       }
     }
     if (!(c.messages?.length)) return;
+    cancelBlocks();
     reconcile(buildEntries(messages));
     if (stuck) landAtBottom();
     else if (fresh > 0) {

@@ -5,6 +5,7 @@
 // A linha leva ao Detalhe, `/ui/sessions/<id>`. The last column is the icon that opens the session
 // where it runs (C71, issue 285); its click stays in the cell and never navigates the row.
 
+import { rememberSessions } from '../session-seed.js';
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionBadges, attentionOf, statusWithoutAttention } from '../attention.js';
@@ -432,6 +433,8 @@ export async function mount(area, ctx) {
     }
     drawFilters(list.directories, list.counts);
     if (list.items.length) {
+      // Issue 765: the detail of a session opens with its header from what this list showed.
+      rememberSessions(list.items);
       messageCells = new Map();
       body.replaceChildren(table(list), footer(list));
       askAvailability(list.items);
