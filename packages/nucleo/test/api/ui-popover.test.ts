@@ -15,6 +15,7 @@ const {
   placement,
   popoverContext,
   popoverFooter,
+  popoverShell,
   rememberedChoice,
   segmented,
   // @ts-expect-error: browser module, plain JavaScript
@@ -220,6 +221,31 @@ describe('anchorPopover: a popover drawn by a screen, placed on its trigger', ()
   test('without layout (no rectangles) it degrades without throwing', () => {
     const shell = el('div');
     assert.doesNotThrow(() => anchorPopover(shell, { trigger: el('button'), onDismiss: () => {} })());
+  });
+});
+
+describe('popoverShell: a redraw of the same popover does not play the entrance again', () => {
+  const draw = (kind: string, trigger: ElementoFalso) => popoverShell({ title: 'Planejar', kind, trigger });
+
+  test('the second drawing of the same kind, title and trigger is settled; the first is not (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const first = draw('plan-settle', trigger);
+    const second = draw('plan-settle', trigger);
+    assert.equal(first.hasAttribute('data-settled'), false);
+    assert.equal(second.hasAttribute('data-settled'), true);
+  });
+
+  test('another kind is a new popover and plays the entrance (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    draw('plan-other', trigger);
+    assert.equal(draw('run-other', trigger).hasAttribute('data-settled'), false);
+  });
+
+  test('after a dismissal the same popover opens with the entrance again (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const first = popoverShell({ title: 'Planejar', kind: 'plan-reopen', trigger, onDismiss: () => {} });
+    key(first, 'Escape');
+    assert.equal(draw('plan-reopen', trigger).hasAttribute('data-settled'), false);
   });
 });
 
