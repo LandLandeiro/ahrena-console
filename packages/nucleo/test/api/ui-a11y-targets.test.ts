@@ -34,6 +34,13 @@ const SMALL_TARGETS = [
   '.wb-level',
   '.an-seg a',
   '.an-seg button',
+  '.cc-gh',
+  '.wb-pr.wb-gh',
+  '.ttl .r',
+  '.dash-idle-link',
+  '.sm-link-action',
+  '.table .nm a',
+  '.wall-parked-head',
 ];
 
 describe('issue 764: the touch area of a control is 24 px at least', () => {
