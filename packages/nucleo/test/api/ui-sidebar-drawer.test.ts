@@ -215,11 +215,11 @@ describe('issue 750: the markup and the rules of the drawer', () => {
     assert.match(html, /<\/div>\s*<div class="up-pop" id="update-panel" hidden><\/div>/);
   });
 
-  test('app.js builds the drawer with the column as the background and puts it in the Escape order', () => {
+  test('app.js builds the drawer with the column as the background and puts it in the Escape order (the search, the one on top, first, #755)', () => {
     assert.match(app, /createDrawer\(\{/);
     assert.match(app, /background: \[document\.getElementById\('update-notice'\), document\.getElementById\('screen-tabs'\), document\.getElementById\('content'\)\]/);
     assert.doesNotMatch(app, /background: \[[^\]]*\.cc-col/, 'the top bar stays out of the inert set: the menu button is still reachable');
-    assert.match(app, /createEscape\(document, \[\s*\{ isOpen: \(\) => appUpdate\.isOpen[^\]]*accountMenu,\s*drawer,\s*\]\)/);
+    assert.match(app, /createEscape\(document, \[\s*commandSearch,\s*\{ isOpen: \(\) => appUpdate\.isOpen[^\]]*accountMenu,\s*drawer,\s*\]\)/);
   });
 });
 

@@ -1,6 +1,6 @@
-// #755 (ADR-0028): the search of the sidebar. A field "Buscar" with the key hint at the top of the bar opens a modal dialog;
-// the results (Sessões and Telas) are filtered on the client from what the screens already read, with no route of their own.
-// Cmd+K or Ctrl+K opens it from anywhere; Enter opens the one chosen as a real navigation; Esc closes and the focus goes back.
+// #755: the search of the sidebar, a field "Buscar" with its key that opens a modal dialog (ADR-0028).
+// #755: the results, Sessões and Telas, are filtered on the client from what the screens already read, with no route of their own.
+// #755: Cmd+K or Ctrl+K opens it from anywhere, Enter opens a real navigation, Esc closes and the focus goes back.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, test } from 'node:test';
@@ -31,7 +31,7 @@ const read = (file: string) => readFileSync(`${UI_FOLDER}${file}`, 'utf8');
 const flush = async () => {
   for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
 };
-const all = (root: ElementoFalso, selector: string) => root.querySelectorAll(selector);
+const all = (root: ElementoFalso, selector: string) => Array.from(root.querySelectorAll(selector));
 const one = (root: ElementoFalso, selector: string) => root.querySelector(selector)!;
 const words = (n: ElementoFalso | null): string => (n ? n.childNodes.map((c) => (c instanceof ElementoFalso ? words(c) : c.textContent)).join(' ') : '').replace(/\s+/g, ' ').trim();
 
