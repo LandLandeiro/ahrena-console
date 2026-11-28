@@ -86,7 +86,7 @@ function statusPill(status, attention = null) {
 }
 
 /**
- * The quiet line (issue 245): no band, only what happened and since when. "Sua vez" (issue 761) is blocked, so
+ * The quiet line (issue 245): no band, only what happened and since when. "Sua vez" (#761) is blocked, so
  * its line starts with the state and does not say "Ociosa" nor that nothing blocks the session.
  */
 export function idleNote(attention, since, now = Date.now()) {
@@ -371,7 +371,7 @@ function drawTop(c, refresh, write, source = null) {
     source && c.machine?.label ? pill('server', c.machine.label) : null,
   );
   const folder = s.cwd ? el('div', { class: 'sd-folder mono' }, icon('folder'), el('span', {}, s.cwd), copyButton(s.cwd, 'a pasta')) : null;
-  // The yellow band only when the session is stuck (or stopped by an error); idle and "Sua vez" (issue 761) get one muted line.
+  // #761: the yellow band only when the session is stuck (or stopped by an error); idle and "Sua vez" get one muted line.
   const blocked = isBlocked(s.attention) || s.status === 'error';
   const notice = s.banner && blocked ? band(c) : isIdle(s.attention) || isYourTurn(s.attention) ? idleLine(c) : null;
   const config = el('a', { class: 'btn outline', href: `/ui/agent-config?tab=settings&provider=${s.identity?.provider === 'codex' ? 'codex' : 'claude'}&session=${encodeURIComponent(s.id)}${source ? '&machine=remote' : ''}` }, 'Configuração em vigor');

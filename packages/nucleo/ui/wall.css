@@ -105,7 +105,7 @@
 .wall-side .wall-mach { flex-shrink: 100; }
 .wall-side .wall-tag { flex-shrink: 0; }
 
-/* issue 761: "Sua vez" is a row of the same list look, under the cards of "Precisam de você". "Responder" is a control of its own above the stretched link. */
+/* ADR-0028: "Sua vez" is a row of the same list look, under the cards of "Precisam de você". "Responder" is a control of its own above the stretched link. */
 .wall-grid + .wall-list { margin-top: 12px; }
 .wall-answer { position: relative; z-index: 1; flex: none; text-decoration: none; }
 .wall-answer:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }

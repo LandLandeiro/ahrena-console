@@ -79,9 +79,9 @@ export function cardContent(c) {
   };
 }
 
-// ADR-0028: an idle row says why it waits ("Interrompida · text"); the text alone when it already starts with the reason.
-// Issue 761: a "Sua vez" row (blocked, low urgency) is the text of the core alone, because its state already says "Sua vez"
-// and the screen reader reads both; any other reason is the text.
+/* ADR-0028: an idle row says why it waits ("Interrompida · text"); the text alone when it already starts with the reason.
+   A "Sua vez" row (blocked, low urgency) is the text of the core alone, because its state already says "Sua vez"
+   and the screen reader reads both; any other reason is the text. */
 function reasonPhrase(c) {
   const a = attentionOf(c.attention);
   const known = a?.reason ? ATTENTION_REASONS[a.reason] : null;
@@ -102,7 +102,7 @@ export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
   const idle = isIdle(c.attention);
-  // issue 761: "Sua vez" is blocked, drawn as a row under the cards: it carries how long ago like an idle row, and the answer.
+  // ADR-0028: "Sua vez" is blocked, drawn as a row under the cards: it carries how long ago like an idle row, and the answer.
   const turn = isYourTurn(c.attention);
   return {
     ...v,
@@ -114,7 +114,7 @@ export function rowContent(c) {
     time: c.status === 'completed' ? clockOf(c.since) || null : null,
     idle,
     turn,
-    // issue 761: "Responder" goes to the Detail with the box focused (`composeHref` of session-message.js); a remote keeps its `?machine=`.
+    // ADR-0028: "Responder" goes to the Detail with the box focused (`composeHref` of session-message.js); a remote keeps its `?machine=`.
     answerHref: turn ? answerHref(c) : null,
     since: c.since,
   };
@@ -230,10 +230,10 @@ function row(c, write, nest, known, mono, place = '') {
   const working = v.state.kind === 'working';
   const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null, reveal: true });
-  // issue 761: a separate control, above the stretched link; its name carries the title, as the link of the row does not say "Responder".
+  // ADR-0028: a separate control, above the stretched link; its name carries the title, as the link of the row does not say "Responder".
   const answer = v.turn ? el('a', { class: 'btn outline sm wall-answer', href: v.answerHref, 'aria-label': `${ANSWER}, ${v.title}`, 'data-answer': v.key }, ANSWER) : null;
   spotsOf(nest, v.key, link, action);
-  // issue 761: a redraw puts the focus back on "Responder" by the session key, as on the other controls of the row.
+  // ADR-0028: a redraw puts the focus back on "Responder" by the session key, as on the other controls of the row.
   if (answer) nest.spot('reply', v.key, answer);
   const node = el(
     'div',
@@ -544,7 +544,7 @@ export async function mount(area, ctx) {
     const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known, mono).node);
     const calm = (filter === 'all' || filter === 'blocked') && total > 0 && !machines.chosenDown();
     if (by.blocked.length) {
-      // issue 761: the cards first, then "Sua vez" as rows, each kind in the core's order; the count of the section is both.
+      // ADR-0028: the cards first, then "Sua vez" as rows, each kind in the core's order; the count of the section is both.
       const asked = by.blocked.filter((c) => !isYourTurn(c.attention));
       const turns = by.blocked.filter((c) => isYourTurn(c.attention));
       sections.push(

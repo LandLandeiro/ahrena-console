@@ -1,15 +1,15 @@
-// The attention vocabulary of every /ui screen (issue 245): the old "waiting for you" split in two.
-//
-// - `blocked` ("Precisa de você"): the session is stuck until the person acts. Yellow, highlighted, always
-//   with the reason (permission, question, plan, decision). An `error` session is blocked too, but keeps
-//   its own red "Com erro" pill. "Sua vez" (`turn_ended`, #761) is blocked as well, with the lowest urgency:
-//   the turn ended and the session waits for the answer. Its pill and chip are light (outline, no fill),
-//   and still say it in text and icon, never by colour alone.
-// - `idle` ("Ociosa"): nothing is stuck and nothing is asked. Neutral tokens, hollow dot, no fill, the
-//   reason in a light chip (interrupted, at the prompt).
-//
-// Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
-// "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen.
+/* The attention vocabulary of every /ui screen (issue 245, #761): the old "waiting for you" split in two.
+
+   - `blocked` ("Precisa de você"): the session is stuck until the person acts. Yellow, highlighted, always
+     with the reason (permission, question, plan, decision). An `error` session is blocked too, but keeps
+     its own red "Com erro" pill. "Sua vez" (`turn_ended`, #761) is blocked as well, with the lowest urgency:
+     the turn ended and the session waits for the answer. Its pill and chip are light (outline, no fill),
+     and still say it in text and icon, never by colour alone.
+   - `idle` ("Ociosa"): nothing is stuck and nothing is asked. Neutral tokens, hollow dot, no fill, the
+     reason in a light chip (interrupted, at the prompt).
+
+   Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
+   "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen. */
 
 import { el, icon } from './dom.js';
 
@@ -129,7 +129,7 @@ export function attentionBadges(value) {
 }
 
 /**
- * The status dot: solid yellow for blocked, hollow neutral for idle. `low` (issue 761, "Sua vez") is the low-urgency
+ * The status dot: solid yellow for blocked, hollow neutral for idle. `low` (#761, "Sua vez") is the low-urgency
  * variant of blocked: a yellow ring without the fill, as `attention-pill-low`; the text beside it always says the state.
  */
 export function attentionDot(level, { low = false } = {}) {
