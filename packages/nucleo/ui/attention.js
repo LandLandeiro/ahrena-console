@@ -128,7 +128,11 @@ export function attentionBadges(value) {
   return [attentionPill(value), reasonChip(value)].filter(Boolean);
 }
 
-/** The status dot: solid yellow for blocked, hollow neutral for idle (it only knows the level, so Sua vez is yellow too). */
-export function attentionDot(level) {
-  return el('span', { class: `attention-dot attention-dot-${level === 'blocked' ? 'blocked' : 'idle'}`, 'aria-hidden': 'true' });
+/**
+ * The status dot: solid yellow for blocked, hollow neutral for idle. `low` (issue 761, "Sua vez") is the low-urgency
+ * variant of blocked: a yellow ring without the fill, as `attention-pill-low`; the text beside it always says the state.
+ */
+export function attentionDot(level, { low = false } = {}) {
+  const blocked = level === 'blocked';
+  return el('span', { class: `attention-dot attention-dot-${blocked ? 'blocked' : 'idle'}${blocked && low ? ' attention-dot-low' : ''}`, 'aria-hidden': 'true' });
 }

@@ -79,12 +79,13 @@ export function cardContent(c) {
   };
 }
 
-// ADR-0028, issue 761: a row says why it waits ("Interrompida · text", "Sua vez · text"); the text alone when it already starts with the reason.
-// An idle row says its idle reason, a "Sua vez" row (blocked, low urgency) says "Sua vez"; any other reason is the text.
+// ADR-0028: an idle row says why it waits ("Interrompida · text"); the text alone when it already starts with the reason.
+// Issue 761: a "Sua vez" row (blocked, low urgency) is the text of the core alone, because its state already says "Sua vez"
+// and the screen reader reads both; any other reason is the text.
 function reasonPhrase(c) {
   const a = attentionOf(c.attention);
   const known = a?.reason ? ATTENTION_REASONS[a.reason] : null;
-  const reason = known && known.level === a.level && (a.level === 'idle' || isYourTurn(a)) ? known.label : null;
+  const reason = known && known.level === a.level && a.level === 'idle' ? known.label : null;
   const text = clean(c.activity?.text);
   if (!reason) return text;
   if (!text) return reason;
@@ -229,7 +230,11 @@ function row(c, write, nest, known, mono, place = '') {
   const working = v.state.kind === 'working';
   const link = el('a', { class: `wall-link wall-rt${working ? ' wall-rt-work' : ''}`, href: v.href, title: v.title, 'data-session': v.id, 'data-key': v.key }, v.title);
   const action = openAction({ id: v.id, open: v.open, machine: v.machine }, { size: 'icon', write, machine: v.machine?.label ?? null, reveal: true });
+  // issue 761: a separate control, above the stretched link; its name carries the title, as the link of the row does not say "Responder".
+  const answer = v.turn ? el('a', { class: 'btn outline sm wall-answer', href: v.answerHref, 'aria-label': `${ANSWER}, ${v.title}`, 'data-answer': v.key }, ANSWER) : null;
   spotsOf(nest, v.key, link, action);
+  // issue 761: a redraw puts the focus back on "Responder" by the session key, as on the other controls of the row.
+  if (answer) nest.spot('reply', v.key, answer);
   const node = el(
     'div',
     { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${place}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
@@ -246,8 +251,7 @@ function row(c, write, nest, known, mono, place = '') {
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
         machineOf(c, known),
-        // issue 761: a separate control, above the stretched link; its name carries the title, as the link of the row does not say "Responder".
-        v.turn ? el('a', { class: 'btn outline sm wall-answer', href: v.answerHref, 'aria-label': `${ANSWER}, ${v.title}`, 'data-answer': v.key }, ANSWER) : null,
+        answer,
         action ? el('span', { class: 'wall-act' }, action) : null,
       ),
     ),
