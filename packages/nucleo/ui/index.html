@@ -4,17 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ahrena Console</title>
+  <script src="/ui/theme-init.js"></script>
   <link rel="stylesheet" href="/ui/brand.css">
   <link rel="stylesheet" href="/ui/shell.css">
   <link rel="stylesheet" href="/ui/open-action.css">
   <link rel="stylesheet" href="/ui/new-session.css">
   <link rel="stylesheet" href="/ui/machine-filter.css">
   <link rel="stylesheet" href="/ui/app-update.css">
+  <link rel="stylesheet" href="/ui/drawer.css">
   <script type="module" src="/ui/app.js"></script>
 </head>
 <body>
   <div class="cc">
-    <aside class="cc-side">
+    <aside class="cc-side" id="sidebar">
+      <div class="cc-side-head">
       <a class="cc-brand" href="/ui">
         <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
           <rect class="logo-bg" width="32" height="32" rx="8"/>
@@ -23,20 +26,47 @@
         </svg>
         <div><b>Ahrena Console</b><small>Claude Code</small></div>
       </a>
+        <button type="button" class="cc-ibtn" id="drawer-close" aria-label="Fechar menu">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
       <nav id="nav" aria-label="Telas"></nav>
       <div class="cc-foot">
-        <div class="card" id="live" data-state="connecting" aria-live="polite"></div>
-        <div class="card" title="O núcleo que serve esta página">
-          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
-          <span class="mono" id="port"></span>
+        <div class="cc-live" id="live" data-state="connecting"></div>
+        <div class="cc-me">
+          <span class="cc-avatar" aria-hidden="true">VC</span>
+          <div class="cc-me-text">
+            <b>Você</b>
+            <a class="cc-gh" id="github" hidden></a>
+          </div>
+          <button type="button" class="cc-ibtn" id="theme-button"></button>
+          <button type="button" class="cc-ibtn" id="account-button" aria-label="Opções da conta" aria-expanded="false" aria-controls="account-menu">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+          <div class="cc-menu" id="account-menu" hidden>
+            <a class="cc-menu-item" href="/ui/connections">Conexões</a>
+            <div class="cc-menu-core" title="O núcleo que serve esta página">Núcleo <span class="mono" id="port"></span></div>
+          </div>
         </div>
-        <a class="card cc-gh" id="github" hidden></a>
       </div>
     </aside>
     <div class="cc-col">
+      <header class="cc-top">
+        <button type="button" class="cc-ibtn" id="menu-button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/></svg>
+          <span class="cc-nav-tag" data-tone="waiting" aria-hidden="true" hidden></span>
+        </button>
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+          <rect class="logo-bg" width="32" height="32" rx="8"/>
+          <path class="logo-a" d="M9 23 L16 8 L23 23"/>
+          <path class="logo-tip" d="M13 16.5 L19 16.5 L16 21.5 Z"/>
+        </svg>
+        <b>Ahrena Console</b>
+      </header>
       <div class="cc-notice" id="update-notice" hidden></div>
       <main class="cc-main" id="content"></main>
     </div>
+    <div class="cc-scrim" id="scrim" hidden></div>
     <div class="up-pop" id="update-panel" hidden></div>
   </div>
 </body>

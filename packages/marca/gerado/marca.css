@@ -1,7 +1,5 @@
 /* Gerado por packages/marca/src/gerar.ts a partir de docs/brand/tokens.json. Não edite: mude o tokens.json e rode `node packages/marca/src/gerar.ts`. */
 
-/* Fontes: https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap */
-
 /* Escuro é o padrão. */
 :root {
   color-scheme: dark;
@@ -38,14 +36,16 @@
   --status-error: #e34948;
   --status-abandoned: #a6a6aa;
   --badge-alpha: 0.12;
-  --font-sans: "Poppins", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --text-xs: 12px;
   --text-sm: 13px;
   --text-md: 14px;
   --text-lg: 16px;
   --text-xl: 20px;
   --text-xxl: 28px;
+  --text-title: 30px;
+  --text-hero: 64px;
   --space-xxs: 2px;
   --space-xs: 4px;
   --space-sm: 6px;
@@ -53,25 +53,48 @@
   --space-lg: 12px;
   --space-xl: 16px;
   --space-xxl: 24px;
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-tag: 4px;
+  --radius-segment: 8px;
+  --radius-segment-item: 6px;
+  --radius-full: 999px;
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-move: 220ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --tracking-title: -0.02em;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --bg: #17171b;
   --surface: #1e1e24;
   --raised: #28282f;
-  --border: #3a3a44;
-  --text: #d7d7d9;
-  --muted: #a6a6aa;
+  --border: #2e2e36;
+  --text: #f2f2f3;
+  --muted: #c4c4c8;
   --accent: #f47720;
   --on-accent: #17171b;
   --accent-text: #f47720;
   --rose: #df285d;
+  --subtle: #9a9aa0;
+  --sidebar: #1b1b20;
+  --segment: #26262c;
+  --track: #33333b;
+  --avatar: #2e2e36;
+  --primary: #e4e4e7;
+  --on-primary: #17171b;
+  --accent-line: #f47720;
+  --border-control: #72727c;
   --status-active-dot: #f47720;
   --status-active-text: #f47720;
   --status-active-badge: #382924;
+  --status-active-border: #55392a;
   --status-waiting-dot: #ffc30a;
   --status-waiting-text: #ffc30a;
   --status-waiting-badge: #393221;
+  --status-waiting-border: #4f4426;
   --status-completed-dot: #d7d7d9;
   --status-completed-text: #d7d7d9;
   --status-completed-badge: #34343a;
@@ -81,6 +104,15 @@
   --status-abandoned-dot: #a6a6aa;
   --status-abandoned-text: #a6a6aa;
   --status-abandoned-badge: #2e2e34;
+  --agent-violet-text: #c4b2f5;
+  --agent-violet-bg: #2d2640;
+  --agent-blue-text: #9cc1f5;
+  --agent-blue-bg: #1f2a3d;
+  --agent-teal-text: #84d3c8;
+  --agent-teal-bg: #1c3331;
+  --agent-indigo-text: #aeb6f0;
+  --agent-indigo-bg: #262a42;
+  --shadow-float: 0 12px 32px rgba(0,0,0,0.5);
 }
 
 /* Claro: pelo sistema, a menos que a página fixe data-theme="dark". */
@@ -90,19 +122,30 @@
     --bg: #f4f4f5;
     --surface: #fdfdfd;
     --raised: #efeff1;
-    --border: #d7d7d9;
+    --border: #e3e3e6;
     --text: #17171b;
-    --muted: #5a5a63;
+    --muted: #4a4a52;
     --accent: #f47720;
     --on-accent: #17171b;
     --accent-text: #ab5316;
     --rose: #df285d;
+    --subtle: #64646c;
+    --sidebar: #ececef;
+    --segment: #e6e6e9;
+    --track: #e6e6e9;
+    --avatar: #ececef;
+    --primary: #17171b;
+    --on-primary: #fdfdfd;
+    --accent-line: #ab5316;
+    --border-control: #83838b;
     --status-active-dot: #ab5316;
     --status-active-text: #ab5316;
     --status-active-badge: #fcede2;
-    --status-waiting-dot: #664e04;
+    --status-active-border: #f4d3bb;
+    --status-waiting-dot: #a87e00;
     --status-waiting-text: #664e04;
     --status-waiting-badge: #fdf6e0;
+    --status-waiting-border: #f1e2b0;
     --status-completed-dot: #3a3a44;
     --status-completed-text: #3a3a44;
     --status-completed-badge: #f8f8f9;
@@ -112,6 +155,15 @@
     --status-abandoned-dot: #5a5a63;
     --status-abandoned-text: #5a5a63;
     --status-abandoned-badge: #f3f3f3;
+    --agent-violet-text: #5b3fa8;
+    --agent-violet-bg: #efe9fb;
+    --agent-blue-text: #2456a6;
+    --agent-blue-bg: #e6eefb;
+    --agent-teal-text: #11695f;
+    --agent-teal-bg: #e2f3f1;
+    --agent-indigo-text: #3b4594;
+    --agent-indigo-bg: #e8eaf8;
+    --shadow-float: 0 12px 32px rgba(0,0,0,0.14);
   }
 }
 
@@ -121,19 +173,30 @@
   --bg: #f4f4f5;
   --surface: #fdfdfd;
   --raised: #efeff1;
-  --border: #d7d7d9;
+  --border: #e3e3e6;
   --text: #17171b;
-  --muted: #5a5a63;
+  --muted: #4a4a52;
   --accent: #f47720;
   --on-accent: #17171b;
   --accent-text: #ab5316;
   --rose: #df285d;
+  --subtle: #64646c;
+  --sidebar: #ececef;
+  --segment: #e6e6e9;
+  --track: #e6e6e9;
+  --avatar: #ececef;
+  --primary: #17171b;
+  --on-primary: #fdfdfd;
+  --accent-line: #ab5316;
+  --border-control: #83838b;
   --status-active-dot: #ab5316;
   --status-active-text: #ab5316;
   --status-active-badge: #fcede2;
-  --status-waiting-dot: #664e04;
+  --status-active-border: #f4d3bb;
+  --status-waiting-dot: #a87e00;
   --status-waiting-text: #664e04;
   --status-waiting-badge: #fdf6e0;
+  --status-waiting-border: #f1e2b0;
   --status-completed-dot: #3a3a44;
   --status-completed-text: #3a3a44;
   --status-completed-badge: #f8f8f9;
@@ -143,4 +206,22 @@
   --status-abandoned-dot: #5a5a63;
   --status-abandoned-text: #5a5a63;
   --status-abandoned-badge: #f3f3f3;
+  --agent-violet-text: #5b3fa8;
+  --agent-violet-bg: #efe9fb;
+  --agent-blue-text: #2456a6;
+  --agent-blue-bg: #e6eefb;
+  --agent-teal-text: #11695f;
+  --agent-teal-bg: #e2f3f1;
+  --agent-indigo-text: #3b4594;
+  --agent-indigo-bg: #e8eaf8;
+  --shadow-float: 0 12px 32px rgba(0,0,0,0.14);
+}
+
+/* Movimento reduzido: as três durações viram 0ms, nos dois temas. Vem depois dos blocos de tema. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-move: 0ms;
+  }
 }

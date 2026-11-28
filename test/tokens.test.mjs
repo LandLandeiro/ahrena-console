@@ -2,7 +2,7 @@
 // Roda com: node --test test/
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
 const tokens = JSON.parse(readFileSync(new URL('../docs/brand/tokens.json', import.meta.url), 'utf8'))
@@ -11,6 +11,9 @@ const STATUS = ['active', 'waiting', 'completed', 'error', 'abandoned']
 const THEMES = ['dark', 'light']
 const AA_TEXT = 4.5 // WCAG 1.4.3
 const AA_NON_TEXT = 3 // WCAG 1.4.11
+const STATUS_WITH_BORDER = ['active', 'waiting']
+const SURFACES = ['bg', 'surface', 'raised', 'sidebar', 'segment']
+const AGENT_COLORS = ['violet', 'blue', 'teal', 'indigo']
 
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
 
@@ -141,22 +144,48 @@ test('o erro não se confunde com o rosa da marca', () => {
   }
 })
 
-test('tipografia: Poppins e JetBrains Mono, com fallback do sistema', () => {
-  assert.match(tokens.typography.sans, /^"Poppins"/)
-  assert.match(tokens.typography.sans, /sans-serif$/)
-  assert.match(tokens.typography.mono, /^"JetBrains Mono"/)
-  assert.match(tokens.typography.mono, /monospace$/)
+test('typography: the system stacks, no external font and no font URL', () => {
+  const typography = tokens.typography
+  assert.equal(typography.sans, '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif')
+  assert.equal(typography.mono, 'ui-monospace, "SF Mono", Menlo, Consolas, monospace')
+  assert.ok(!('googleFonts' in typography), 'googleFonts is gone')
+  assert.doesNotMatch(JSON.stringify(typography), /https?:|googleapis|gstatic|@font-face|Poppins|JetBrains/i, 'no font URL and no web font')
+})
+
+test('typography: the 12 to 28 scale stays, with the 30px title, the 64px hero and the title tracking', () => {
+  assert.deepEqual(tokens.typography.size, { xs: '12px', sm: '13px', md: '14px', lg: '16px', xl: '20px', xxl: '28px', title: '30px', hero: '64px' })
+  assert.deepEqual(tokens.typography.weight, { regular: 400, medium: 500, semibold: 600 })
+  assert.deepEqual(tokens.typography.tracking, { title: '-0.02em' })
+})
+
+test('the files that show the brand load no external font', () => {
+  for (const file of ['docs/brand/amostra.html', 'docs/wireframes/index.html', 'packages/marca/gerado/marca.css', 'packages/nucleo/ui/brand.css']) {
+    const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
+    assert.doesNotMatch(text, /fonts\.googleapis|fonts\.gstatic|@font-face|Poppins|JetBrains/i, `${file} names an external font`)
+  }
 })
 
 test('a amostra usa os mesmos valores dos tokens', () => {
   const html = readFileSync(new URL('../docs/brand/amostra.html', import.meta.url), 'utf8')
   const used = []
+  for (const color of AGENT_COLORS) for (const theme of THEMES) used.push(...Object.values(tokens.agent[color][theme]))
+  for (const name of Object.keys(tokens.radius).filter((k) => !k.startsWith('_'))) used.push(tokens.radius[name])
   for (const theme of THEMES) {
+    used.push(tokens.shadow[theme].float)
     used.push(...Object.entries(tokens.themes[theme]).filter(([k]) => !k.startsWith('_')).map(([, v]) => v))
     for (const id of STATUS) used.push(...Object.values(tokens.status[id][theme]))
   }
   for (const id of STATUS) used.push(tokens.status[id].color, tokens.status[id].label, tokens.status[id].glyph)
   for (const value of new Set(used)) assert.ok(html.includes(value), `a amostra não tem ${value}`)
+})
+
+test('only the two theme sections carry the theme class in the sample', () => {
+  const html = readFileSync(new URL('../docs/brand/amostra.html', import.meta.url), 'utf8')
+  const carriers = [...html.matchAll(/<(\w+)[^>]*\sclass="([^"]*)"/g)].filter(([, , cls]) => cls.split(/\s+/).some((c) => THEMES.includes(c)))
+  assert.deepEqual(carriers.map(([, tag, cls]) => `${tag}.${cls}`).sort(), THEMES.map((t) => `section.theme ${t}`).sort(), 'an element other than the theme section carries a theme class')
+  const rules = [...html.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)].map((m) => m[1].trim())
+  const clashing = rules.filter((r) => THEMES.some((t) => new RegExp(`\\.${t}\\b`).test(r)) && !THEMES.some((t) => r === `.${t}` || r === `.theme.${t}`))
+  assert.deepEqual(clashing, [], 'a selector other than the theme one uses a theme class name')
 })
 
 // #665: each colour has a value in both themes and the spacing scale is compact
@@ -173,9 +202,140 @@ test('dark and light have identical colour keys, each a hex, and nothing is left
 test('each status has the same keys, all hex, in the dark and the light theme', () => {
   for (const id of STATUS) {
     const dark = roleKeys(tokens.status[id].dark)
-    assert.deepEqual(dark, ['badge', 'dot', 'text'], `${id}.dark`)
+    // #749: only active and waiting carry a decorative tag border.
+    assert.deepEqual(dark, STATUS_WITH_BORDER.includes(id) ? ['badge', 'border', 'dot', 'text'] : ['badge', 'dot', 'text'], `${id}.dark`)
     assert.deepEqual(roleKeys(tokens.status[id].light), dark, `${id}.light`)
     for (const theme of THEMES) for (const key of dark) assert.ok(isHex(tokens.status[id][theme][key]), `status.${id}.${theme}.${key} is not a hex`)
+  }
+})
+
+// #749: brand tokens v2. Each new role is checked on the surfaces where it is used, in both themes.
+
+test('#749: text, muted and subtle pass 4.5:1 on bg, surface, raised, sidebar and segment, and on the avatar', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    for (const fg of ['text', 'muted', 'subtle']) {
+      for (const bg of [...SURFACES, 'avatar']) assertContrast(t[fg], t[bg], AA_TEXT, `${theme}.${fg} on ${bg}`)
+    }
+  }
+})
+
+test('#749: onPrimary passes 4.5:1 on primary, and accentLine passes 3:1 on bg, surface, raised, sidebar and segment', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    assertContrast(t.onPrimary, t.primary, AA_TEXT, `${theme}.onPrimary on primary`)
+    for (const bg of SURFACES) assertContrast(t.accentLine, t[bg], AA_NON_TEXT, `${theme}.accentLine on ${bg}`)
+  }
+})
+
+test('#749: borderControl passes 3:1 on bg, surface, sidebar and segment, and is not the divider border', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    for (const bg of ['bg', 'surface', 'sidebar', 'segment']) assertContrast(t.borderControl, t[bg], AA_NON_TEXT, `${theme}.borderControl on ${bg}`)
+    assert.notEqual(t.borderControl, t.border, `${theme}: a control edge is not the divider`)
+    assert.ok(contrast(t.borderControl, t.bg) > contrast(t.border, t.bg), `${theme}: borderControl is stronger than border`)
+  }
+})
+
+test('#749: the orange stroke is not text on sidebar and segment in the light theme; as a stroke it passes', () => {
+  const light = tokens.themes.light
+  assert.equal(light.accentLine, tokens.orange['700'])
+  for (const bg of ['sidebar', 'segment']) {
+    assert.ok(contrast(light.accentLine, light[bg]) < AA_TEXT, `light.accentLine reads as text on ${bg}`)
+    assertContrast(light.accentLine, light[bg], AA_NON_TEXT, `light.accentLine as a stroke on ${bg}`)
+  }
+})
+
+// #749: the full matrix: every text role over every background role, in both themes. The pairs under 4.5:1 are
+// #749: the ones docs/design.md lists as "not text there"; a pair leaving or joining that list fails here.
+const TEXT_BELOW_AA = {
+  dark: {
+    subtle: ['track'],
+    accentText: ['track'],
+    accentLine: ['track'],
+    'status.active.text': ['track'],
+    'status.error.text': ['track', 'avatar'],
+  },
+  light: {
+    accentText: ['sidebar', 'segment', 'track', 'avatar'],
+    accentLine: ['sidebar', 'segment', 'track', 'avatar'],
+    'status.active.text': ['sidebar', 'segment', 'track', 'avatar'],
+  },
+}
+
+test('#749: every text role passes 4.5:1 on every background role, except the pairs design.md lists', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    const texts = { text: t.text, muted: t.muted, subtle: t.subtle, accentText: t.accentText, accentLine: t.accentLine }
+    for (const id of STATUS) texts[`status.${id}.text`] = tokens.status[id][theme].text
+    for (const [role, fg] of Object.entries(texts)) {
+      for (const bg of [...SURFACES, 'track', 'avatar']) {
+        const listed = (TEXT_BELOW_AA[theme][role] ?? []).includes(bg)
+        if (listed) assert.ok(contrast(fg, t[bg]) < AA_TEXT, `${theme}.${role} on ${bg} is listed as under 4.5:1 but passes: take it off the list and off docs/design.md`)
+        else assertContrast(fg, t[bg], AA_TEXT, `${theme}.${role} on ${bg}`)
+      }
+    }
+  }
+})
+
+test('#749: the waiting dot of the light theme is not an icon on segment and track; the count there uses the waiting text, which passes', () => {
+  const light = tokens.themes.light
+  const waiting = tokens.status.waiting.light
+  assert.equal(waiting.dot, '#a87e00')
+  for (const bg of ['segment', 'track']) {
+    assert.ok(contrast(waiting.dot, light[bg]) < AA_NON_TEXT, `waiting.light.dot reads as an icon on ${bg}`)
+    assert.equal(waiting.text, tokens.yellow['900'], 'the replacement is the waiting text')
+    assertContrast(waiting.text, light[bg], AA_TEXT, `waiting.light.text on ${bg}`)
+  }
+  for (const bg of ['bg', 'surface', 'raised', 'sidebar']) assertContrast(waiting.dot, light[bg], AA_NON_TEXT, `waiting.light.dot on ${bg}`)
+})
+
+test('#749: the divider border is lighter than the old one in both themes, and a real divider on the page background', () => {
+  for (const theme of THEMES) {
+    const t = tokens.themes[theme]
+    assert.ok(contrast(t.border, t.bg) > 1.05, `${theme}.border is visible on bg`)
+    assert.ok(contrast(t.border, t.bg) < AA_NON_TEXT, `${theme}.border is a divider, not a control edge`)
+  }
+})
+
+test('#749: every agent colour has a text and a background in each theme, the text passes 4.5:1 on its background, and none is a status colour', () => {
+  assert.deepEqual(Object.keys(tokens.agent).filter((k) => !k.startsWith('_')), AGENT_COLORS)
+  const statusColours = new Set(STATUS.flatMap((id) => [tokens.status[id].color, ...THEMES.flatMap((theme) => [tokens.status[id][theme].dot, tokens.status[id][theme].text])]))
+  for (const color of AGENT_COLORS) {
+    for (const theme of THEMES) {
+      const a = tokens.agent[color][theme]
+      assert.deepEqual(roleKeys(a), ['bg', 'text'], `agent.${color}.${theme}`)
+      assert.ok(isHex(a.text) && isHex(a.bg), `agent.${color}.${theme} is not hex`)
+      assertContrast(a.text, a.bg, AA_TEXT, `agent.${color}.${theme}.text on its background`)
+      assert.ok(!statusColours.has(a.text), `agent.${color}.${theme}.text is a status colour`)
+    }
+  }
+})
+
+test('#749: the radius scale has the six names, in px, and full is the only pill', () => {
+  const names = Object.keys(tokens.radius).filter((k) => !k.startsWith('_'))
+  assert.deepEqual(names, ['card', 'control', 'tag', 'segment', 'segmentItem', 'full'])
+  for (const n of names) assert.match(tokens.radius[n], /^\d+px$/, `radius.${n} is not px`)
+  assert.deepEqual(names.map((n) => parseInt(tokens.radius[n], 10)), [8, 6, 4, 8, 6, 999])
+})
+
+test('#749: the float shadow exists per theme, outside themes.*, which stays all hex', () => {
+  for (const theme of THEMES) {
+    assert.match(tokens.shadow[theme].float, /^0 \d+px \d+px rgba\(0,0,0,0?\.\d+\)$/, `shadow.${theme}.float`)
+    assert.ok(!('float' in tokens.themes[theme]) && !('shadow' in tokens.themes[theme]), `themes.${theme} holds no shadow`)
+  }
+  assert.ok(parseFloat(tokens.shadow.dark.float.match(/0?\.\d+/)[0]) > parseFloat(tokens.shadow.light.float.match(/0?\.\d+/)[0]), 'the dark shadow is the stronger one')
+})
+
+test('#749: only active and waiting carry a tag border, a hex apart from the badge and the dot', () => {
+  for (const id of STATUS) {
+    for (const theme of THEMES) {
+      const s = tokens.status[id][theme]
+      if (!STATUS_WITH_BORDER.includes(id)) { assert.ok(!('border' in s), `${id}.${theme} has no border`); continue }
+      assert.ok(isHex(s.border), `${id}.${theme}.border`)
+      assert.notEqual(s.border, s.badge, `${id}.${theme}.border differs from the badge`)
+      assert.notEqual(s.border, s.dot, `${id}.${theme}.border differs from the dot`)
+    }
   }
 })
 
@@ -252,4 +412,135 @@ test('#700/AC-2: no generated or hand-written consumer references a green token'
     text.split('\n').forEach((line, i) => { if (GREEN_REFERENCE.test(line)) found.push(`${file}:${i + 1}`) })
   }
   assert.deepEqual(found, [], 'a consumer still references the retired green')
+})
+
+// #749: error text on the background set in its own rule or in its parent selector's rule, and on every background written as a color-mix of an error token, stays at 4.5:1 or more.
+const UI_DIR = new URL('../packages/nucleo/ui/', import.meta.url)
+
+function uiCssFiles(dir = UI_DIR) {
+  const out = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), dir)
+    if (entry.isDirectory()) out.push(...uiCssFiles(url))
+    else if (entry.name.endsWith('.css') && entry.name !== 'brand.css') out.push(url)
+  }
+  return out
+}
+
+function cssRules(file) {
+  const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const rules = []
+  for (const m of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const decls = {}
+    for (const d of m[2].split(';')) {
+      const i = d.indexOf(':')
+      if (i > 0) decls[d.slice(0, i).trim()] = d.slice(i + 1).trim()
+    }
+    for (const selector of m[1].split(',').map((s) => s.trim())) rules.push({ selector, decls })
+  }
+  return rules
+}
+
+const splitTop = (s) => {
+  const parts = []
+  let depth = 0
+  let from = 0
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')') depth--
+    else if (s[i] === ',' && depth === 0) { parts.push(s.slice(from, i).trim()); from = i + 1 }
+  }
+  parts.push(s.slice(from).trim())
+  return parts
+}
+
+// #749: a colour is { rgb: 0-255, a: 0-1 }; a mix with transparent keeps the colour and drops the alpha.
+function paint(value, theme) {
+  const v = value.trim()
+  if (v === 'transparent') return { rgb: [0, 0, 0], a: 0 }
+  const variable = v.match(/^var\(--([a-z0-9-]+)\)$/)
+  if (variable) return { rgb: rgb(themeHex(variable[1], theme)), a: 1 }
+  const mix = v.match(/^color-mix\(\s*in\s+srgb\s*,(.*)\)$/s)
+  if (!mix) throw new Error(`cannot read the colour "${v}"`)
+  const [first, second] = splitTop(mix[1]).map((part) => {
+    const pct = part.match(/\s(\d+(?:\.\d+)?)%$/)
+    return { color: paint(pct ? part.slice(0, pct.index) : part, theme), pct: pct ? Number(pct[1]) / 100 : null }
+  })
+  const pa = first.pct ?? (second.pct === null ? 0.5 : 1 - second.pct)
+  const pb = second.pct ?? 1 - pa
+  const a = first.color.a * pa + second.color.a * pb
+  const channel = (i) => (first.color.rgb[i] * first.color.a * pa + second.color.rgb[i] * second.color.a * pb) / a
+  return { rgb: [channel(0), channel(1), channel(2)], a }
+}
+
+function themeHex(name, theme) {
+  const status = name.match(/^status-([a-z]+)-(dot|text|badge)$/)
+  if (status) return tokens.status[status[1]][theme][status[2]]
+  const key = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())
+  if (tokens.themes[theme][key]) return tokens.themes[theme][key]
+  throw new Error(`no token behind --${name}`)
+}
+
+const over = (top, below) => top.rgb.map((c, i) => c * top.a + below[i] * (1 - top.a))
+const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`
+
+const ERROR_TEXT = /^var\(--status-error-text\)$/
+const ERROR_MIX = /^color-mix\(.*--status-error-/s
+const backgroundOf = (decls) => decls['background-color'] ?? (decls.background && !decls.background.includes(' ') ? decls.background : decls.background?.match(/^(color-mix\(.*\)|var\(--[a-z-]+\)|transparent)/s)?.[1])
+// #749: the one mix of an error token that holds no text: the recording meter bar.
+const ERROR_MIX_WITHOUT_TEXT = new Set(['screens/session-message.css .sm-level i'])
+
+// #749: the pairs measured: a rule that sets the error text and a background in the same rule or, for a descendant, the first rule of its parent selector; and every rule whose background is written as a color-mix of an error token, against the error text, except the one in ERROR_MIX_WITHOUT_TEXT.
+function errorPairs() {
+  const labels = []
+  const mixes = []
+  for (const file of uiCssFiles()) {
+    const name = file.pathname.split('/packages/nucleo/ui/')[1]
+    const rules = cssRules(file)
+    for (const { selector, decls } of rules) {
+      const own = backgroundOf(decls)
+      if (ERROR_MIX.test(own ?? '') && !ERROR_MIX_WITHOUT_TEXT.has(`${name} ${selector}`)) mixes.push({ file: name, selector, background: own })
+      if (!ERROR_TEXT.test(decls.color ?? '')) continue
+      let background = own
+      if (!background) {
+        const parent = selector.replace(/\s*(?:>\s*)?[^\s>]+$/, '')
+        background = backgroundOf(rules.find((r) => r.selector === parent && backgroundOf(r.decls))?.decls ?? {})
+      }
+      if (background) labels.push({ file: name, selector, background })
+    }
+  }
+  return { labels, mixes }
+}
+
+test('#749: error text reaches 4.5:1 on the background set in its own rule or in its parent selector\'s rule, and on every background written as a color-mix of an error token, on bg, surface and raised, in both themes', () => {
+  const { labels, mixes } = errorPairs()
+  const found = new Set(labels.map((l) => `${l.file} ${l.selector}`))
+  const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'wall-b-error', 'kb-b-error', 'sd-s-error', 'wb-pill-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
+  for (const needle of known) {
+    assert.ok([...found].some((f) => f.includes(needle)), `the guard does not find ${needle}: it would pass with nothing to check`)
+  }
+  for (const file of ['repos.css', 'feed.css', 'dashboard.css', 'sessions.css', 'history.css', 'screens/machine-connection.css', 'screens/clouds.css', 'screens/machine.css', 'screens/workflows.css']) {
+    assert.ok(found.has(`${file} .b-error`), `the guard does not find .b-error in ${file}`)
+  }
+  assert.ok(labels.length >= 20, `the guard found only ${labels.length} error labels`)
+  assert.ok(mixes.length >= 8, `the guard found only ${mixes.length} mixes of an error token`)
+  const low = []
+  const cases = THEMES.flatMap((theme) => [...labels, ...mixes].map((pair) => ({ theme, pair })))
+  for (const { theme, pair } of cases) {
+    const back = paint(pair.background, theme)
+    for (const surface of ['bg', 'surface', 'raised']) {
+      const r = contrast(tokens.status.error[theme].text, hex(over(back, rgb(tokens.themes[theme][surface]))))
+      if (r < AA_TEXT) low.push(`${pair.file} ${pair.selector} on ${surface} (${theme}): ${r.toFixed(2)}:1 over ${pair.background}`)
+    }
+  }
+  assert.deepEqual(low, [], 'error text is under 4.5:1: paint it with the opaque pair --status-error-badge')
+})
+
+test('#749: the motion group has three durations in ms, two easings and a note on reduced motion', () => {
+  const names = Object.keys(tokens.motion).filter((k) => !k.startsWith('_'))
+  assert.deepEqual(names, ['fast', 'base', 'move', 'easeOut', 'easeIn'])
+  assert.deepEqual(['fast', 'base', 'move'].map((n) => tokens.motion[n]), ['120ms', '180ms', '220ms'])
+  assert.equal(tokens.motion.easeOut, 'cubic-bezier(0.2, 0, 0, 1)')
+  assert.equal(tokens.motion.easeIn, 'cubic-bezier(0.4, 0, 1, 1)')
+  assert.match(tokens.motion._note, /prefers-reduced-motion/)
 })
