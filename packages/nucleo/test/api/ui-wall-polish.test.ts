@@ -45,7 +45,7 @@ const working = (id: string, extra: Card = {}): Card => ({ id, title: `Sessão $
 const blocked = (id: string, extra: Card = {}) => working(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, ...extra });
 const paused = (id: string, extra: Card = {}) => working(id, { attention: { level: 'idle', reason: 'turn_ended' }, ...extra });
 const finished = (id: string, extra: Card = {}) => working(id, { status: 'completed', state: 'completed', activity: { type: 'completed', text: '' }, ...extra });
-const wallOf = (cards: Card[], machines?: unknown[]) => ({ version: 1, count: { all: cards.length, blocked: 1, idle: 0 }, cards, ...(machines ? { machines } : {}) });
+const wallOf = (cards: Card[], machines?: unknown[], byMachine?: unknown[]) => ({ version: 1, count: { all: cards.length, blocked: 1, idle: 0 }, cards, ...(machines ? { machines } : {}), ...(byMachine ? { byMachine } : {}) });
 
 function start(initial: Card, { gate = null as Promise<void> | null, failRead = false, area = new ElementoFalso('main') } = {}) {
   resetOpenStates();
@@ -258,13 +258,27 @@ describe('#758: the notice in the corner', () => {
     const ws = { id: 'ws', label: 'Workstation', state: 'connected' };
     const down = { ...ws, state: 'unreachable' };
     const remote = { id: 'ws', label: 'Workstation' };
-    const s = await mountWith(wallOf([working('w1')], [local, ws]));
-    await s.reread(wallOf([working('w1')], [local, down]));
-    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote })], [local, ws]));
+    const answered = [{ id: 'local' }, { id: 'ws' }];
+    const s = await mountWith(wallOf([working('w1')], [local, ws], answered));
+    await s.reread(wallOf([working('w1')], [local, down], [{ id: 'local' }]));
+    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote })], [local, ws], answered));
     assert.equal(notices(s).length, 0, 'the old request of the remote that came back says nothing');
-    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote }), blocked('fresh', { machine: remote, title: 'Pedido de agora' })], [local, ws]), [{ type: 'needs-you' }]);
+    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote }), blocked('fresh', { machine: remote, title: 'Pedido de agora' })], [local, ws], answered), [{ type: 'needs-you' }]);
     assert.equal(notices(s).length, 1, 'a request that is new while the remote is up still says so');
     assert.match(innerText(notices(s)[0]!), /Pedido novo: Pedido de agora/);
+  });
+
+  test('a remote that stays connected but is missing from byMachine for one read does not make its old blocked sessions a new request', async () => {
+    const local = { id: 'local', label: 'Esta máquina', state: 'connected' };
+    const ws = { id: 'ws', label: 'Workstation', state: 'connected' };
+    const remote = { id: 'ws', label: 'Workstation' };
+    const answered = [{ id: 'local' }, { id: 'ws' }];
+    const s = await mountWith(wallOf([working('w1'), blocked('old1', { machine: remote }), blocked('old2', { machine: remote })], [local, ws], answered));
+    await s.reread(wallOf([working('w1')], [local, ws], [{ id: 'local' }]));
+    await s.reread(wallOf([working('w1'), blocked('old1', { machine: remote }), blocked('old2', { machine: remote })], [local, ws], answered));
+    assert.equal(notices(s).length, 0, 'a slow remote is still connected, but it did not answer: its old requests say nothing when it comes back');
+    await s.reread(wallOf([working('w1'), blocked('old1', { machine: remote }), blocked('old2', { machine: remote }), blocked('fresh', { machine: remote, title: 'Pedido de agora' })], [local, ws], answered), [{ type: 'needs-you' }]);
+    assert.equal(notices(s).length, 1, 'a request that is new while the remote answers still says so');
   });
 
   test('a move that is neither a new request nor a finish says nothing', async () => {
