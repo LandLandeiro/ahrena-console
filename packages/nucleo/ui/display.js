@@ -77,7 +77,7 @@ export function writeDisplay(forMode, value, storage = pageStorage()) {
   try {
     storage?.setItem(KEYS[forMode], JSON.stringify(stored));
   } catch {
-    // The choice is in memory; it is lost on a reload.
+    // The choice is in memory; it is lost on a reload (#754, ADR-0028).
   }
 }
 
