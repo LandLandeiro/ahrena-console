@@ -267,6 +267,20 @@ describe('issue 759: the Início mounted', () => {
     assert.match(label, /white-space:\s*normal/, 'a longer word wraps instead of being cut');
   });
 
+  test('the state tag of the active agent cards is never cut with an ellipsis and keeps its icon', () => {
+    const css = readFileSync(`${UI_FOLDER}dashboard.css`, 'utf8');
+    const rule = (selector: string) => new RegExp(`${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+    const tag = rule('.ac .l1 .state-tag');
+    assert.match(tag, /flex:\s*0 1 auto|flex:\s*none/, 'the tag sizes itself by its content, the title is what yields');
+    assert.doesNotMatch(tag, /overflow:\s*hidden|text-overflow:\s*ellipsis/);
+    const label = rule('.ac .l1 .state-tag-label');
+    assert.ok(label, 'the label has its own rule in the active agent cards');
+    assert.doesNotMatch(label, /text-overflow:\s*ellipsis|overflow:\s*hidden/);
+    assert.match(label, /overflow:\s*visible/);
+    assert.match(label, /white-space:\s*normal/, 'a longer word wraps instead of being cut');
+    assert.match(readFileSync(`${UI_FOLDER}state-icon.css`, 'utf8'), /\.state-icon\s*\{[^}]*flex:\s*none/, 'the icon keeps its size');
+  });
+
   test('the sections keep their h2: the inbox, the active agents and the recent activity', async () => {
     const { ctx, area, leave } = rig({});
     stops.push(await dashboard.mount(area, ctx));
