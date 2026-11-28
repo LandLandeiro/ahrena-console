@@ -108,7 +108,7 @@ O Analytics tem duas abas, que são a mesma tela: em `screens.js`, a entrada `an
        try {
          const data = await ctx.read('/api/...');
          setHeaderSub(head, data.length ? `${data.length} ${data.length === 1 ? 'item espera' : 'itens esperam'} você.` : null);
-         area.replaceChildren(head, data.length ? list(data) : empty({ title: 'Nenhuma sessão ainda', text: '…' }));
+         area.replaceChildren(head, data.length ? list(data) : empty({ title: 'Nenhum item ainda', text: '…' }));
        } catch (e) {
          if (e.name === 'AbortError') return;
          area.replaceChildren(head, error({ text: e.message, retry: draw }));
