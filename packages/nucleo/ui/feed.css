@@ -3,7 +3,7 @@
    campo, linha, bloco de ferramenta) estão aqui, com os nomes do wireframe. */
 
 /* issue 763: the state of a row is the icon and the label of state-icon.css, in a column of its own width. */
-.feed-state { flex: 0 1 150px; min-width: 0; display: flex; }
+.feed-state { flex: none; width: 150px; min-width: 0; display: flex; }
 
 .feed-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: var(--radius-control); font-size: 11.5px; background: var(--raised); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; font-family: var(--font-mono); flex: none; }
 .feed-field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--radius-control); background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 0; }
@@ -66,6 +66,13 @@
 @media (max-width: 900px) {
   .feed-trail { display: none; }
   .feed-detail { grid-template-columns: 1fr; padding-left: 14px; }
+}
+
+/* #763: on a narrow screen the row wraps instead of squeezing the state; the summary takes the second line. */
+@media (max-width: 600px) {
+  .feed-row { flex-wrap: wrap; row-gap: 6px; }
+  .feed-state { width: auto; }
+  .feed-summary { flex: 1 0 100%; order: 1; }
 }
 
 /* Issue 243 (C47): the machine filter and the C48 notices, under the header. */
