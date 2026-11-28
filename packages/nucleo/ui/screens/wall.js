@@ -11,6 +11,9 @@ import { stateLabel } from '../state-labels.js';
 import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
 import { newSessionButton } from '../new-session.js';
+import { displayButton } from '../display-panel.js';
+import { displayMode, getDisplay, onDisplayChange } from '../display.js';
+import { machineShown, techLine } from '../wall-display.js';
 import { clockOf, countsOf, duoCells, sectionOf, sectionsOf, summaryOf, summaryText } from '../wall-sections.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceText, whereText } from '../machine-filter.js';
 
@@ -167,11 +170,18 @@ function bar({ valor: value, max, rotulo: label, alto: high = false, tipo: type 
 }
 
 /** The monogram (only where agents differ on screen, issue 751), the name and since when, with the state on the right (ADR-0028). */
-function who(tag, since, agent, mono) {
-  return el('div', { class: 'wall-who' }, mono ? agentMonogram(agent) : null, el('b', { class: 'wall-name' }, agent), el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
+function who(tag, since, agent, mono, show) {
+  return el('div', { class: 'wall-who' }, mono && show.agent ? agentMonogram(agent) : null, show.agent ? el('b', { class: 'wall-name' }, agent) : null, el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
 }
 
-const machineOf = (c, known) => (known || isRemote(c) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
+// issue 754, M7: a remote machine says its name; this one only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
+const machineOf = (c, known, view) => (machineShown({ show: view.show, density: view.density, mode: view.mode, remote: isRemote(c), known }) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
+
+// issue 754: the mono line of Exibir (model, cost, use of the conversation, branch); `null` when no field of it is on.
+const techOf = (c, view) => {
+  const text = techLine(c, view.show);
+  return text ? el('p', { class: 'wall-tech', 'data-line': 'tech', title: text }, text) : null;
+};
 
 // ADR-0028: what the keyboard can be on, by session key: the link and the open button; a redraw puts the focus back by it.
 function spotsOf(nest, key, link, action, see = null) {
@@ -196,7 +206,7 @@ function tree(c, summary, opened, nest) {
   return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids', role: 'list', 'aria-label': `Filhas de ${c.title}` }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
 }
 
-function card(c, write, nest, known, mono) {
+function card(c, write, nest, known, mono, view) {
   const v = cardContent(c);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
@@ -209,17 +219,19 @@ function card(c, write, nest, known, mono) {
   const node = el(
     'div',
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
-    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono),
+    who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono, view.show),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
     action || see ? el('div', { class: 'wall-act' }, action ?? see) : null,
     ...tree(c, summary, opened, nest),
-    foot(v, machineOf(c, known)),
+    techOf(c, view),
+    foot(v, machineOf(c, known, view), view.show),
   );
   return { node, link };
 }
 
-function row(c, write, nest, known, mono, place = '') {
+function row(c, write, nest, known, mono, view, place = '') {
   const v = rowContent(c);
+  const showMono = mono && view.show.agent;
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
@@ -232,17 +244,17 @@ function row(c, write, nest, known, mono, place = '') {
     { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${place}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     el(
       'div',
-      { class: `wall-main${mono ? '' : ' wall-main-solo'}` },
-      mono ? agentMonogram(v.agent) : null,
-      el('div', { class: 'wall-text' }, titleLine(link, parentTitle), v.phrase ? el('span', { class: `wall-phrase${working ? ' wall-phrase-work' : ''}`, title: v.phrase }, v.phrase) : null),
+      { class: `wall-main${showMono ? '' : ' wall-main-solo'}` },
+      showMono ? agentMonogram(v.agent) : null,
+      el('div', { class: 'wall-text' }, titleLine(link, parentTitle), view.show.phrase && v.phrase ? el('span', { class: `wall-phrase${working ? ' wall-phrase-work' : ''}`, title: v.phrase }, v.phrase) : null, techOf(c, view)),
       el(
         'div',
         { class: 'wall-side' },
-        tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }), link),
+        tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: view.show.plan ? v.fraction : 0 }), link),
         v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
-        v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
-        machineOf(c, known),
+        view.show.plan && v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
+        machineOf(c, known, view),
         action ? el('span', { class: 'wall-act' }, action) : null,
       ),
     ),
@@ -334,9 +346,9 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
   );
 }
 
-function foot(v, machine) {
+function foot(v, machine, show) {
   const failed = v.state.kind === 'error';
-  const step = v.plan && !failed ? v.plan : null;
+  const step = show.plan && v.plan && !failed ? v.plan : null;
   const parts = [
     step ? el('span', { class: 'wall-num', 'data-foot': 'step' }, step.label) : null,
     step ? bar({ tipo: 'plan', valor: step.step, max: step.total, rotulo: step.label }) : null,
@@ -390,7 +402,7 @@ export async function mount(area, ctx) {
     lead.textContent = parts.lead;
     rest.textContent = parts.rest ? ` ${parts.rest}` : '';
   }
-  const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, newSessionButton({ read: ctx.read, write: ctx.write })));
+  const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, displayButton({ onChange: () => draw() }), newSessionButton({ read: ctx.read, write: ctx.write })));
   // Issue 243 (C46), ADR-0028: the machine menu sits at the end of the row of the state filter.
   const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), draw(), read()), reread: () => read(), onLayout: () => draw(), menu: { itemsOf: (b) => b.cards ?? [] }, fallbackFocus: () => buttons.get(filter) });
   const segs = el('div', { class: 'wall-segs' }, selector, machines.row);
@@ -485,6 +497,7 @@ export async function mount(area, ctx) {
     const held = { toggled, popover, key: holder ? (holder.getAttribute('data-key') ?? holder.getAttribute('data-session')) : null };
     const fresh = [];
     const nodes = build(fresh);
+    area.setAttribute('data-wall-density', getDisplay().density);
     place(nodes);
     if (area.scrollTop !== top) area.scrollTop = top;
     const target = focusTarget(was, held, fresh);
@@ -523,6 +536,8 @@ export async function mount(area, ctx) {
       spot: (kind, id, node) => fresh.push({ kind, id, node }),
     };
     const known = machines.hasRemotes();
+    // issue 754: the Exibir choice of the current mode, read at every draw.
+    const view = { ...getDisplay(), mode: displayMode() };
     // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn, in every section, have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
     const by = sectionsOf(cards);
@@ -532,10 +547,10 @@ export async function mount(area, ctx) {
       return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content);
     };
     const list = (id, nodes, extra = '') => el('div', { class: `wall-list${extra}`, role: 'list', 'aria-labelledby': `wall-h-${id}` }, ...nodes);
-    const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known, mono).node);
+    const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known, mono, view).node);
     const calm = (filter === 'all' || filter === 'blocked') && total > 0 && !machines.chosenDown();
     if (by.blocked.length) {
-      sections.push(section('blocked', ATTENTION_PLURAL.blocked, by.blocked.length, el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...by.blocked.map((c) => card(c, ctx.write, nest, known, mono).node))));
+      sections.push(section('blocked', ATTENTION_PLURAL.blocked, by.blocked.length, el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...by.blocked.map((c) => card(c, ctx.write, nest, known, mono, view).node))));
     } else if (calm) {
       sections.push(section('blocked', ATTENTION_PLURAL.blocked, 0, calmBlock()));
     }
@@ -543,7 +558,7 @@ export async function mount(area, ctx) {
       const spans = by.active.map((c) => Boolean(treeSummary(c.tree)) && nest.isOpen(c.id));
       const nodes = duoCells(spans).map((cell) => {
         if (cell.i === null) return el('div', { class: `wall-filler${cell.last ? ' wall-last' : ''}${cell.first ? ' wall-first' : ''}`, 'aria-hidden': 'true' });
-        return row(by.active[cell.i], ctx.write, nest, known, mono, ` wall-${cell.side}${cell.first ? ' wall-first' : ''}${cell.last ? ' wall-last' : ''}`).node;
+        return row(by.active[cell.i], ctx.write, nest, known, mono, view, ` wall-${cell.side}${cell.first ? ' wall-first' : ''}${cell.last ? ' wall-last' : ''}`).node;
       });
       sections.push(section('active', stateLabel('active', { plural: true }), by.active.length, list('active', nodes, ' wall-duo')));
     }
@@ -576,6 +591,8 @@ export async function mount(area, ctx) {
     draw();
   }
 
+  // issue 754: a choice made in the panel, or in another mode, draws the wall again.
+  const stopDisplay = onDisplayChange(() => draw());
   ctx.onRestart(() => read());
   // ADR-0028, issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {
@@ -593,5 +610,9 @@ export async function mount(area, ctx) {
 
   draw();
   await read();
-  return () => clearTimeout(wait);
+  return () => {
+    clearTimeout(wait);
+    stopDisplay();
+    area.removeAttribute('data-wall-density');
+  };
 }

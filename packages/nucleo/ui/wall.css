@@ -161,3 +161,13 @@
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
   .wall-row .wall-mach { display: none; }
 }
+
+/* ---------- Issue 754: the Exibir choice. The compact density: sections 18px apart, cards at 14px, rows at 8px; the mono line of model, cost, use of the conversation and branch. ---------- */
+.wall-tech { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.4; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wall-text .wall-tech { contain: inline-size; }
+[data-wall-density="compact"] .wall-body { gap: 18px; }
+[data-wall-density="compact"] .wall-pair { gap: 18px; }
+[data-wall-density="compact"] .wall-h { margin-bottom: 8px; }
+[data-wall-density="compact"] .wall-grid { gap: 8px; }
+[data-wall-density="compact"] .wall-card { padding: 14px; gap: 8px; }
+[data-wall-density="compact"] .wall-row { padding: 8px 16px; }
