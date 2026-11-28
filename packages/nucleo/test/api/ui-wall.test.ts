@@ -128,6 +128,7 @@ class Elemento extends No {
 const head = new Elemento('head');
 Object.assign(globalThis, {
   Node: No,
+  reportError: () => {},
   MouseEvent: class {
     type: string;
     constructor(type: string, init: Record<string, unknown> = {}) {
@@ -151,7 +152,7 @@ Object.assign(globalThis, {
 const tela = await import('../../ui/screens/wall.js');
 // @ts-expect-error: idem
 const { findScreen } = await import('../../ui/screens.js');
-const { mount, cardContent, rowContent, agentOf, DEBOUNCE_MS } = tela;
+const { mount, cardContent, rowContent, agentOf, THROTTLE_MS } = tela;
 
 const comClasse = (raiz: No, c: string) => raiz.todos((e) => e.classes.includes(c));
 // #751: a blocked session is a card, the others are rows of one list; both carry data-session.
@@ -750,7 +751,7 @@ describe('Wall: live, the re-read after changes (#752)', () => {
   };
 
   test('the debounce is 120 ms', () => {
-    assert.equal(DEBOUNCE_MS, 120);
+    assert.equal(THROTTLE_MS, 120);
   });
 
   for (const type of ['needs-you', 'permission']) {
@@ -777,7 +778,7 @@ describe('Wall: live, the re-read after changes (#752)', () => {
       emit(ouvintes, [{ type: 'plan', key: 'a' }]);
       await settle(50);
       assert.equal(rotas.length, before, 'nothing before the debounce');
-      await settle(DEBOUNCE_MS + 150);
+      await settle(THROTTLE_MS + 150);
       assert.equal(rotas.length, before + 1, 'one read for the burst');
     } finally {
       await sair();
@@ -792,7 +793,7 @@ describe('Wall: live, the re-read after changes (#752)', () => {
       emit(ouvintes, [{ type: 'session', key: 'a' }]);
       await settle(40);
       emit(ouvintes, [{ type: 'needs-you', key: 'espera-1' }]);
-      await settle(DEBOUNCE_MS + 200);
+      await settle(THROTTLE_MS + 200);
       assert.equal(rotas.length, before + 1);
     } finally {
       await sair();
@@ -810,7 +811,7 @@ describe('Wall: live, the re-read after changes (#752)', () => {
       emit(ouvintes, undefined);
       await settle(30);
       assert.equal(rotas.length, before + 1, 'no list: debounced like any other change');
-      await settle(DEBOUNCE_MS + 150);
+      await settle(THROTTLE_MS + 150);
       assert.equal(rotas.length, before + 2);
     } finally {
       await sair();

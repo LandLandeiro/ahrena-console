@@ -16,7 +16,7 @@ import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceTex
 const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Wait before re-reading after a burst of changes that need no attention. */
-export const DEBOUNCE_MS = 120;
+export const THROTTLE_MS = 120;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
 // ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
@@ -567,18 +567,18 @@ export async function mount(area, ctx) {
   }
 
   ctx.onRestart(() => read());
-  // ADR-0028 (M2): one read per burst, DEBOUNCE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
+  // issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {
     if (Array.isArray(changes) && changes.some((c) => c?.type === 'needs-you' || c?.type === 'permission')) {
       clearTimeout(wait);
       wait = null;
-      read();
+      read().catch(reportError);
       return;
     }
     wait ??= setTimeout(() => {
       wait = null;
-      read();
-    }, DEBOUNCE_MS);
+      read().catch(reportError);
+    }, THROTTLE_MS);
   });
 
   draw();
