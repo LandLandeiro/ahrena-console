@@ -23,6 +23,8 @@ Object.assign(globalThis, {
 // @ts-expect-error: browser module, plain JavaScript
 const wall = await import('../../ui/screens/wall.js');
 // @ts-expect-error: idem
+const { createScreenSwap } = await import('../../ui/screen-swap.js');
+// @ts-expect-error: idem
 const { resetOpenStates } = await import('../../ui/open-action.js');
 // @ts-expect-error: idem
 const { resetMachineChoice } = await import('../../ui/machine-filter.js');
@@ -43,12 +45,11 @@ const working = (id: string, extra: Card = {}): Card => ({ id, title: `Sessão $
 const blocked = (id: string, extra: Card = {}) => working(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'question' }, ...extra });
 const paused = (id: string, extra: Card = {}) => working(id, { attention: { level: 'idle', reason: 'turn_ended' }, ...extra });
 const finished = (id: string, extra: Card = {}) => working(id, { status: 'completed', state: 'completed', activity: { type: 'completed', text: '' }, ...extra });
-const wallOf = (cards: Card[]) => ({ version: 1, count: { all: cards.length, blocked: 1, idle: 0 }, cards });
+const wallOf = (cards: Card[], machines?: unknown[]) => ({ version: 1, count: { all: cards.length, blocked: 1, idle: 0 }, cards, ...(machines ? { machines } : {}) });
 
-function start(initial: Card, { gate = null as Promise<void> | null, failRead = false } = {}) {
+function start(initial: Card, { gate = null as Promise<void> | null, failRead = false, area = new ElementoFalso('main') } = {}) {
   resetOpenStates();
   resetMachineChoice();
-  const area = new ElementoFalso('main');
   const state = { wall: initial, reads: 0, attempts: 0, failRead, gate };
   const leave = new AbortController();
   const changes: ((c?: unknown) => void)[] = [];
@@ -90,7 +91,7 @@ function start(initial: Card, { gate = null as Promise<void> | null, failRead = 
 let stop: (() => void) | null = null;
 afterEach(() => {
   documentoFalso.activeElement = null;
-  delete (documentoFalso as { hidden?: boolean }).hidden;
+  delete documentoFalso.hidden;
   stop?.();
   stop = null;
   mock.timers.reset();
@@ -145,7 +146,7 @@ describe('#758: "há N min" walks by itself every 30 s, without reading the rout
 
   test('a hidden tab runs no timer; coming back brings the time up to date at once', async () => {
     const s = await mountWith(wallOf([blocked('c1')]));
-    const doc = documentoFalso as unknown as { hidden: boolean };
+    const doc = documentoFalso;
     doc.hidden = true;
     documentoFalso.dispatchEvent({ type: 'visibilitychange' });
     mock.timers.tick(120_000);
@@ -153,7 +154,7 @@ describe('#758: "há N min" walks by itself every 30 s, without reading the rout
     doc.hidden = false;
     documentoFalso.dispatchEvent({ type: 'visibilitychange' });
     assert.equal(text(one(s.area, '.wall-age')), 'há 8 min', 'visible again: caught up at once');
-    delete (doc as { hidden?: boolean }).hidden;
+    delete doc.hidden;
   });
 });
 
@@ -162,20 +163,51 @@ describe('#758: loading and read error', () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: NOW });
     let release: () => void = () => {};
     const s = start(wallOf([blocked('c1')]), { gate: new Promise<void>((r) => (release = r)) });
-    await flush();
-    const skeleton = one(s.area, '.wall-skel');
-    assert.equal(skeleton.getAttribute('aria-busy'), 'true');
-    assert.equal(skeleton.getAttribute('aria-label'), 'Lendo o mural');
-    assert.equal(all(skeleton, '.wall-skel-card').length, 1);
-    assert.equal(all(skeleton, '.wall-skel-row').length, 3);
-    release();
-    const unmount = await s.mounted;
-    stop = () => {
-      unmount();
-      s.leave.abort();
-    };
+    try {
+      await flush();
+      const skeleton = one(s.area, '.wall-skel');
+      assert.equal(one(skeleton, '[aria-busy="true"]').getAttribute('aria-busy'), 'true', 'busy, on a node inside it');
+      assert.equal(skeleton.getAttribute('aria-label'), 'Lendo o mural');
+      assert.equal(all(skeleton, '.wall-skel-card').length, 1);
+      assert.equal(all(skeleton, '.wall-skel-row').length, 3);
+    } finally {
+      release();
+      const unmount = await s.mounted;
+      stop = () => {
+        unmount();
+        s.leave.abort();
+      };
+    }
     await flush();
     assert.equal(all(s.area, '.wall-skel').length, 0, 'the data replaces it');
+  });
+
+  test('on the first read the person sees the skeleton of the wall, not the generic ghost of the switch of screen (#765)', async () => {
+    mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: NOW });
+    const column = new ElementoFalso('div');
+    const area = new ElementoFalso('main');
+    column.append(area);
+    area.append(new ElementoFalso('h1'));
+    let check: (() => void) | null = null;
+    const swap = createScreenSwap({ area, observe: (_a: unknown, f: () => void) => ((check = f), () => (check = null)) });
+    swap.begin('wall');
+    let release: () => void = () => {};
+    const s = start(wallOf([blocked('c1')]), { area, gate: new Promise<void>((r) => (release = r)) });
+    try {
+      assert.equal(column.querySelectorAll('.cc-ghost').length, 1, 'the screen that was open stays while the new one is not there');
+      await flush();
+      assert.equal(all(area, '.wall-skel').length, 1, 'the skeleton of the wall is in the area');
+      assert.equal(area.childNodes.filter((c) => c instanceof ElementoFalso && c.getAttribute('aria-busy') === 'true').length, 0, 'no direct child of the area is busy: the switch reads that as data');
+      check!();
+      assert.equal(column.querySelectorAll('.cc-ghost').length, 0, 'the ghost does not hold the screen: the skeleton of the wall shows');
+    } finally {
+      release();
+      const unmount = await s.mounted;
+      stop = () => {
+        unmount();
+        s.leave.abort();
+      };
+    }
   });
 
   test('a read that fails after a good one keeps the wall and shows the band in the wall style, with Tentar de novo', async () => {
@@ -219,6 +251,20 @@ describe('#758: the notice in the corner', () => {
     await s.reread(wallOf([blocked('w1', { title: 'Migrar o banco' }), finished('w2', { title: 'Traduzir erros' })]));
     assert.equal(notices(s).length, 2);
     assert.match(innerText(notices(s)[1]!), /Concluída: Traduzir erros/);
+  });
+
+  test('a remote that was away and comes back does not make its old blocked sessions a new request', async () => {
+    const local = { id: 'local', label: 'Esta máquina', state: 'connected' };
+    const ws = { id: 'ws', label: 'Workstation', state: 'connected' };
+    const down = { ...ws, state: 'unreachable' };
+    const remote = { id: 'ws', label: 'Workstation' };
+    const s = await mountWith(wallOf([working('w1')], [local, ws]));
+    await s.reread(wallOf([working('w1')], [local, down]));
+    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote })], [local, ws]));
+    assert.equal(notices(s).length, 0, 'the old request of the remote that came back says nothing');
+    await s.reread(wallOf([working('w1'), blocked('old', { machine: remote }), blocked('fresh', { machine: remote, title: 'Pedido de agora' })], [local, ws]), [{ type: 'needs-you' }]);
+    assert.equal(notices(s).length, 1, 'a request that is new while the remote is up still says so');
+    assert.match(innerText(notices(s)[0]!), /Pedido novo: Pedido de agora/);
   });
 
   test('a move that is neither a new request nor a finish says nothing', async () => {

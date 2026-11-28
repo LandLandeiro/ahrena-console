@@ -370,7 +370,11 @@ const cabecaFalsa = new ElementoFalso('head');
 
 const ouvintesDoDocumento = new Map<string, Set<Ouvinte>>();
 
+/** `hidden` is not there until a test sets it (a hidden tab); the type says so, so no cast is needed to write it. */
+const abaVisivel: { hidden?: boolean } = {};
+
 export const documentoFalso = {
+  ...abaVisivel,
   activeElement: null as ElementoFalso | null,
   addEventListener: (tipo: string, ouvinte: Ouvinte) => void (ouvintesDoDocumento.get(tipo) ?? ouvintesDoDocumento.set(tipo, new Set()).get(tipo)!).add(ouvinte),
   removeEventListener: (tipo: string, ouvinte: Ouvinte) => void ouvintesDoDocumento.get(tipo)?.delete(ouvinte),
