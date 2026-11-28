@@ -230,6 +230,7 @@ describe('popoverShell: a redraw of the same popover does not play the entrance 
   test('the second drawing of the same kind, title and trigger is settled; the first is not (#762)', () => {
     const trigger = withRect(el('button'), rect(900, 300, 160, 28));
     const first = draw('plan-settle', trigger);
+    el().append(first); // the screen puts the node on the page before it draws the next one (#762)
     const second = draw('plan-settle', trigger);
     assert.equal(first.hasAttribute('data-settled'), false);
     assert.equal(second.hasAttribute('data-settled'), true);
@@ -246,6 +247,24 @@ describe('popoverShell: a redraw of the same popover does not play the entrance 
     const first = popoverShell({ title: 'Planejar', kind: 'plan-reopen', trigger, onDismiss: () => {} });
     key(first, 'Escape');
     assert.equal(draw('plan-reopen', trigger).hasAttribute('data-settled'), false);
+  });
+
+  test('after Cancelar in the footer the same popover opens with the entrance again (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const page = el();
+    const first = planConfirm({ repo: 'a/b', number: 12, trigger, onCancel: () => page.replaceChildren() }) as ElementoFalso;
+    page.append(first);
+    one(first, '[data-action="cancel"]').click();
+    assert.equal(planConfirm({ repo: 'a/b', number: 12, trigger }).hasAttribute('data-settled'), false);
+  });
+
+  test('after Fechar of the missing folder of one card, the one of another card opens with the entrance (#762)', () => {
+    const page = el();
+    const first = missingFolder({ repo: 'a/b', trigger: withRect(el('button'), rect(900, 300, 160, 28)), onClose: () => page.replaceChildren() }) as ElementoFalso;
+    page.append(first);
+    one(first, '[data-action="close"]').click();
+    const other = missingFolder({ repo: 'c/d', trigger: withRect(el('button'), rect(900, 500, 160, 28)) }) as ElementoFalso;
+    assert.equal(other.hasAttribute('data-settled'), false);
   });
 });
 
