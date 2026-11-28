@@ -19,6 +19,8 @@ Object.assign(globalThis, {
 // @ts-expect-error: browser module, plain JavaScript
 const search = await import('../../ui/command-search.js');
 // @ts-expect-error: idem
+const { createEscape } = await import('../../ui/escape.js');
+// @ts-expect-error: idem
 const { SCREENS, sidebarSections } = await import('../../ui/screens.js');
 // @ts-expect-error: idem
 const { setAppMode } = await import('../../ui/mode.js');
@@ -129,17 +131,42 @@ describe('#755: the field "Buscar" and its key', () => {
 });
 
 describe('#755: Cmd K or Ctrl K opens it from anywhere, and takes no typing', () => {
-  test('both chords open it, and the browser keeps neither', async () => {
-    instance = make();
+  test('on a Mac only Cmd K opens it, and the browser keeps that chord alone', () => {
+    instance = make({ platform: 'MacIntel' });
     let prevented = 0;
+    documentoFalso.dispatchEvent({ type: 'keydown', key: 'k', ctrlKey: true, preventDefault: () => prevented++ });
+    assert.equal(dialog(), null, 'Ctrl K on a Mac is the field\'s own (kill to end of line) and is left alone');
+    assert.equal(prevented, 0);
     chord({ preventDefault: () => prevented++ });
     assert.ok(dialog(), 'Cmd+K');
+    assert.equal(prevented, 1);
+  });
+
+  test('off a Mac only Ctrl K opens it, in capitals too, and Cmd K is left alone', () => {
+    for (const platform of ['Win32', 'Linux x86_64']) {
+      instance = make({ platform });
+      let prevented = 0;
+      documentoFalso.dispatchEvent({ type: 'keydown', key: 'k', metaKey: true, preventDefault: () => prevented++ });
+      assert.equal(dialog(), null, `${platform}: Meta K opens nothing`);
+      assert.equal(prevented, 0);
+      documentoFalso.dispatchEvent({ type: 'keydown', key: 'K', ctrlKey: true, preventDefault: () => prevented++ });
+      assert.ok(dialog(), `${platform}: Ctrl+K`);
+      assert.equal(prevented, 1);
+      instance.stop();
+      body.replaceChildren();
+    }
+  });
+
+  test('the chord is judged by the platform given, and aria-keyshortcuts names only that key', () => {
+    assert.equal(search.isSearchChord({ key: 'k', metaKey: true }, 'MacIntel'), true);
+    assert.equal(search.isSearchChord({ key: 'k', ctrlKey: true }, 'MacIntel'), false);
+    assert.equal(search.isSearchChord({ key: 'k', ctrlKey: true }, 'Win32'), true);
+    assert.equal(search.isSearchChord({ key: 'k', metaKey: true }, 'Win32'), false);
+    instance = make({ platform: 'MacIntel' });
+    assert.equal(trigger.getAttribute('aria-keyshortcuts'), 'Meta+K');
     instance.stop();
-    body.replaceChildren();
-    instance = make();
-    documentoFalso.dispatchEvent({ type: 'keydown', key: 'K', ctrlKey: true, preventDefault: () => prevented++ });
-    assert.ok(dialog(), 'Ctrl+K, in capitals too');
-    assert.equal(prevented, 2);
+    instance = make({ platform: 'Win32' });
+    assert.equal(trigger.getAttribute('aria-keyshortcuts'), 'Control+K');
   });
 
   test('a bare k, j or ? opens nothing: the keys of the Mural stay the Mural\'s', () => {
@@ -263,6 +290,31 @@ describe('#755: the dialog is accessible', () => {
   });
 });
 
+describe('#755: an option is the link itself, with nothing focusable inside (axe nested-interactive)', () => {
+  test('every option is an a with role, id and aria-selected, and has no focusable descendant', async () => {
+    instance = make();
+    chord();
+    await flush();
+    await type('a');
+    const rows = options();
+    assert.ok(rows.length > 2);
+    for (const row of rows) {
+      assert.equal(row.tagName, 'A');
+      assert.ok(row.getAttribute('href'));
+      assert.ok(row.getAttribute('id'));
+      assert.ok(row.getAttribute('aria-selected'));
+      const inside = all(row, 'a, button, input, select, textarea, [tabindex]');
+      assert.deepEqual(inside.map((n) => n.tagName), [], 'no focusable descendant');
+    }
+    assert.equal(field().getAttribute('aria-activedescendant'), rows[0]!.getAttribute('id'));
+    assert.equal(rows[0]!.getAttribute('aria-selected'), 'true');
+  });
+
+  test('the module builds the row as the link, not a div around one', () => {
+    assert.match(read('command-search.js'), /el\('a', \{ class: 'cs-row'/);
+  });
+});
+
 describe('#755: the results, in two groups, filtered on the client', () => {
   test('typing "faturas" shows "Testes do leitor de faturas" in Sessões, and Enter opens its Detalhe', async () => {
     instance = make();
@@ -285,7 +337,8 @@ describe('#755: the results, in two groups, filtered on the client', () => {
     chord();
     await flush();
     await type('faturas');
-    const link = one(options()[0]!, 'a');
+    const link = options()[0]!;
+    assert.equal(link.tagName, 'A');
     assert.equal(link.getAttribute('href'), `/ui/sessions/${FATURAS.id}`);
     assert.equal(link.getAttribute('tabindex'), '-1', 'the field keeps the focus: Tab does not walk the rows');
   });
@@ -312,7 +365,7 @@ describe('#755: the results, in two groups, filtered on the client', () => {
     await type('workstation');
     assert.equal(options().length >= 1, true);
     assert.match(words(options()[0]!), /Workstation/);
-    assert.equal(one(options()[0]!, 'a').getAttribute('href'), '/ui/sessions/r1?machine=ws', 'a remote session opens through its machine');
+    assert.equal(options()[0]!.getAttribute('href'), '/ui/sessions/r1?machine=ws', 'a remote session opens through its machine');
   });
 
   test('the state is an icon and its words, from the labels of the mode, never colour alone', async () => {
@@ -340,7 +393,7 @@ describe('#755: the results, in two groups, filtered on the client', () => {
     await type('mural');
     const rows = options();
     assert.ok(rows.length >= 1);
-    const wallRow = rows.find((r) => r.querySelector('a')?.getAttribute('href') === '/ui/wall')!;
+    const wallRow = rows.find((r) => r.getAttribute('href') === '/ui/wall')!;
     assert.match(words(wallRow), /Mural ao vivo/);
     const group = wallRow.closest('[role="group"]')!;
     assert.match(words(one(body, `#${group.getAttribute('aria-labelledby')}`)), /^Telas$/);
@@ -465,12 +518,33 @@ describe('#755: the keyboard', () => {
     assert.equal(instance.isOpen(), false);
   });
 
+  test('with another layer open under it (the drawer at 390 px), one Esc closes only the search and the focus is back on the field', () => {
+    instance = make();
+    const menu = new ElementoFalso('button');
+    let drawerOpen = true;
+    const drawer = { isOpen: () => drawerOpen, close: () => { drawerOpen = false; menu.focus(); } };
+    const layers = createEscape(documentoFalso, [instance as never, drawer]);
+    trigger.focus();
+    chord();
+    // a keydown that is not stopped on its way up reaches the document, as in the browser; the scrim is the last node the fake walks once the dialog is gone
+    one(body, '.cs-scrim').addEventListener('keydown', (ev: Row) => documentoFalso.dispatchEvent(ev as never));
+    assert.equal(dialog() !== null, true);
+    key(field(), 'Escape');
+    assert.equal(dialog(), null, 'the search closed');
+    assert.equal(drawerOpen, true, 'the drawer under it stays open');
+    assert.equal(documentoFalso.activeElement, trigger, 'the focus is back where the search was opened');
+    key(trigger, 'Escape');
+    documentoFalso.dispatchEvent({ type: 'keydown', key: 'Escape' });
+    assert.equal(drawerOpen, false, 'the next Esc closes the drawer');
+    layers.stop();
+  });
+
   test('a click on a row opens it through the shell\'s link handler, so the dialog only closes', async () => {
     instance = make();
     chord();
     await flush();
     await type('faturas');
-    one(options()[0]!, 'a').click();
+    options()[0]!.click();
     assert.equal(dialog(), null);
     assert.deepEqual(opened, [], 'the real link is the shell\'s to follow');
   });
@@ -482,7 +556,7 @@ describe('#755: Projeto finds the screens the bar hides, and says so', () => {
     chord();
     await flush();
     await type(devOnly.item.label);
-    const row = options().find((r) => r.querySelector('a')?.getAttribute('href') === devOnly.route)!;
+    const row = options().find((r) => r.getAttribute('href') === devOnly.route)!;
     assert.ok(row, 'the Dev screen is found in Dev');
     assert.equal(row.querySelector('.cs-tag'), null);
     key(field(), 'Escape');
@@ -490,7 +564,7 @@ describe('#755: Projeto finds the screens the bar hides, and says so', () => {
     chord();
     await flush();
     await type('sua atenção');
-    const mural = options().find((r) => r.querySelector('a')?.getAttribute('href') === '/ui/wall')!;
+    const mural = options().find((r) => r.getAttribute('href') === '/ui/wall')!;
     assert.match(words(mural), /Sua atenção/, 'the bar of Projeto calls the Mural "Sua atenção"');
     assert.equal(mural.querySelector('.cs-tag'), null);
   });
@@ -503,7 +577,7 @@ describe('#755: Projeto finds the screens the bar hides, and says so', () => {
     chord();
     await flush();
     await type(devOnly.item.label);
-    const row = options().find((r) => r.querySelector('a')?.getAttribute('href') === devOnly.route)!;
+    const row = options().find((r) => r.getAttribute('href') === devOnly.route)!;
     assert.ok(row, 'nothing becomes unreachable');
     assert.equal(words(one(row, '.cs-tag')), 'Fora da barra');
     key(field(), 'ArrowDown', {});
@@ -532,6 +606,10 @@ describe('#755: the shell wires it', () => {
     assert.match(app, /from '\.\/command-search\.js'/);
     assert.match(app, /createCommandSearch\(\{[^}]*read: shellRead[^}]*navigate/s);
     assert.match(app, /createEscape\(document, \[\s*commandSearch/s);
+  });
+
+  test('the load of the sessions never rejects loose: the call reports what it cannot catch', () => {
+    assert.match(read('command-search.js'), /\bload\(\)\.catch\(reportError\);/);
   });
 
   test('the module has no route of its own and writes nothing', () => {
