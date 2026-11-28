@@ -63,9 +63,8 @@
 .sm-row-action { height: 26px; padding: 0 8px; gap: 4px; font-size: 11.5px; max-width: 100%; }
 .sm-row-label { overflow: hidden; text-overflow: ellipsis; }
 .sm-row-action:focus-visible, .sm-link-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.sm-link-action { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 11px; font-weight: var(--weight-semibold); color: var(--accent-text); cursor: pointer; white-space: nowrap; min-width: 0; overflow: clip; overflow-clip-margin: 5px; text-overflow: ellipsis; position: relative; z-index: 1; }
+.sm-link-action { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 11px; font-weight: var(--weight-semibold); color: var(--accent-text); cursor: pointer; white-space: nowrap; min-width: 0; overflow: hidden; padding-block: 5px; margin-block: -5px; text-overflow: ellipsis; position: relative; z-index: 1; }
 .sm-link-action:hover { text-decoration: underline; }
-.sm-link-action { position: relative; }
 .sm-link-action::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 .sm-none { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Sessões up to 1240 px of window: only the icon, with the label as the button's name (below 900 px the
