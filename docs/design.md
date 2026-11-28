@@ -28,7 +28,7 @@ A paleta parte da do The Forward Deployed Engineer ([brand/tokens.json](brand/to
 | Erro, falha (CI e sessão com erro) | vermelho | `#e34948` | Cor do CI, reaproveitada (ver abaixo) |
 | Fundo (tema escuro) | cinza 900 | `#17171b` | The Forward Deployed Engineer |
 | Superfícies | cinza 800 / 700 | `#1e1e24` / `#28282f` | The Forward Deployed Engineer |
-| Texto principal | cinza 100 | `#d7d7d9` | The Forward Deployed Engineer |
+| Texto principal | quase branco | `#f2f2f3` | Ajustado na decisão 0028, um degrau acima do cinza 100 |
 
 Os valores ficam em [brand/tokens.json](brand/tokens.json), e a amostra com os dois temas e os status está em [brand/amostra.html](brand/amostra.html) (captura em [brand/amostra.png](brand/amostra.png)). O teste [test/tokens.test.mjs](../test/tokens.test.mjs) confere as cores obrigatórias e o contraste AA:
 
@@ -58,9 +58,9 @@ O escuro é o padrão. O claro é o equivalente, com os mesmos papéis em três 
 | Fundo (`bg`) | `#17171b` | `#f4f4f5` |
 | Cartão (`surface`) | `#1e1e24` | `#fdfdfd` |
 | Realce, hover (`raised`) | `#28282f` | `#efeff1` |
-| Borda | `#3a3a44` | `#d7d7d9` |
-| Texto | `#d7d7d9` | `#17171b` |
-| Texto secundário | `#a6a6aa` | `#5a5a63` |
+| Borda (divisor) | `#2e2e36` | `#e3e3e6` |
+| Texto | `#f2f2f3` | `#17171b` |
+| Texto secundário | `#c4c4c8` | `#4a4a52` |
 | Destaque (preenchimento) | `#f47720` com texto `#17171b` | `#f47720` com texto `#17171b` |
 | Destaque como texto | `#f47720` | `#ab5316` (laranja 700) |
 
@@ -68,32 +68,106 @@ O laranja não muda no tema claro. Ele continua sendo o preenchimento de botões
 
 Todo texto passa AA (4,5:1) sobre fundo, cartão e realce nos dois temas. Pontos e ícones de status passam 3:1.
 
+#### Papéis novos dos temas
+
+Desde a decisão [0028](decisoes/0028-console-visual-redesign.md), cada tema tem também estes papéis. Os valores estão em [brand/tokens.json](brand/tokens.json) e viram variáveis CSS (`--subtle`, `--sidebar`, `--on-primary`, `--accent-line`, `--border-control`…).
+
+| Papel | Escuro | Claro | Para quê |
+| --- | --- | --- | --- |
+| `subtle` | `#9a9aa0` | `#64646c` | Metadados (hora, máquina): texto abaixo do secundário |
+| `sidebar` | `#1b1b20` | `#ececef` | Fundo da barra lateral |
+| `segment` | `#26262c` | `#e6e6e9` | Trilho do filtro segmentado |
+| `track` | `#33333b` | `#e6e6e9` | Trilho de barra de progresso |
+| `avatar` | `#2e2e36` | `#ececef` | Fundo do monograma |
+| `primary` / `onPrimary` | `#e4e4e7` / `#17171b` | `#17171b` / `#fdfdfd` | Botão primário e o texto dele. No escuro, um degrau abaixo do texto, para não brilhar mais que a pergunta |
+| `accentLine` | `#f47720` | `#ab5316` | O laranja como traço (foco, progresso) |
+| `borderControl` | `#72727c` | `#83838b` | Borda de campo, caixa de seleção e botão sem fundo |
+
+`border` continua sendo o **divisor**: separa e não precisa de 3:1. A regra é que nenhum controle use só a `border` como borda; é para isso que existe a `borderControl`. As telas de hoje já seguem isso: campos, seletores, caixas de seleção e botões sem fundo (`.btn.outline` entre eles) usam `var(--border-control)`, e o teste [test/ui-control-borders.test.mjs](../test/ui-control-borders.test.mjs) falha se um controle voltar à `border`. Divisores, cartões, tabelas, painéis, etiquetas e selos ficam na `border`. Quando um controle é marcado ou definido, a borda passa a `accentLine` (`var(--accent-line)`), não ao laranja puro, que no claro dá só 2,55:1 sobre `bg`. O #750 já passou a `accentLine` o anel de foco da moldura (itens da barra, marca, botões de 28 px, a linha do GitHub, a versão) e o do `.btn`; o #751 passou a `accentLine` o foco dos controles do Mural, o do botão "Nova sessão" e do seu painel (`new-session.css`), o das ações de abrir (`open-action.css`) e o do seletor de máquina, cuja borda também passou a `borderControl` (`machine-filter.css`); os das outras telas seguem o laranja puro (2,55:1 sobre `bg` no claro) até a vez delas.
+
+O ponto do "Esperando você" no claro era `#664e04` e passou a `#a87e00` (3,65:1 sobre o cartão e 3,15:1 sobre `sidebar`), para se parecer com o amarelo da marca.
+
+Contraste, nos dois temas (todos os valores conferidos por [test/tokens.test.mjs](../test/tokens.test.mjs)):
+
+- **Texto, 4,5:1:** `text`, `muted` e `subtle` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`, e sobre `avatar`; `onPrimary` sobre `primary`; o texto de cada cor de agente sobre o fundo dela.
+- **Ícone, traço e borda de controle, 3:1:** `accentLine` sobre `bg`, `surface`, `raised`, `sidebar` e `segment`; `borderControl` sobre `bg`, `surface`, `sidebar` e `segment` (no mínimo 3,02:1, no claro sobre `segment`).
+- **Fora da regra:** o `borderControl` não é garantido sobre `track` no escuro (2,63:1). `subtle` não é texto sobre `track` no escuro (4,47:1).
+- **O `#f47720` não é texto sobre `track` no escuro:** dá 4,47:1, abaixo de 4,5:1. Vale para `accentText`, `accentLine` e `status.active.text`, que têm esse valor no escuro. Sobre `track` ele serve como traço (progresso), que só pede 3:1.
+- **O texto de erro do escuro (`status.error.text`, `#f06463`) não é texto sobre `track` nem sobre `avatar`:** dá 4,00:1 e 4,30:1. Sobre `bg`, `surface`, `raised`, `sidebar` e `segment` ele passa.
+- **O `#ab5316` não é texto sobre `sidebar`, `segment`, `track` nem `avatar` no tema claro:** dá 4,47:1, 4,24:1, 4,24:1 e 4,47:1, abaixo de 4,5:1. Ali ele vale como traço (foco, progresso), que só pede 3:1. Não use o `#ab5316` como texto ali. O rótulo de status Trabalhando no claro (`status.active.light.text`) e o `accentText` do claro têm o mesmo valor, então vale o mesmo para eles.
+- **O `#a87e00` não é ícone sobre `segment` nem sobre `track` no tema claro:** dá 2,98:1, abaixo de 3:1. Ali a contagem usa o `#664e04` (`status.waiting.light.text`), que dá 6,35:1. Sobre `bg`, `surface` e `raised` o `#a87e00` passa (3,38:1, 3,65:1 e 3,24:1).
+- **Fora essas exceções, todo texto passa 4,5:1 sobre todo fundo, nos dois temas:** `text`, `muted`, `subtle`, `accentText` e o texto de cada status sobre `bg`, `surface`, `raised`, `sidebar`, `segment`, `track` e `avatar`. O [test/tokens.test.mjs](../test/tokens.test.mjs) confere a matriz inteira e falha se um par entrar ou sair desta lista.
+
+#### Raios
+
+Escala em `radius`, que vira `--radius-*`. Não muda com o tema.
+
+| Nome | Valor | Onde |
+| --- | --- | --- |
+| `card` | 8px | Cards, listas, painéis, popover, aviso |
+| `control` | 6px | Botões, busca, campos, itens da barra |
+| `tag` | 4px | Contagens, teclas |
+| `segment` / `segmentItem` | 8px / 6px | Filtro segmentado e seus itens (`--radius-segment`, `--radius-segment-item`) |
+| `full` | 999px | Só monogramas e pontos. Nada mais é pílula |
+
+#### Movimento
+
+Escala em `motion`, que vira `--motion-fast` (120ms: resposta a clique, troca de número), `--motion-base` (180ms: entradas, popover, gaveta), `--motion-move` (220ms: algo que muda de lugar), `--ease-out` (o que entra) e `--ease-in` (o que sai). Não muda com o tema. Com `prefers-reduced-motion: reduce` as três durações viram `0ms`, nos dois temas, e as curvas ficam; por isso a animação sempre usa a variável, nunca um valor solto.
+
+#### Cores de agente
+
+Pintam só o monograma de um agente com nome. São identidade, nunca estado: nenhuma é cor de status. Cada uma tem texto e fundo por tema (`--agent-violet-text`, `--agent-violet-bg`…).
+
+| Cor | Escuro (texto / fundo) | Claro (texto / fundo) |
+| --- | --- | --- |
+| `violet` | `#c4b2f5` / `#2d2640` | `#5b3fa8` / `#efe9fb` |
+| `blue` | `#9cc1f5` / `#1f2a3d` | `#2456a6` / `#e6eefb` |
+| `teal` | `#84d3c8` / `#1c3331` | `#11695f` / `#e2f3f1` |
+| `indigo` | `#aeb6f0` / `#262a42` | `#3b4594` / `#e8eaf8` |
+
+O texto passa 4,5:1 sobre o fundo (no mínimo 5,71:1, o `teal` claro).
+
+#### Sombra
+
+Cards e listas não têm sombra: a separação vem da borda e da diferença entre `bg` e `surface`. Só o que flutua (popover, aviso, busca) tem a `shadow.<tema>.float`, que vira `--shadow-float`: `0 12px 32px rgba(0,0,0,0.5)` no escuro e `0 12px 32px rgba(0,0,0,0.14)` no claro. Fica num grupo próprio porque os papéis de `themes.*` são todos hex.
+
 ### Status de sessão
 
 Os cinco status do Claude Code Agent Monitor (detalhe no benchmark interno, seção 3). Cada um tem cor, glifo e rótulo, para que o status nunca dependa só da cor, inclusive no painel nativo, que só tem texto.
 
 | Status | Rótulo | Glifo | Cor | Por que existe |
 | --- | --- | --- | --- | --- |
-| `active` | Ativa | `●` | laranja `#f47720` | O Claude está no meio de um turno. Não pede nada, só dá para acompanhar. Laranja porque é onde a ação está, como nas barras de progresso |
+| `active` | Trabalhando | `●` | laranja `#f47720` | O Claude está no meio de um turno. Não pede nada, só dá para acompanhar. Laranja porque é onde a ação está, como nas barras de progresso |
 | `waiting` | Esperando você | `◐` | amarelo `#ffc30a` | O turno parou e a vez é sua. É o estado que alimenta o inbox "quem precisa de você". Amarelo como o pendente do CI: algo aguarda alguém |
 | `completed` | Concluída | `✓` | cinza `#d7d7d9` (escuro) / `#3a3a44` (claro) | Terminou sem erro. Cinza com `✓`, como o sucesso do CI, e mais forte que a Abandonada. O verde e o rosa nunca são status |
 | `error` | Com erro | `✕` | vermelho `#e34948` | Parou num erro e não se recuperou. Vermelho como a falha do CI |
 | `abandoned` | Abandonada | `○` | cinza `#a6a6aa` | Ficou ativa sem sinal por 180 min. Não pede ação e não é erro, então sai do caminho em cinza |
 
+As etiquetas de **Trabalhando** e de **Esperando você** têm também uma `border` decorativa (`--status-active-border`, `--status-waiting-border`): `#55392a` e `#4f4426` no escuro, `#f4d3bb` e `#f1e2b0` no claro. É só o contorno da etiqueta, fora da medida de contraste; o estado continua dito pelo ícone e pelo rótulo. Os outros três status não têm `border`.
+
 O motivo do "Esperando você" aparece num chip ao lado do status: **Pede permissão** (`notification`) e **Interrompida** (`interrupted`) são urgentes; **Sua vez** (`stop`) e **No prompt** (`session_start`) não são.
 
-No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700, amarelo 900, vermelho 700, cinza 300 e, na Concluída, cinza 500), para passar o contraste. A pílula é a cor canônica a 12% sobre o cartão.
+No tema claro, ponto e rótulo usam um tom mais escuro da mesma cor (laranja 700, amarelo, vermelho 700, cinza 300 e, na Concluída, cinza 500), para passar o contraste. O ponto do "Esperando você" é `#a87e00` e o rótulo é o amarelo 900, `#664e04`. A pílula é a cor canônica a 12% sobre o cartão.
+
+### Barra lateral e moldura
+
+Decisão [0028](decisoes/0028-console-visual-redesign.md), issue 750. A barra tem 248 px e usa `sidebar`; o item atual fica em `surface` com borda `border` e peso 500; o item tem no mínimo 31 px, uma linha só (reticências se faltar espaço) e o nome inteiro no rótulo acessível. Só a navegação rola: o topo e o rodapé ficam fixos, e a janela de 1100 por 700 mostra o rodapé inteiro. As contagens são número simples em mono e `subtle`; quem espera é a etiqueta amarela "N esperam" no Mural, e a fila do Quadro do trabalho é a etiqueta laranja com o número. As etiquetas usam o par gerado do status (texto sobre o próprio fundo opaco, mais de 4,5:1 nos dois temas), nunca `accentText`, que no claro não passa sobre `sidebar`. O foco da moldura é `accentLine` de 2 px com afastamento de 2 px. O tema segue o sistema até a pessoa escolher; a escolha fica em `localStorage` e vira `data-theme` no `<html>`. O `localStorage` é por origem e o app instalado sobe em porta nova a cada abertura, então hoje a escolha se perde ao reabrir; isso fica para outra issue. O rodapé tem uma linha de ponta a ponta, o bloco "Ao vivo" (ponto de 8 px, o texto e a nota "N máquinas · versão X"; sem conexão o ponto fica vazado, além da palavra) e a linha da pessoa (avatar de 32 px, "GitHub conectado" com o login só no `title`, os botões de tema e de opções da conta). As contagens se atualizam sozinhas: a etiqueta do Mural na partida e a cada mudança de sessão, a fila do Quadro depois de uma escrita da pessoa no quadro e, enquanto houver fila, a cada mudança de sessão, no máximo uma leitura a cada 30 s; a mudança que cai dentro da janela agenda uma leitura para o fim dela, e com o número em zero nada se agenda. Abaixo de 860 px a barra é uma gaveta que começa sob a barra superior (o botão do menu nunca fica coberto e continua alcançável), com véu a 30%; só o aviso de atualização e o conteúdo ficam `inert` enquanto ela está aberta. A gaveta tem um botão de fechar além do Esc e do clique no véu. Ao abrir, o foco vai ao primeiro item: pelo mouse, a lista mantém a rolagem ao reabrir; pelo teclado, rola até ele. Com a gaveta fechada, o botão do menu leva a etiqueta amarela "N esperam" do Mural (a mesma leitura, "Menu, 3 esperam" no nome). Qualquer link da barra ou troca de rota a fecha e o foco volta ao botão do menu.
 
 ### Tipografia
 
-As mesmas fontes do site do The Forward Deployed Engineer, ambas livres (SIL Open Font License):
+A fonte é a **do sistema**. Não se baixa nada: a política de conteúdo do núcleo não tem `font-src` e a `/ui` não serve arquivo de fonte, então Poppins e JetBrains Mono, que a marca pedia até a decisão [0028](decisoes/0028-console-visual-redesign.md), nunca carregavam.
 
-- **Poppins** para títulos, rótulos e texto corrido no artefato: `"Poppins", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif`;
-- **JetBrains Mono** para ids, caminhos, números de tabela, custo e tokens: `"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace`.
+- **Sans**, para títulos, rótulos e texto corrido no artefato: `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif` (`--font-sans`). SF Pro no Mac, Segoe UI no Windows;
+- **Mono**, para ids, caminhos, números de tabela, custo e tokens: `ui-monospace, "SF Mono", Menlo, Consolas, monospace` (`--font-mono`).
 
-No artefato HTML, as duas vêm do Google Fonts, com a pilha do sistema como reserva. No painel nativo do Claude Desktop não dá para escolher fonte: ele usa a monoespaçada do app. Ali a hierarquia vem de peso (negrito nos títulos), caixa alta nos cabeçalhos de seção, cor (texto principal e secundário) e dos glifos de status.
+No painel nativo do Claude Desktop não dá para escolher fonte: ele usa a monoespaçada do app. Ali a hierarquia vem de peso (negrito nos títulos), caixa alta nos cabeçalhos de seção, cor (texto principal e secundário) e dos glifos de status.
 
-Escala do artefato: 12, 13, 14, 16, 20 e 28 px; pesos 400, 500 e 600.
+Escala do artefato: 12, 13, 14, 16, 20 e 28 px (`--text-xs` a `--text-xxl`), mais dois tamanhos novos:
+
+- **título de tela**, 30 px (`--text-title`), peso 600, espaçamento `-0.02em` (`--tracking-title`);
+- **número herói**, 64 px (`--text-hero`), peso 500, com dígitos tabulares (`font-variant-numeric: tabular-nums`) e sem ajuste de espaçamento.
+
+Pesos 400, 500 e 600.
 
 ## Logo
 
@@ -108,3 +182,25 @@ O logo é um **"A" com um triângulo apontando para baixo no centro**, num quadr
 - **fundo preto, "A" laranja:** para telas claras.
 
 O triângulo é sempre rosa (`#df285d`). O logo nasceu no painel de teste do mod em 2026-10-18.
+
+## O Mural (decisão 0028, issues 751 e 752)
+
+**O cabeçalho.** O título "Mural ao vivo", "Nova sessão" à direita e, sob o título, uma frase de 17 px que diz quem precisa de você ("3 sessões precisam de você. 3 trabalhando, 2 em pausa e 2 concluídas."), com a primeira parte em peso 600. O critério da issue 04 do kit dizia "3 trabalhando, 2 em pausa e 2 concluídas" e a frase seguia o vocabulário antigo dos segmentos ("ativas", "ociosas") até a #753 trocar os nomes; esse desvio acabou: a frase usa as palavras dos filtros ("3 trabalhando, 2 em pausa e 2 concluídas", e no singular "1 trabalhando, 1 em pausa e 1 concluída"; "trabalhando" e "em pausa" não variam), escritas em `summaryOf`. É uma região `aria-live` (`polite`, `atomic`) e nenhuma outra repete a frase; só é reescrita quando o texto muda, então um redesenho com os mesmos números não a anuncia de novo. Com a máquina escolhida sem conexão e sem sessões na resposta, nada se sabe sobre ela: a frase fica vazia e os segmentos não mostram número. Sob o cabeçalho ficam os segmentos do estado (Todas, Precisam de você, Trabalhando, Em pausa, cada um com o seu número, e o nome acessível leva um espaço de verdade: "Todas 8"). O número de "Precisam de você" é amarelo (`--status-waiting-text`) só quando passa de zero; os outros herdam a cor do rótulo. "Nova sessão" é o único preenchimento laranja da tela (medido nos dois temas). A trilha dos segmentos usa `--border-control`. Não há botão "Atualizar": o fluxo ao vivo e o "Tentar de novo" do erro releem o mural.
+
+**As seções.** Cada seção é uma `<section>` com um `h2` e a contagem, e a lista dela tem o nome do `h2`: "Precisam de você" (cards, na ordem do núcleo, em grade `auto-fill` de 330 px no mínimo, com a mesma altura e os pés alinhados), "Trabalhando", "Em pausa" e "Concluídas" (linhas), e a faixa "Paradas" no fim. Seção sem sessão não aparece. Quando nada precisa de você mas há outras sessões, sob Todas ou Precisam de você, a seção vazia vira o bloco de calma ("Nada precisa de você agora", com a explicação de onde o pedido vai aparecer); ele não é região viva, porque a frase do cabeçalho já diz isso, e some quando a máquina escolhida está sem conexão. O mural sem nenhuma sessão continua com o estado vazio de antes. As filhas aninhadas de uma líder e a lista de "Paradas" são listas com nome (`Filhas de <título>` e o título da faixa), e as células de preenchimento da grade são `aria-hidden`.
+
+**Duas colunas e o par.** De 1280 px para cima as linhas de "Trabalhando" vão em duas colunas; uma linha com a árvore aberta ocupa a largura toda, e a célula que sobra é só preenchimento: quando ela fica antes de uma linha de largura toda, desenha a divisória da sua linha (`--border`) para a linha ficar inteira de ponta a ponta; na última linha, não desenha. "Em pausa" e "Concluídas" formam o par: duas seções lado a lado quando cabem (`auto-fit`, 420 px no mínimo cada uma; com a barra lateral aberta, a partir de 1164 px) e uma sob a outra quando não. A linha de "Concluídas" mostra a hora da última atividade da sessão (HH:MM, na hora local), não a do fim: o núcleo manda `awaitingInputSince` ou, sem ele, `updatedAt`.
+
+**O card e a linha.** O card tem, de cima para baixo: monograma e nome ("Claude", fixo, porque `/api/wall` não traz o agente), há quanto tempo e o estado à direita; o título (13,5 px, `subtle`, uma linha, e o link do card inteiro); o pedido (18 px, peso 500, até 4 linhas); a ação primária ("Responder no Claude", ou "Abrir para retomar" no erro); e o pé com "Passo X de Y" e a barra neutra (o mesmo passo no número, na barra e na fatia do ícone), ou "Uso da conversa N%" (no erro, ou a partir de 90%), em vermelho a partir de 90% e na cor normal abaixo disso, e a máquina. O kit diz "acima de 90%"; a pessoa pediu "a partir de 90%" (#751), então 90% já é vermelho, e num erro abaixo de 90% o texto aparece na cor normal, sem o vermelho do número nem da barra. Modelo, esforço, agentes e custo saíram do card e voltam no #754; "Detalhe ›" saiu do pé e o título esticado cobre o card. A linha é um link só, com título de 15 px, a frase de 13,5 px (a da sessão ociosa começa pelo motivo: "Sua vez · texto do núcleo"), o estado escrito ("Trabalhando", "Em pausa", "Concluída"; o #751 o manteve na lista e o #752 também, mesmo que o kit o tire, e por isso algumas linhas do par quebram), "X de Y" quando há plano e a sessão está trabalhando, e a máquina. A coluna do lado direito da linha tem 12 px entre os itens, uma largura própria (14 vezes `--text-sm`, 22 quando há máquina, 14 abaixo de 600 px, onde a máquina some) e começa com o estado, então o ícone de estado fica no mesmo x em todas as linhas de uma coluna, com ou sem "X de Y", tempo ou máquina; o texto tem uma largura mínima própria (24 vezes `--text-sm`), e a coluna desce para baixo do texto só quando as duas não cabem na linha, em todas as linhas da lista ao mesmo tempo, qualquer que seja o tamanho do título; na segunda linha o botão de abrir fica na borda direita, para o aviso de falha dele ficar dentro da linha; abaixo de 600 px a máquina some. O rótulo longo de uma máquina remota e o do estado são cortados com reticências (na linha, a máquina cede primeiro, para o estado e o motivo de "Concluídas" caberem inteiros), e o texto do botão do card também. O botão do card tem a altura que a `openAction` decide (`md`). O aviso de falha da ação do card abre abaixo do botão, por cima do pé do card e, quando é mais comprido que o pé, por cima do que vem depois; num card líder aberto, acima de 600 px, abre ao lado do botão. Ele não cobre o título do próprio card nem o da própria linha, inclusive na coluna da direita de "Trabalhando" a partir de 1280 px; pode passar por cima do título de outras linhas (aberto no último card, um aviso longo passa por cima do topo da primeira linha que vem depois). Até 600 px, num líder aberto (card ou linha), uma mensagem longa ainda passa por cima da primeira filha. Quando a abertura falha com o botão na tela, a tela rola o mínimo para mostrar o aviso; com o botão fora da tela, não rola. A sessão sem título aparece como "Sem título" no card, na linha, na filha aninhada e em "Paradas"; o nome da máquina e o do estado levam um `title` com o texto inteiro, e um clique no rótulo do estado abre a sessão. O pé, o lado direito e a frase de quem não está trabalhando usam `subtle`, e a frase de quem trabalha, `muted`. O espaço entre o cabeçalho, os segmentos, as seções e "Paradas" é de 28 px, e do `h2` até a lista, 12 px. A lista não corta nada (o anel de foco e o aviso de falha da ação passam por cima das outras linhas). Sem sombra; borda `border` de 1 px; foco `accentLine` de 2 px com afastamento de 2 px.
+
+**A máquina.** No Mural o filtro de máquina é um botão com um menu (`role="menu"`, itens `menuitemradio`, cada um com o nome e o número de sessões), no fim da linha dos segmentos; sem remota, nada aparece. As outras telas continuam com os botões de segmento de `createMachineFilter`. O menu fecha com Escape (devolvendo o foco ao botão), com Tab (o foco segue para o próximo controle, não fica no botão), com um clique fora (um `pointerdown` na fase de captura, que não rouba o foco) e ao escolher. O painel abre alinhado à esquerda do botão quando cabe e à direita quando passaria da largura visível menos 16 px (a classe `mf-menu-end`, medida ao abrir e a cada redesenho com o menu aberto). Com a máquina escolhida sem conexão, o botão mostra "sem conexão" e o aviso neutro aparece sob os segmentos.
+
+**O foco no redesenho.** O mural se redesenha a cada leitura e devolve o foco ao mesmo controle enquanto ele continua na tela: o "Tentar de novo" (ou o segmento apertado, se ele sumir), o link do aviso de máquina (ou o botão da máquina, se ele existir; se todas as remotas sumiram, o segmento apertado), o copiar ou o fechar do aviso de falha (ou o botão de abrir; o card não tem Fechar, e então o foco vai para o botão de abrir dele), a sessão que muda de seção (o mesmo tipo de controle, na linha ou no card novo), a sessão que vira filha (o link da filha, ou o da líder se a árvore está fechada) ou estacionada com a faixa aberta, quando o foco estava no link ou no botão de abrir, e, depois de "Mostrar mais", a primeira linha nova. Quando o filtro de estado esconde a sessão que tinha o foco, o foco vai para o segmento apertado, seja qual for o controle em que estava (link, abrir, copiar, fechar ou a árvore). Fora desses casos o foco ainda cai no corpo da página: a sessão vira estacionada com a faixa "Paradas" fechada (a padrão); a sessão de um aviso de falha aberto vira estacionada ou filha (se só perde a ação de abrir, o foco vai para o link dela); o foco estava na seta da árvore de uma líder que vira estacionada ou filha; a sessão que sai da resposta; a faixa "Paradas" que some; o botão "Mostrar mais" some num redesenho comum; e ao usar o Fechar ou o Escape do aviso de falha (no Mural, o Fechar existe desde o #751).
+
+**O que foi medido.** Em Chrome sem interface, nos dois temas, com dados longos (títulos de 40 caracteres, nome de máquina remota de 40 caracteres, líder com a árvore, Paradas, aviso de falha), a 1440, 1280, 1279, 1164, 1163, 1100, 1000, 601, 600, 390, 360 e 320 px (os números dependem dos dados: com outros, o que cabe e o que rola muda um pouco):
+
+- a grade de cards tem 3 colunas a 1440 px, 2 a 1100 px, 1 abaixo de 600 px;
+- as linhas têm 68 px quando o texto e o lado cabem numa linha, e 98 px com o lado sob o texto (a de uma líder tem mais 34 px, a da árvore; a última linha de cada lista tem 1 px a menos, sem a divisória);
+- um título de 40 caracteres não é cortado de 600 px para cima, em nenhuma das larguras medidas, com a máquina à mostra de 601 px para cima; a 390 px um dos oito é cortado, a 360 e a 320 todos são;
+- não há rolagem para o lado de 320 a 1440 px com as árvores e a faixa "Paradas" fechadas; com tudo aberto ainda rola para o lado a 360 e a 320 px, algumas dezenas de pixels conforme o texto (17 e 57 px com os dados desta medida), como antes do #752;
+- o par fica lado a lado a partir de 1164 px com a barra lateral aberta (248 px de barra, 48 px de margem e duas colunas de 420 px com 28 px entre elas) e empilha abaixo disso: lado a lado a 1164 px, empilhado a 1163 e a 1100; as duas colunas de "Trabalhando" começam em 1280 px, que é outra medida.

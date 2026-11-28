@@ -296,7 +296,7 @@ describe('Analytics: Visão geral', () => {
       assert.deepEqual(stats.map((s) => s.getAttribute('data-card')), ['sessions', 'agents', 'tokens', 'cost', 'events']);
       assert.deepEqual(
         stats.map((s) => s.textContent),
-        ['Sessões4124 ativas', 'Agentes1.0867 ativos', 'Tokens1,9 B71% de cache', 'Custo~US$ 341estimativa · 30 dias', 'Eventos48,1 mil~117 por sessão'],
+        ['Sessões4124 trabalhando', 'Agentes1.0867 ativos', 'Tokens1,9 B71% de cache', 'Custo~US$ 341estimativa · 30 dias', 'Eventos48,1 mil~117 por sessão'],
       );
       assert.equal(comClasse(area, 'an-accounts').length, 0, 'uma conta só: sem divisão');
 

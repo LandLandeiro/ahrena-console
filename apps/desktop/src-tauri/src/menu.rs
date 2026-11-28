@@ -424,8 +424,8 @@ fn summary(m: &mut Vec<Item>, a: &Attention) {
     m.push(Item::Text { text: active_count(a.active), dot: Some(Dot::Orange) });
     match a.idle_count() {
         0 => {}
-        1 => m.push(Item::Text { text: "1 ociosa".into(), dot: Some(Dot::Empty) }),
-        n => m.push(Item::Text { text: format!("{n} ociosas"), dot: Some(Dot::Empty) }),
+        1 => m.push(Item::Text { text: "1 em pausa".into(), dot: Some(Dot::Empty) }),
+        n => m.push(Item::Text { text: format!("{n} em pausa"), dot: Some(Dot::Empty) }),
     }
 }
 
@@ -573,9 +573,9 @@ fn clouds_block(aws: &clouds::Aws, links: &[(String, String)], now_ms: u64, offs
 
 fn active_count(n: u64) -> String {
     if n == 1 {
-        "1 ativa".into()
+        "1 trabalhando".into()
     } else {
-        format!("{n} ativas")
+        format!("{n} trabalhando")
     }
 }
 
@@ -653,8 +653,8 @@ mod tests {
                 "painel-de-metricas · Com erro · 3 min",
                 "motor-de-regras · Pede permissão · 2 min",
                 "—",
-                "4 ativas",
-                "2 ociosas",
+                "4 trabalhando",
+                "2 em pausa",
                 "—",
                 "Abrir o console",
                 "✓ Notificações",
@@ -665,8 +665,8 @@ mod tests {
             ]
         );
         assert_eq!(tray_title(&n, Some(&a)).as_deref(), Some("3"), "only the blocked ones; the 2 idle do not count");
-        let idle = m.iter().find(|i| matches!(i, Item::Text { text, .. } if text == "2 ociosas"));
-        assert_eq!(idle, Some(&Item::Text { text: "2 ociosas".into(), dot: Some(Dot::Empty) }), "grey, hollow dot, no action");
+        let idle = m.iter().find(|i| matches!(i, Item::Text { text, .. } if text == "2 em pausa"));
+        assert_eq!(idle, Some(&Item::Text { text: "2 em pausa".into(), dot: Some(Dot::Empty) }), "grey, hollow dot, no action");
         assert!(!m.iter().any(|i| matches!(i, Item::Session { id, .. } if id == "s3" || id == "s5")), "no item for an idle session");
     }
 
@@ -675,7 +675,7 @@ mod tests {
         let a = Attention::from_json(ONLY_IDLE).unwrap();
         let n = CoreState::Up { port: 4720 };
         let m = build(&input(&n, Some(&a)));
-        assert_eq!(&texts(&m)[..8], ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 ativas", "2 ociosas", "nenhuma com erro", "—"]);
+        assert_eq!(&texts(&m)[..8], ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 trabalhando", "2 em pausa", "nenhuma com erro", "—"]);
         let dots: Vec<_> = m[3..7].iter().map(|i| if let Item::Text { dot, .. } = i { *dot } else { None }).collect();
         assert_eq!(dots, [Some(Dot::Empty), Some(Dot::Orange), Some(Dot::Empty), Some(Dot::Red)]);
         assert_eq!(tray_title(&n, Some(&a)), None, "idle sessions never put a number in the bar");
@@ -721,7 +721,7 @@ mod tests {
         let a = Attention::from_json(ZERO).unwrap();
         let n = CoreState::Up { port: 4720 };
         let m = build(&input(&n, Some(&a)));
-        assert_eq!(&texts(&m)[..7], ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 ativas", "nenhuma com erro", "—"]);
+        assert_eq!(&texts(&m)[..7], ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 trabalhando", "nenhuma com erro", "—"]);
         let dots: Vec<_> = m[3..6].iter().map(|i| if let Item::Text { dot, .. } = i { *dot } else { None }).collect();
         assert_eq!(dots, [Some(Dot::Empty), Some(Dot::Orange), Some(Dot::Red)]);
         assert_eq!(tray_title(&n, Some(&a)), None);
@@ -757,8 +757,8 @@ mod tests {
         let n = CoreState::Up { port: 4720 };
         let t = texts(&build(&input(&n, Some(&a))));
         assert!(t.contains(&"1 precisa de você · abrir na janela".to_string()));
-        assert!(t.contains(&"1 ativa".to_string()));
-        assert!(t.contains(&"1 ociosa".to_string()));
+        assert!(t.contains(&"1 trabalhando".to_string()));
+        assert!(t.contains(&"1 em pausa".to_string()));
         assert_eq!([elapsed(0), elapsed(59), elapsed(60), elapsed(150), elapsed(60 * 24 * 2)], ["agora", "59 min", "1 h", "2 h", "2 d"]);
     }
 
@@ -967,8 +967,8 @@ mod tests {
                 "CPU saturada há 12 min · Workstation",
                 "Volume / em 86% · Workstation",
                 "—",
-                "4 ativas",
-                "2 ociosas",
+                "4 trabalhando",
+                "2 em pausa",
                 "—",
             ])
         );
@@ -1051,8 +1051,8 @@ mod tests {
                 "  A porta 14720 não aceita conexão: o túnel parece caído",
                 "  Como reconectar daqui…",
                 "—",
-                "1 ativa",
-                "2 ociosas",
+                "1 trabalhando",
+                "2 em pausa",
                 "—",
             ])
         );
@@ -1172,7 +1172,7 @@ mod tests {
         let t = texts(&build(&with_machines(&n, Some(&a), Some(&ms))));
         assert_eq!(
             &t[..10],
-            ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 ativas", "nenhuma com erro", "—", "Máquinas", "Este Mac · CPU 34% · disco 61%", "—"]
+            ["Ahrena Console", "Núcleo de pé · 127.0.0.1:4720", "—", "Ninguém precisa de você", "4 trabalhando", "nenhuma com erro", "—", "Máquinas", "Este Mac · CPU 34% · disco 61%", "—"]
         );
     }
 
@@ -1223,7 +1223,7 @@ mod tests {
         assert_eq!(a.items[1].attention.as_ref().map(|x| x.reason.as_str()), Some("first_prompt"));
         let t = texts(&build(&input(&CoreState::Up { port: 4720 }, Some(&a))));
         assert!(t.contains(&"1 precisa de você · abrir na janela".to_string()));
-        assert!(t.contains(&"1 ociosa".to_string()));
+        assert!(t.contains(&"1 em pausa".to_string()));
     }
 
     #[test]
@@ -1275,7 +1275,7 @@ mod tests {
                 "AWS · sessao-lab · válida",
                 "AWS · sessao-nova · nunca entrou",
                 "—",
-                "4 ativas",
+                "4 trabalhando",
             ]
         );
         assert_eq!(tray_title(&n, Some(&a)).as_deref(), Some("3"), "clouds never add to the bar's number");
@@ -1291,7 +1291,7 @@ mod tests {
         let logins: Vec<&str> = m.iter().filter_map(|i| if let Item::CloudLogin { session, .. } = i { Some(session.as_str()) } else { None }).collect();
         assert_eq!(logins, ["sessao-velha"], "Entrar only when the login really dropped");
         let t = texts(&m);
-        assert_eq!(&t[3..8], ["Ninguém precisa de você", "4 ativas", "nenhuma com erro", "—", "Nuvens"], "A1: after the three lines");
+        assert_eq!(&t[3..8], ["Ninguém precisa de você", "4 trabalhando", "nenhuma com erro", "—", "Nuvens"], "A1: after the three lines");
     }
 
     #[test]

@@ -7,6 +7,7 @@ import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionPill } from '../attention.js';
 import { createMachineFilter, itemKey, machineIdOf, machineTag, sessionHref, whereText } from '../machine-filter.js';
+import { stateLabels } from '../state-labels.js';
 
 /** Quantos dias cada página traz. */
 export const DAYS_PER_PAGE = 7;
@@ -98,15 +99,11 @@ export function appendDays(currentOnes, newOnes) {
 
 // ---------- Peças ----------
 
-const STATUS = {
-  completed: 'Concluída',
-  error: 'Com erro',
-  abandoned: 'Abandonada',
-  active: 'Ativa',
-};
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
+const STATUS = stateLabels(['completed', 'error', 'abandoned', 'active']);
 
 function badge(status) {
-  // A closed session that ended waiting (issue 245): neutral "Ociosa", never the old "waiting for you".
+  // ADR-0028: a closed session that ended waiting (issue 245): neutral "Em pausa", never the old "waiting for you".
   if (status === 'waiting') return attentionPill({ level: 'idle', reason: null });
   const known = Object.hasOwn(STATUS, status);
   return el('span', { class: `badge b-${known ? status : 'abandoned'}` }, el('span', { class: 'p' }), known ? STATUS[status] : '—');

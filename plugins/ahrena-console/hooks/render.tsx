@@ -1402,7 +1402,7 @@ const GRAPH_BAR_H = 10
 /** As colunas de cada linha do grafo: no estreito, nome, barra e tempo; no largo, também estado e início. */
 const GRAPH_COLUMNS = {
   narrow: { name: 14, bar: 7, state: 0, start: 0, time: TIME_W },
-  wide: { name: 40, bar: 36, state: 9, start: 6, time: TIME_W },
+  wide: { name: 38, bar: 36, state: 11, start: 6, time: TIME_W },
 } as const
 /** O que o grafo tem em volta, em linhas: o respiro, o topo, os dois "← voltar", o rótulo, a borda da caixa, a régua, a raiz, o pé e a versão. */
 const AROUND_GRAPH = 2 + 4 + 1 + 1 + 2 + 2 + 2 + 2 + 1 + 5
@@ -1410,7 +1410,7 @@ const AROUND_GRAPH = 2 + 4 + 1 + 1 + 2 + 2 + 2 + 2 + 1 + 5
 const SUB_COLOR = (s: PanelSubagent['status']) => (s === 'completed' ? SUCCESS : s === 'error' ? RED : ORANGE)
 const SUB_GLYPH = (s: PanelSubagent['status']) => (s === 'completed' ? '✓' : s === 'error' ? '✕' : '●')
 const SUB_STATE = (s: PanelSubagent['status']) => (s === 'completed' ? 'concluído' : s === 'error' ? 'com erro' : 'ativo')
-const SESSION_STATE: Record<ReturnType<typeof statusOf>, string> = { active: 'ativa', waiting: 'precisa', completed: 'concluída', error: 'com erro', abandoned: 'abandonada' }
+const SESSION_STATE: Record<ReturnType<typeof statusOf>, string> = { active: 'trabalhando', waiting: 'precisa', completed: 'concluída', error: 'com erro', abandoned: 'abandonada' }
 
 /** O minuto da sessão, como na régua: "33′". */
 const sessionMinute = (t0: number, t: number) => `${Math.max(0, Math.round((t - t0) / 60_000))}′`
@@ -1509,7 +1509,7 @@ function waveLine(c: DrawContext, o: Extract<GraphLine, { type: 'wave' }>, wide:
   ]
   const end = o.end ?? c.now
   const bar = o.open ? null : <Svg source={graphBarSvg(w, t0, c.now, o.start, o.end, waveColor, o.marks)} alt={`onda ${o.number}`} width={w} height={GRAPH_BAR_H} />
-  const waveState = o.count.errors ? { state: 'com erro', stateColor: RED_TEXT } : o.count.active ? { state: 'ativa', stateColor: ORANGE } : { state: 'concluída' }
+  const waveState = o.count.errors ? { state: 'com erro', stateColor: RED_TEXT } : o.count.active ? { state: 'trabalhando', stateColor: ORANGE } : { state: 'concluída' }
   return graphLine(c, `graph-wave-${o.number}`, wide, name, bar, o.open ? { time: '' } : { ...waveState, start: sessionMinute(t0, o.start), time: duration(end - o.start) })
 }
 
@@ -1605,7 +1605,7 @@ function graphScreen(c: DrawContext, p: Panel, g: ReturnType<typeof grid>, narro
       {wide && s?.model ? <Text dimColor> · {model(s.model)}</Text> : null}
     </Text>,
     <Svg source={graphBarSvg(w, t0, c.now, t0, null, color.border)} alt="esta sessão" width={w} height={GRAPH_BAR_H} />,
-    { state: idle ? 'ociosa' : SESSION_STATE[st], stateColor: st === 'active' ? ORANGE : color.color, start: '0′', time: duration(c.now - t0) },
+    { state: idle ? 'em pausa' : SESSION_STATE[st], stateColor: st === 'active' ? ORANGE : color.color, start: '0′', time: duration(c.now - t0) },
   )
   const lines = pg.lines.map((l) => (l.type === 'wave' ? waveLine(c, l, wide, t0, state) : nodeLine(c, l, wide, t0)))
   const after = pg.after ? (

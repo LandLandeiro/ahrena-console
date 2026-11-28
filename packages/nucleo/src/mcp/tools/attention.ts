@@ -3,7 +3,7 @@
 // Two groups, as the owner asked (#245 names them on screen):
 // - `blocking` ("precisa de você"): the session is stuck until you act (permission, question, plan to
 //   approve, decision asked at the turn's wrap-up, error);
-// - `your_turn` ("ociosa"): the turn ended and nothing blocks (the turn ended, Esc, a new session at the
+// - `your_turn` ("em pausa"): the turn ended and nothing blocks (the turn ended, Esc, a new session at the
 //   prompt). The `group` values and the output schema are the published contract and stay.
 // The split is the same as the panel's "precisam de você" (`atencaoDe`, #140).
 // Blocking first; within a group, whoever has waited longest first.
@@ -113,13 +113,13 @@ export function sessionsNeedingAttention(fleet: FleetReader): Tool {
     name: 'sessions_needing_attention',
     title: 'Quem precisa de mim',
     description:
-      'Sessões do Claude Code desta máquina que precisam de você ou estão ociosas, em todas as contas. Separa as que precisam ' +
-      'de você, travadas até você agir (permissão, pergunta, plano, decisão pedida, erro: group "blocking"), das ociosas, cujo ' +
+      'Sessões do Claude Code desta máquina que precisam de você ou estão em pausa, em todas as contas. Separa as que precisam ' +
+      'de você, travadas até você agir (permissão, pergunta, plano, decisão pedida, erro: group "blocking"), das que estão em pausa, cujo ' +
       'turno acabou sem nada travando (o turno acabou, Esc ou sessão nova: group "your_turn"). Cada uma traz o motivo, há quanto ' +
       'tempo está assim, a conta e como abrir (claude --resume). ' +
       'Não devolve texto das conversas. Paginada: use nextCursor.',
     inputSchema: objectSchema({
-      group: { type: 'string', enum: ['all', 'blocking', 'your_turn'], default: 'all', description: 'Só um dos grupos: "blocking" (precisam de você) ou "your_turn" (ociosas).' },
+      group: { type: 'string', enum: ['all', 'blocking', 'your_turn'], default: 'all', description: 'Só um dos grupos: "blocking" (precisam de você) ou "your_turn" (em pausa).' },
       ...COMMON_ARGS,
     }),
     outputSchema: strictObject({
@@ -166,11 +166,11 @@ export function sessionsNeedingAttention(fleet: FleetReader): Tool {
   };
 }
 
-/** "4 sessões precisam de você e 3 estão ociosas." (#245). */
+/** "4 sessões precisam de você e 3 estão em pausa." (#245). */
 export function blockedAndIdlePhrase(blocking: number, idle: number): string {
   const blocked = blocking === 0 ? 'Nenhuma sessão precisa de você' : `${blocking} ${blocking === 1 ? 'sessão precisa' : 'sessões precisam'} de você`;
   if (idle === 0) return `${blocked}.`;
-  return `${blocked} e ${idle} ${idle === 1 ? 'está ociosa' : 'estão ociosas'}.`;
+  return `${blocked} e ${idle} ${idle === 1 ? 'está em pausa' : 'estão em pausa'}.`;
 }
 
 function summaryText(d: { total: number; blocking: number; yourTurn: number; byAccount: { account: OutputAccount | null; total: number }[]; items: AttentionItem[]; nextCursor: string | null }, start: number): string {
@@ -182,7 +182,7 @@ function summaryText(d: { total: number; blocking: number; yourTurn: number; byA
   for (const i of d.items) {
     if (i.group !== currentGroup) {
       currentGroup = i.group;
-      l.push(i.group === 'blocking' ? 'Precisam de você:' : 'Ociosas:');
+      l.push(i.group === 'blocking' ? 'Precisam de você:' : 'Em pausa:');
     }
     l.push(`- [${accountLabel(i.account)}] ${i.title} · ${i.reasonText} · ${timeAgo(i.waitingMinutes)} · ${i.open.resume}`);
   }

@@ -45,7 +45,7 @@ const cabecalho = (comentario: string) =>
 
 export function gerarTs(tokens: Tokens): string {
   for (const escala of Object.keys(tokens)) {
-    if (!escala.startsWith('_') && !FORA.has(escala) && !PALETA.includes(escala) && !['ci', 'themes', 'status', 'typography', 'spacing'].includes(escala)) {
+    if (!escala.startsWith('_') && !FORA.has(escala) && !PALETA.includes(escala) && !['ci', 'themes', 'status', 'typography', 'spacing', 'agent', 'radius', 'shadow', 'motion'].includes(escala)) {
       throw new Error(`escala nova no tokens.json: ${escala}. Decida se entra na paleta (PALETA) ou fica de fora (FORA).`)
     }
   }
@@ -59,6 +59,10 @@ export function gerarTs(tokens: Tokens): string {
     ['status', status],
     ['tipografia', limpo(tokens.typography)],
     ['spacing', limpo(tokens.spacing)],
+    ['agent', limpo(tokens.agent)],
+    ['radius', limpo(tokens.radius)],
+    ['shadow', limpo(tokens.shadow)],
+    ['motion', limpo(tokens.motion)],
   ] as const
   const corpo = partes.map(([nome, valor]) => `export const ${nome} = ${JSON.stringify(valor, null, 2)} as const\n`).join('\n')
   return `${cabecalho('//')}\n${corpo}\nexport type Tema = keyof typeof temas\nexport type StatusId = (typeof ordemStatus)[number]\n`
@@ -72,6 +76,10 @@ function variaveisDoTema(tokens: Tokens, tema: (typeof TEMAS)[number]): string[]
   for (const id of tokens.status._ordem) {
     for (const [papel, cor] of Object.entries(tokens.status[id][tema])) linhas.push(variavel(`status-${id}-${papel}`, cor as string))
   }
+  for (const [cor, temas] of Object.entries(limpo(tokens.agent))) {
+    for (const [papel, valor] of Object.entries(temas[tema])) linhas.push(variavel(`agent-${cor}-${papel}`, valor as string))
+  }
+  for (const [nome, valor] of Object.entries(limpo(tokens.shadow[tema]))) linhas.push(variavel(`shadow-${nome}`, valor as string))
   return linhas
 }
 
@@ -87,6 +95,10 @@ export function gerarCss(tokens: Tokens): string {
   fixas.push(variavel('font-sans', tipo.sans), variavel('font-mono', tipo.mono))
   for (const [nome, v] of Object.entries(tipo.size)) fixas.push(variavel(`text-${nome}`, v as string))
   for (const [name, v] of Object.entries(limpo(tokens.spacing))) fixas.push(variavel(`space-${name}`, v as string))
+  for (const [nome, v] of Object.entries(limpo(tokens.radius))) fixas.push(variavel(`radius-${kebab(nome)}`, v as string))
+  const durations = ['fast', 'base', 'move']
+  for (const [name, v] of Object.entries(limpo(tokens.motion))) fixas.push(variavel(durations.includes(name) ? `motion-${name}` : kebab(name), v as string))
+  for (const [nome, v] of Object.entries(limpo(tipo.tracking))) fixas.push(variavel(`tracking-${nome}`, v as string))
   for (const [nome, v] of Object.entries(tipo.weight)) fixas.push(variavel(`weight-${nome}`, v as number))
 
   const escuro = variaveisDoTema(tokens, 'dark')
@@ -94,8 +106,6 @@ export function gerarCss(tokens: Tokens): string {
   const indentar = (linhas: string[]) => linhas.map(l => `  ${l}`)
   return [
     cabecalho('/*').replace(/\n$/, ' */\n'),
-    `/* Fontes: ${tipo.googleFonts} */`,
-    '',
     '/* Escuro é o padrão. */',
     ':root {',
     '  color-scheme: dark;',
@@ -115,6 +125,13 @@ export function gerarCss(tokens: Tokens): string {
     ':root[data-theme="light"] {',
     '  color-scheme: light;',
     ...claro,
+    '}',
+    '',
+    '/* Movimento reduzido: as três durações viram 0ms, nos dois temas. Vem depois dos blocos de tema. */',
+    '@media (prefers-reduced-motion: reduce) {',
+    '  :root {',
+    ...durations.map(name => `    --motion-${name}: 0ms;`),
+    '  }',
     '}',
     '',
   ].join('\n')
