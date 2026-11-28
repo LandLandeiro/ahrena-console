@@ -91,7 +91,7 @@ export function elide(steps) {
   return parts;
 }
 
-// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
 const STATE = stateLabels({ working: 'active', waiting: 'agent_waiting', completed: 'completed', error: 'error' });
 export const stateLabel = (state) => STATE[state] ?? '—';
 

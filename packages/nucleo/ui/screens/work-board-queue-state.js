@@ -10,7 +10,7 @@ import { boardColumnLabel } from '../state-labels.js';
 /** The two columns a card may be dragged between: the person's order. The other four are facts of the session and of GitHub. */
 export const QUEUE_COLUMNS = new Set(['planning', 'queued']);
 
-// What each fact column comes from; the column's name is state-labels.js's (issue 760).
+// What each fact column comes from; the column's name is state-labels.js's (ADR-0028).
 const FACT_SOURCES = { running: 'da sessão', review: 'do PR', blocked: 'da sessão, do PR e do CI', done: 'do GitHub' };
 const refusalOf = (column) => `${boardColumnLabel(column)} vem ${FACT_SOURCES[column]}: não recebe card. Solte em ${boardColumnLabel('planning')} ou ${boardColumnLabel('queued')}.`;
 const NO_PLAN = 'Planeje antes: item sem plano não entra na fila';

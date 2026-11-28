@@ -12,7 +12,7 @@ import { boardColumnLabel, stateLabel } from '../state-labels.js';
 /** The state of a group: the label on the screen and the color token it takes. */
 export const GROUP_STATE = {
   approved: ['Aprovado', 'completed'],
-  // The same word as the work board's "Em revisão" column (state-labels.js, issue 760).
+  // The same word as the work board's "Em revisão" column (state-labels.js, ADR-0028).
   get 'in-review'() {
     return [boardColumnLabel('review'), 'active'];
   },
@@ -92,7 +92,7 @@ export function loopSummary(loop, subagents) {
   return rows;
 }
 
-// `[state, pill tone, tone]`; the label is the state's in state-labels.js (issue 760), read when the row is drawn.
+// `[state, pill tone, tone]`; the label is the state's in state-labels.js (ADR-0028), read when the row is drawn.
 const ORCHESTRATOR_STATE = { running: ['running', 'active', 'run'], completed: ['completed', 'completed', 'ok'], error: ['error', 'error', 'error'] };
 const orchestratorState = (state) => {
   const [id, pillTone, tone] = ORCHESTRATOR_STATE[state] ?? ORCHESTRATOR_STATE.completed;

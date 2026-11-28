@@ -6,7 +6,7 @@
 // - `idle` ("Ociosa"): the turn ended and nothing is stuck. Neutral tokens, hollow dot, no fill, the
 //   reason in a light chip (turn ended, interrupted, at the prompt).
 //
-// The words are not written here: they are read from state-labels.js (issue 760), in the mode of the moment.
+// The words are not written here: they are read from state-labels.js (#760), in the mode of the moment.
 //
 // Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
 // "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen.
@@ -14,8 +14,8 @@
 import { el, icon } from './dom.js';
 import { stateLabel, stateLabels } from './state-labels.js';
 
-// The words are in state-labels.js (issue 760), in the Dev and the Projeto column. The three maps below keep their names and
-// shapes, but their text is read when it is used, so a change of mode shows in the next draw.
+/* The words are in state-labels.js (#760), in the Dev and the Projeto column. The three maps below keep their names and
+   shapes, but their text is read when it is used, so a change of mode shows in the next draw. */
 
 /** The singular label of each level, as the pill says it. */
 export const ATTENTION_LABEL = stateLabels(['blocked', 'idle']);

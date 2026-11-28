@@ -1,10 +1,9 @@
-// #760: one map of state labels for the whole /ui (ui/state-labels.js), with two columns, Dev and Projeto.
-//
-// - the module: the mode, the two columns, the voice limits, the kinds of state-icon.js, the board columns;
-// - "one source" (criterion 1): a guard that fails on a state label written by hand anywhere else in ui/;
-// - "the two columns" (criterion 2): in the Project mode the same screens that say "Pede permissão" and
-//   "Com erro" say "Pede sua aprovação" and "Parou com erro".
-// The columns below are written out on purpose: they are the contract, not a copy of the module's table.
+/* #760: one map of state labels for the whole /ui (ui/state-labels.js), with two columns, Dev and Projeto.
+   - the module: the mode, the two columns, the voice limits, the kinds of state-icon.js, the board columns;
+   - "one source" (criterion 1): a guard that fails on a state label written by hand anywhere else in ui/;
+   - "the two columns" (criterion 2): in the Project mode the same screens that say "Pede permissão" and
+     "Com erro" say "Pede sua aprovação" and "Parou com erro".
+   The columns below are written out on purpose: they are the contract, not a copy of the module's table. */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -14,9 +13,7 @@ import { ElementoFalso, documentoFalso, instalarDomFalso, texto } from './fake-d
 
 instalarDomFalso();
 
-// ---------- The contract: the two columns, written out ----------
-
-/** Dev: today's words, exactly (the singular, then the plural when the state has one). */
+/** #760, Dev: today's words, exactly (the singular, then the plural when the state has one). */
 const DEV: Record<string, [string, string?]> = {
   blocked: ['Precisa de você', 'Precisam de você'],
   idle: ['Ociosa', 'Ociosas'],
@@ -51,16 +48,14 @@ const PROJECT_DIFFERS: Record<string, [string, string?]> = {
   abandoned: ['Encerrada sem terminar', 'Encerradas sem terminar'],
 };
 const PROJECT: Record<string, [string, string?]> = { ...DEV, ...PROJECT_DIFFERS };
-/** The work board's columns, the same in both modes ("Em review" and "Bloqueado" are gone). */
+/** #760: the work board's columns, the same in both modes ("Em review" and "Bloqueado" are gone). */
 const BOARD: Record<string, string> = { planning: 'Planejamento', queued: 'Na fila', running: 'Em execução', review: 'Em revisão', blocked: 'Precisa de você', done: 'Concluído' };
-/** What the screens used to say and no longer may, plus the compound the module builds. */
+/** #760: what the screens used to say and no longer may, plus the compound the module builds. */
 const RETIRED = ['Em review', 'Bloqueado'];
 const COMPOUND = 'Precisa de você ou ociosa';
 
 const texts = (table: Record<string, [string, string?]>) => Object.values(table).flatMap(([one, many]) => [one, ...(many ? [many] : [])]);
 const GUARDED = new Set([...texts(DEV), ...texts(PROJECT), ...Object.values(BOARD), ...RETIRED, COMPOUND]);
-
-// ---------- The guard: a state label written by hand outside the module ----------
 
 export interface Stray {
   file: string;
@@ -68,14 +63,14 @@ export interface Stray {
   text: string;
 }
 
-/** The last character before `at` that is not a space, or an empty string at the start: what tells a regular expression from a division. */
+/** #760: the last character before `at` that is not a space, or an empty string at the start: what tells a regular expression from a division. */
 function previousSignificant(source: string, at: number): string {
   let k = at - 1;
   while (k >= 0 && (source[k] === ' ' || source[k] === '\t' || source[k] === '\n')) k--;
   return k >= 0 ? source[k]! : '';
 }
 
-/** The string literals of a source, comments left out, each with its line. A template with an expression is walked for the literals inside it and is not a literal itself. */
+/** #760: the string literals of a source, comments left out, each with its line. A template with an expression is walked for the literals inside it and is not a literal itself. */
 function literalsOf(source: string, firstLine = 1): { line: number; value: string }[] {
   const found: { line: number; value: string }[] = [];
   let line = firstLine;
@@ -96,7 +91,7 @@ function literalsOf(source: string, firstLine = 1): { line: number; value: strin
       }
       i += 2;
     } else if (c === '/' && /[(,=:[!&|?{};]|^$/.test(previousSignificant(source, i))) {
-      // A regular expression literal (it may hold a quote or a backtick): skipped, never read as a string.
+      // #760: a regular expression literal (it may hold a quote or a backtick): skipped, never read as a string.
       let j = i + 1;
       let inClass = false;
       while (j < n && source[j] !== '\n' && (inClass || source[j] !== '/')) {
@@ -165,7 +160,7 @@ export function findStrayLabels(source: string, file: string, labels: ReadonlySe
 }
 
 /**
- * The words that are not session states and stay where they are, each with why. They are the machine, container, terminal,
+ * #760: the words that are not session states and stay where they are, each with why. They are the machine, container, terminal,
  * tool and plan-step states, and a decision's type; `Rodando` and the like are state labels of workflows and agents only.
  * A guard that lists its exceptions also fails when one of them no longer exists.
  */
@@ -269,8 +264,6 @@ describe('#760 one source: the real ui/', () => {
     assert.doesNotMatch(source, /localStorage|sessionStorage|document\.cookie/, 'no persistence: #754 decides where the choice lives');
   });
 });
-
-// ---------- The module ----------
 
 // @ts-expect-error: browser module, plain JavaScript
 const labels = () => import('../../ui/state-labels.js');
@@ -406,8 +399,6 @@ describe('#760 the module: the mode and the two columns', () => {
   });
 });
 
-// ---------- The two columns on the screens ----------
-
 const page = { pathname: '/ui', search: '', hash: '' };
 const setUrl = (url: string) => {
   const u = new URL(url, 'http://127.0.0.1');
@@ -447,7 +438,7 @@ const until = async (cond: () => boolean, what = 'the condition', ms = 2000) => 
   }
 };
 
-/** A ctx with a stubbed core: `answer(route)` gives the JSON. */
+/** #760: a ctx with a stubbed core: `answer(route)` gives the JSON. */
 function context(answer: (route: string) => unknown, params: Record<string, string> = {}) {
   const leave = new AbortController();
   return {
@@ -474,7 +465,7 @@ function context(answer: (route: string) => unknown, params: Record<string, stri
 const DEV_WORDS = ['Pede permissão', 'Com erro'];
 const PROJECT_WORDS = ['Pede sua aprovação', 'Parou com erro'];
 
-/** Draws a screen in Dev, then in Projeto, and says what the same words become. */
+/** #760: draws a screen in Dev, then in Projeto, and says what the same words become. */
 async function inBothModes(draw: () => Promise<string>) {
   const m = await labels();
   m.setStateLabelMode('dev');

@@ -1,24 +1,6 @@
-// The one map of state labels of the /ui, in two columns: Dev and Projeto (issue 760, finding M12 of the UX review,
-// decision 0029). Every screen asks this module for the words of a state; none writes its own map, and a test
-// (test/api/ui-state-labels.test.ts) refuses a state label written by hand anywhere else in ui/.
-//
-// - The name is `state-labels.js`, not `states.js`: that one holds the loading, empty and error helpers of every screen.
-// - Dev is the vocabulary of today. Projeto is the same ids with the words of the table of section 4 of the review
-//   ("Pede sua aprovação", "Parou com erro", "Esperando sua resposta", "Encerrada sem terminar"); what the table calls
-//   "igual" is equal here. "Ativa" and "Ociosa" are still the same in both columns: renaming them is issue 753, and it
-//   changes this file only.
-// - The ids (`active`, `idle`, `blocked`, `permission`...) are the ones of the API and do not change.
-// - The mode is `dev` at first and lives in this module only: no button, no storage. Issue 754 sets it and redraws; a
-//   screen reads the label while it draws (`stateLabel(id)` reads the mode at the call), so a constant that holds a
-//   label would go stale: use `stateLabels(...)`, whose values are read when they are read.
-// - Each state carries the kind of state-icon.js (`needs`, `permission`, `working`, `queued`, `paused`, `completed`,
-//   `error`, `answered`), so the label, the icon and the colour of a state share one key. This file imports nothing,
-//   and state-icon.js imports it.
-// - The work board's columns are here too, by column id. The core still sends "Em review" and "Bloqueado" (src/github/
-//   work-board.ts); the board draws the names below and ignores the `label` of the payload.
-//
-// Not here, on purpose: the states of a machine, a container, a terminal, a tool call and a plan step (they are not
-// states of a session), the states of a pull request group in a workflow, and the type of a decision.
+/* The one map of state labels of the /ui (#760), in two columns, Dev and Projeto: a screen asks this module for the words of a
+   state and never writes its own (test/api/ui-state-labels.test.ts refuses one written by hand). The mode lives here only, so
+   a screen reads `stateLabel(id)` while it draws and holds no label in a constant (use `stateLabels(...)`). This file imports nothing. */
 
 /** The two columns, in the order they are offered. */
 export const STATE_MODES = Object.freeze(['dev', 'project']);
@@ -35,16 +17,18 @@ export function setStateLabelMode(value) {
 /** The current mode, `dev` or `project`. */
 export const stateLabelMode = () => mode;
 
-// A state: its kind, then its words in Dev and in Projeto, each `[singular, plural?]` (the plural is for pills, filters and
-// columns). Projeto is written out only where it differs: `same` repeats Dev.
+/* #760: a state is its kind (the one of state-icon.js, so label, icon and colour share a key), then its words in Dev and in
+   Projeto, each `[singular, plural?]` (the plural is for pills, filters and columns). Projeto is written out only where it
+   differs. `failed` is the short "Erro" of a filter pill and of a workflow run, `parked` the band of the Wall, and the
+   masculine ones (`running`, `reviewing`, `*_item`, `agent_waiting`) qualify an agent or a step, not a session. */
 const same = null;
 const state = (kind, dev, project = same) => Object.freeze({ kind, dev: Object.freeze(dev), project: Object.freeze(project ?? dev) });
 
 const STATES = Object.freeze({
-  // The two attention levels (issue 245).
+  // #245: the two attention levels.
   blocked: state('needs', ['Precisa de você', 'Precisam de você']),
   idle: state('paused', ['Ociosa', 'Ociosas']),
-  // Why a session is blocked or idle.
+  // #245: why a session is blocked or idle.
   permission: state('permission', ['Pede permissão'], ['Pede sua aprovação']),
   question: state('needs', ['Pergunta'], ['Esperando sua resposta']),
   plan: state('needs', ['Plano para aprovar']),
@@ -53,17 +37,13 @@ const STATES = Object.freeze({
   turn_ended: state('paused', ['Sua vez'], ['Esperando sua resposta']),
   interrupted: state('paused', ['Interrompida']),
   first_prompt: state('paused', ['No prompt']),
-  // The status of a session.
   active: state('working', ['Ativa', 'Ativas']),
   completed: state('completed', ['Concluída', 'Concluídas']),
   abandoned: state('paused', ['Abandonada', 'Abandonadas'], ['Encerrada sem terminar', 'Encerradas sem terminar']),
   queued: state('queued', ['Na fila']),
   answered: state('answered', ['Respondida']),
-  // The short "Erro" of a filter pill and of the run of a workflow; the long one is `error`.
   failed: state('error', ['Erro'], ['Parou com erro']),
-  // The band of the Mural for what has stopped asking for you.
   parked: state('paused', ['Paradas']),
-  // The agents and steps of a workflow run (masculine: they qualify an agent or a step, not a session).
   running: state('working', ['Rodando']),
   reviewing: state('working', ['Revisando']),
   active_item: state('working', ['Ativo']),
@@ -71,8 +51,8 @@ const STATES = Object.freeze({
   agent_waiting: state('paused', ['Esperando']),
 });
 
-// The six columns of the work board, equal in both modes. "Em revisão" and "Precisa de você" replace "Em review" and
-// "Bloqueado": the same concept as the rest of the /ui. "Concluído" stays: it qualifies an item, not a session.
+/* #760: the six columns of the work board, equal in both modes. "Em revisão" and "Precisa de você" replace "Em review" and
+   "Bloqueado": the same concept as the rest of the /ui. "Concluído" stays: it qualifies an item, not a session. */
 const BOARD_COLUMNS = Object.freeze({
   planning: 'Planejamento',
   queued: 'Na fila',
@@ -82,7 +62,7 @@ const BOARD_COLUMNS = Object.freeze({
   done: 'Concluído',
 });
 
-// The state a kind draws when only the kind is known (state-icon.js).
+// #760: the state a kind draws when only the kind is known (state-icon.js).
 const KIND_STATE = Object.freeze({ needs: 'blocked', permission: 'permission', working: 'active', queued: 'queued', paused: 'idle', completed: 'completed', error: 'error', answered: 'answered' });
 
 const textOf = (entry, plural) => (plural && entry[mode][1] ? entry[mode][1] : entry[mode][0]);

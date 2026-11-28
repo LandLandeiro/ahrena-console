@@ -7,7 +7,7 @@ import { stateLabel } from '../state-labels.js';
 
 // ---------- Pure parts (tested in node) ----------
 
-// The words are in state-labels.js (issue 760), read when the node is drawn: `[label, tone]`.
+// The words are in state-labels.js (ADR-0028), read when the node is drawn: `[label, tone]`.
 const STATUS = { active: ['active', 'active'], completed: ['completed', 'completed'], error: ['error', 'error'], abandoned: ['abandoned', 'muted'] };
 export const statusOf = (s) => {
   const [id, tone] = Object.hasOwn(STATUS, s) ? STATUS[s] : STATUS.completed;

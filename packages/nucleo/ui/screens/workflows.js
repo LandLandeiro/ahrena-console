@@ -95,7 +95,7 @@ export function runMeta(run, now = new Date()) {
   return parts.filter(Boolean).join(' · ');
 }
 
-// `[state, tone]`; the label is the state's in state-labels.js (issue 760), read when the run is drawn.
+// `[state, tone]`; the label is the state's in state-labels.js (ADR-0028), read when the run is drawn.
 const RUN_STATE = { active: ['active', 'active'], completed: ['completed', 'completed'], error: ['failed', 'error'] };
 const runState = (state) => {
   const [id, tone] = RUN_STATE[state] ?? RUN_STATE.completed;

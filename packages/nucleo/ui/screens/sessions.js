@@ -14,9 +14,9 @@ import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
-// The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-// old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`). The words are in
-// state-labels.js (issue 760): each pill is `[value, label]` and its label is read when the pill is drawn.
+/* The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
+   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`). The words are in
+   state-labels.js (ADR-0028): each pill is `[value, label]` and its label is read when the pill is drawn. */
 const pill = (value, id, options) => {
   const p = [value, null];
   Object.defineProperty(p, 1, { enumerable: true, get: () => stateLabel(id, options) });

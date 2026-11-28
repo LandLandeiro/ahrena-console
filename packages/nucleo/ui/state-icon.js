@@ -8,7 +8,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 
 export const STATE_KINDS = ['needs', 'permission', 'working', 'queued', 'paused', 'completed', 'error', 'answered'];
 
-// The label of each kind, and of each state this file names, is in state-labels.js (issue 760), read when the tag is drawn.
+// The label of each kind, and of each state this file names, is in state-labels.js (ADR-0028), read when the tag is drawn.
 
 function part(tag, cls, attributes) {
   const node = document.createElementNS(SVG, tag);
