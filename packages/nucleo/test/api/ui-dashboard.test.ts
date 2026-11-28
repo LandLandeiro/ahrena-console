@@ -14,12 +14,25 @@ import { seedPanelScenario, PANEL_SESSION } from '../../src/simulator/panel.ts';
 
 class No {
   filhos: No[] = [];
+  pai: No | null = null;
   append(...nos: (No | string)[]) {
-    for (const n of nos) this.filhos.push(typeof n === 'string' ? new Texto(n) : n);
+    for (const n of nos) {
+      const no = typeof n === 'string' ? new Texto(n) : n;
+      no.pai = this;
+      this.filhos.push(no);
+    }
   }
   replaceChildren(...nos: No[]) {
     this.filhos = [];
     this.append(...nos);
+  }
+  // Issue 765: the screen redraws keeping the nodes that did not change (see dashboard.js `place`).
+  get childNodes(): No[] {
+    return this.filhos;
+  }
+  remove() {
+    if (this.pai) this.pai.filhos = this.pai.filhos.filter((f) => f !== this);
+    this.pai = null;
   }
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
@@ -61,6 +74,9 @@ class Elemento extends No {
   }
   getAttribute(k: string) {
     return this.atributos.get(k) ?? null;
+  }
+  removeAttribute(k: string) {
+    this.atributos.delete(k);
   }
   addEventListener(tipo: string, f: (e: unknown) => void) {
     this.ouvintes.set(tipo, [...(this.ouvintes.get(tipo) ?? []), f]);
