@@ -67,7 +67,7 @@ function remember(key, value) {
   try {
     globalThis.localStorage?.setItem(key, value);
   } catch {
-    // The storage is off or full: the choice lasts until the next opening and no more.
+    // The storage is off or full: the choice lasts until the next opening and no more (#762).
   }
 }
 
@@ -106,7 +106,7 @@ const rectOf = (node) => {
   return r && Number.isFinite(r.left) && Number.isFinite(r.top) ? r : null;
 };
 
-/** Puts the coordinates of `placement` on `shell`; does nothing where there is no layout. */
+/** Puts the coordinates of `placement` on `shell`; does nothing where there is no layout (#762). */
 function place(shell, trigger) {
   const t = rectOf(resolve(trigger));
   const width = globalThis.innerWidth;
@@ -129,7 +129,7 @@ function place(shell, trigger) {
 
 /**
  * The listeners of an open popover: Esc inside it, a press outside (`outsideEvent`), and the window's resize and scroll to
- * place it again. They stop by themselves when the node leaves the page. Returns `stop`.
+ * place it again. They stop by themselves when the node leaves the page. Returns `stop`. (#762)
  */
 function watch(shell, { trigger, onDismiss, outsideEvent, escapeOnDocument = false }) {
   const attached = () => shell.isConnected !== false;
@@ -158,7 +158,7 @@ function watch(shell, { trigger, onDismiss, outsideEvent, escapeOnDocument = fal
   }
   shell.addEventListener('keydown', onEscape);
   document.addEventListener?.(outsideEvent, onOutside, true);
-  // Esc with the focus on the trigger or elsewhere: the popover is not modal, so the focus may be outside it.
+  // Esc with the focus on the trigger or elsewhere: the popover is not modal, so the focus may be outside it (#762).
   if (escapeOnDocument) document.addEventListener?.('keydown', onEscape);
   globalThis.addEventListener?.('resize', onMove);
   document.addEventListener?.('scroll', onMove, true);
@@ -189,7 +189,7 @@ export function anchorPopover(shell, { trigger, onDismiss = null }) {
   const stop = watch(shell, { trigger, onDismiss: forgetAndDismiss, outsideEvent: 'click' });
   drawn = stop;
   place(shell, trigger);
-  // The screen puts the node on the page after this returns: place it again once it is there, before the first paint.
+  // The screen puts the node on the page after this returns: place it again once it is there, before the first paint (#762).
   queueMicrotask?.(() => shell.isConnected !== false && place(shell, trigger));
   return stop;
 }
@@ -302,7 +302,7 @@ export function segmented({ label, options, value = null, onChange = null, stora
     if (next === current) return void (focus && radios[allowed.indexOf(next)].focus?.());
     current = next;
     paint();
-    // The focus first: `onChange` may draw the screen again, and a node that left the page cannot take it.
+    // The focus first: `onChange` may draw the screen again, and a node that left the page cannot take it (#762).
     if (focus) radios[allowed.indexOf(next)].focus?.();
     if (storageKey) remember(storageKey, next);
     onChange?.(next);

@@ -24,7 +24,7 @@ function setup(answer: unknown, folders: unknown = FOLDERS) {
       return answer;
     },
   }) as ElementoFalso;
-  // The popover exists only while it is open: `pop()` is looked up each time.
+  // The popover exists only while it is open: `pop()` is looked up each time (#762).
   const pop = () => root.querySelector('.pop')!;
   return { root, pop, reads, writes, toggle: () => root.querySelector('.ns-button')!.click() };
 }

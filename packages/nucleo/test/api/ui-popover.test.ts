@@ -3,7 +3,7 @@
 // the fake's `activeElement`. No workbench, visual or axe tool in this project (component map: node:test).
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, test } from 'node:test';
-import { ElementoFalso, documentoFalso, instalarDomFalso, querySelectorAllComoNodeList, texto } from './fake-dom.ts';
+import { ElementoFalso, documentoFalso, instalarDomFalso, useNodeListQueries, texto } from './fake-dom.ts';
 
 instalarDomFalso();
 const {
@@ -30,7 +30,7 @@ const { planConfirm, missingFolder } = await import('../../ui/screens/work-board
 const { issuePanelLoading } = await import('../../ui/screens/work-board-issue-panel.js');
 
 const el = (tag = 'div') => new ElementoFalso(tag);
-// `querySelectorAll` answers a NodeList here, as in Chromium; the tests turn it into an array to assert on it.
+// `querySelectorAll` answers a NodeList here, as in Chromium; the tests turn it into an array to assert on it (#762).
 const all = (root: ElementoFalso, selector: string) => Array.from(root.querySelectorAll(selector));
 const one = (root: ElementoFalso, selector: string) => {
   const found = root.querySelector(selector);
@@ -50,7 +50,7 @@ const storage = new Map<string, string>();
 const setViewport = (width: number, height: number) => Object.assign(globalThis, { innerWidth: width, innerHeight: height });
 
 beforeEach(() => {
-  querySelectorAllComoNodeList(true);
+  useNodeListQueries(true);
   storage.clear();
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -61,7 +61,7 @@ beforeEach(() => {
   documentoFalso.activeElement = null;
 });
 afterEach(() => {
-  querySelectorAllComoNodeList(false);
+  useNodeListQueries(false);
   delete (globalThis as Record<string, unknown>).localStorage;
   setStateLabelMode('dev');
 });
@@ -336,7 +336,7 @@ describe('the segmented "Abrir em"', () => {
 describe('Nova sessão and Planejar are the same popover', () => {
   const FOLDERS = { folders: [{ path: '/w/app', name: 'app' }], targets: { desktop: true, terminal: true } };
 
-  /** The skeleton a person sees: the parts in order. */
+  /** The skeleton a person sees: the parts in order (#762). */
   const skeleton = (root: ElementoFalso) =>
     ['.pop-title', 'dl.pop-context', '[role="radiogroup"]', '.pop-foot'].map((selector) => (all(root, selector).length === 1 ? selector : `${selector} x${all(root, selector).length}`));
 
