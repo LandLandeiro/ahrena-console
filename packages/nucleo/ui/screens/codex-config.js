@@ -31,7 +31,7 @@ export async function mountCodexConfig(area, ctx) {
   }
   async function load() {
     const current = ++sequence;
-    area.replaceChildren(pageHeader(), loading({ label: 'Lendo configurações' }));
+    area.replaceChildren(pageHeader(), loading({ label: 'Lendo configurações', pending: current === 1 }));
     try {
       const d = await ctx.read(codexConfigUrl(params));
       if (ctx.signal.aborted || current !== sequence) return;

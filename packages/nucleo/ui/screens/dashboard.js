@@ -363,7 +363,7 @@ export async function mount(area, ctx) {
     periodic: false,
     watchChanges: false,
   });
-  area.replaceChildren(head, loading({ label: 'Lendo as sessões' }));
+  area.replaceChildren(head, loading({ label: 'Lendo as sessões', pending: true }));
 
   // #765: a redraw keeps the nodes that did not change and puts the focus back, as the Mural does (wall.js `place`).
   function place(nodes) {

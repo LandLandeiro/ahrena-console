@@ -601,7 +601,7 @@ export async function mountDelivery(area, ctx, { rereadMs = REREAD_MS } = {}) {
 
   async function draw({ quiet = false } = {}) {
     const mine = ++turn;
-    if (!quiet) area.replaceChildren(head(), bar(last && last.groupBy === state.groupBy ? last : null), loading());
+    if (!quiet) area.replaceChildren(head(), bar(last && last.groupBy === state.groupBy ? last : null), loading({ pending: !last }));
     try {
       const data = await ctx.read(deliveryRoute(state, timeZone));
       if (mine !== turn) return;

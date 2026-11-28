@@ -229,7 +229,7 @@ export async function mount(area, ctx) {
     const e = screenState({ dados: data, falha: failure, temDado: hasList(data) });
     if (e.reler) timer = setTimeout(read, REREAD_MS);
     if (e.tela === 'error') return area.replaceChildren(head, failure ? error({ text: failure.message, retry }) : error({ title: 'O GitHub não respondeu', text: data.error ?? 'A leitura dos repositórios falhou.', retry: () => (area.replaceChildren(head, loading()), read({ forcar: true })) }));
-    if (e.tela === 'loading') return area.replaceChildren(head, loading());
+    if (e.tela === 'loading') return area.replaceChildren(head, loading({ pending: true }));
     if (e.tela === 'reading') return area.replaceChildren(head, loading({ label: 'Lendo o GitHub…' }));
     if (e.tela === 'no-github') return area.replaceChildren(head, empty({ icon: 'github', ...NO_GITHUB }));
     if (e.tela !== 'data') return area.replaceChildren(head, none());

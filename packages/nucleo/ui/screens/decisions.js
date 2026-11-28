@@ -113,7 +113,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(draw);
 
-  area.replaceChildren(head, loading({ label: 'Carregando as decisões' }));
+  area.replaceChildren(head, loading({ label: 'Carregando as decisões', pending: true }));
   await draw();
   return () => clearTimeout(wait);
 }

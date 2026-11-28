@@ -270,7 +270,7 @@ async function mountCatalog(area, ctx, first) {
   });
   ctx.onRestart(() => refresh());
 
-  area.replaceChildren(head, loading({ label: 'Lendo as conexões' }));
+  area.replaceChildren(head, loading({ label: 'Lendo as conexões', pending: true }));
   await Promise.all([readGithub(), readRemotes()]);
   draw();
   schedule();

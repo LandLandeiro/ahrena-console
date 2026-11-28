@@ -231,7 +231,7 @@ export async function mount(area, ctx) {
   const top = el('div', { class: 'sd-top' });
   const tabs = el('nav', { class: 'sd-tabs', role: 'tablist', 'aria-label': 'Abas da sessão' });
   const body = el('div', { class: 'sd-body', role: 'tabpanel' });
-  area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+  area.replaceChildren(loading({ label: 'Carregando a sessão', pending: true }));
 
   let headData = null;
   let tab = (location.hash.slice(1) && TABS_LIST.some((a) => a.id === location.hash.slice(1))) ? location.hash.slice(1) : null;
@@ -296,7 +296,7 @@ export async function mount(area, ctx) {
   // #765: until the head answers, the header is what the list knew (title, state, reason) and the body says it is loading.
   function paintSeed() {
     const seed = headData ? null : seedOf(id);
-    if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+    if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão', pending: true }));
     const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
     top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));

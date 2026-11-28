@@ -250,7 +250,7 @@ export async function mount(area, ctx) {
     const requested = url.project;
     const mine = ++readSeq;
     const stillValid = () => !signal.aborted && mine === readSeq && requested === url.project;
-    if (!quiet || !state.data) area.replaceChildren(pageHeader, loading({ label: 'Lendo as pastas de configuração' }));
+    if (!quiet || !state.data) area.replaceChildren(pageHeader, loading({ label: 'Lendo as pastas de configuração', pending: !state.data }));
     try {
       const data = await ctx.read(`/api/agent-config${requested ? `?project=${encodeURIComponent(requested)}` : ''}`);
       if (!stillValid()) return;

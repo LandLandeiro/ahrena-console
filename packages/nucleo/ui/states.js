@@ -3,11 +3,11 @@
 
 import { el, icon } from './dom.js';
 
-/** Skeleton in blocks of three lines, while the first read has not come back. */
-export function loading({ label = 'Carregando', blocks = 3 } = {}) {
+/** Skeleton in blocks of three lines, while the first read has not come back. `pending` (#765) says this card is the whole first paint of a screen: the shell keeps the previous screen until it leaves (`data-swap-pending`). A part that reads after the data is not pending. */
+export function loading({ label = 'Carregando', blocks = 3, pending = false } = {}) {
   const lines = [];
   for (let i = 0; i < blocks; i++) lines.push(el('div', { class: 'bone short' }), el('div', { class: 'bone' }), el('div', { class: 'bone medium' }));
-  return el('section', { class: 'card state loading', 'aria-busy': 'true', 'aria-label': label }, el('div', { class: 'eyebrow' }, label), ...lines);
+  return el('section', { class: 'card state loading', 'aria-busy': 'true', 'aria-label': label, ...(pending ? { 'data-swap-pending': '' } : {}) }, el('div', { class: 'eyebrow' }, label), ...lines);
 }
 
 /** Nothing to show: icon, title, text and, when there is one, an action in an outline button. */

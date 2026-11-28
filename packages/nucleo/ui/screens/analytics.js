@@ -588,7 +588,7 @@ export async function mount(area, ctx, { releituraMs: rereadMs = REREAD_MS } = {
 
   async function draw({ silencioso: quiet = false } = {}) {
     const mine = ++turn;
-    if (!quiet) area.replaceChildren(head(tab === 'cost' ? [selector()] : []), ...(tab === 'cost' ? [tabs('cost')] : []), loading());
+    if (!quiet) area.replaceChildren(head(tab === 'cost' ? [selector()] : []), ...(tab === 'cost' ? [tabs('cost')] : []), loading({ pending: !last }));
     const z = encodeURIComponent(timeZone);
     const route = tab === 'cost' ? `${COST_ROUTE}?days=${days}&tz=${z}` : `${OVERVIEW_ROUTE}?tz=${z}`;
     try {

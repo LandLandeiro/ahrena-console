@@ -518,7 +518,7 @@ export async function mount(area, ctx) {
     if (!wall) {
       say(null);
       for (const n of numbers.values()) n.textContent = '';
-      const shown = failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' });
+      const shown = failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural', pending: true });
       keepRetry(shown, fresh);
       return [head, segs, ...machines.parts(), shown];
     }

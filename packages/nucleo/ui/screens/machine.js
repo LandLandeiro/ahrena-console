@@ -714,7 +714,7 @@ export async function mount(area, ctx) {
   const titleText = el('span', { class: 'tm-head-title' }, local ? 'Esta máquina' : id);
   const head = header({ icon: local ? 'monitor' : 'server', title: titleText, sub: ' ', actions: local ? [toggle] : [pillSlot, toggle] });
   const sub = head.querySelector('.sub');
-  area.replaceChildren(head, loading({ label: local ? 'Lendo esta máquina' : 'Lendo a máquina' }));
+  area.replaceChildren(head, loading({ label: local ? 'Lendo esta máquina' : 'Lendo a máquina', pending: true }));
 
   function setHours(h) {
     if (h === hours) return;

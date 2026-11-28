@@ -201,7 +201,7 @@ export async function mount(area, ctx) {
     }
     const mine = ++latestRead;
     pendingReads++;
-    if (!board && mode !== 'picker' && mode !== 'connect') switchArea(loading({ label: 'Lendo o GitHub Project' }));
+    if (!board && mode !== 'picker' && mode !== 'connect') switchArea(loading({ label: 'Lendo o GitHub Project', pending: true }));
     if (force) refreshButton.setAttribute('aria-busy', 'true');
     try {
       const fresh = await ctx.read(force ? `${ROUTE}?refresh=1` : ROUTE);

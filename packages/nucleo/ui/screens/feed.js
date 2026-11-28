@@ -303,7 +303,7 @@ export async function mount(area, ctx) {
     const g = ++generation;
     ready = false;
     again = false;
-    if (!keepList) showBody(loading({ label: 'Carregando eventos' }));
+    if (!keepList) showBody(loading({ label: 'Carregando eventos', pending: g === 1 }));
     try {
       const r = await ctx.read(machines.route(query(filters)));
       if (g !== generation) return;

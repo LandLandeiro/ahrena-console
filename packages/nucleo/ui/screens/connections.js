@@ -511,7 +511,7 @@ export async function mount(area, ctx) {
     if (!github) {
       schedule();
       if (failure) return area.replaceChildren(head, error({ text: failure.message, retry: () => (area.replaceChildren(head, loading()), read()) }));
-      return area.replaceChildren(head, loading({ label: 'Lendo a conexão' }));
+      return area.replaceChildren(head, loading({ label: 'Lendo a conexão', pending: true }));
     }
     if (github.state !== 'connected') confirming = false;
     const bands = [];

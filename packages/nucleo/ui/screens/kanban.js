@@ -187,6 +187,8 @@ export async function mount(area, ctx) {
   let view = viewFromUrl(location.search);
   let reading = 0; // descarta resposta de leitura velha
   let boardInFlight = false;
+  // Issue 765: only the first paint holds the previous screen; a view or machine change later repaints the card in place.
+  let answered = false;
 
   const buttons = Object.fromEntries(
     VIEWS.map((v) => [v, el('button', { type: 'button', 'aria-pressed': String(v === view), onClick: () => switchTo(v) }, v === 'agents' ? 'Agentes' : 'Sessões')]),
@@ -210,11 +212,12 @@ export async function mount(area, ctx) {
   async function draw() {
     const mine = ++reading;
     const v = view;
-    if (!boardInFlight) area.replaceChildren(head, ...machines.parts(), loading({ label: 'Carregando o quadro', blocks: 2 }));
+    if (!boardInFlight) area.replaceChildren(head, ...machines.parts(), loading({ label: 'Carregando o quadro', blocks: 2, pending: !answered }));
     refresh.disabled = true;
     try {
       const data = await ctx.read(machines.route(kanbanRoute(v)));
       if (mine !== reading) return;
+      answered = true;
       machines.update(data);
       const columns = Array.isArray(data?.columns) ? data.columns : [];
       // #766-subtitles: the sentence of the sessions board; the agents board says nothing (its columns are not the sessions').

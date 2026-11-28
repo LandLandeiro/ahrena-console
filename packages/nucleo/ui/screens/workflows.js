@@ -385,7 +385,7 @@ export async function mount(area, ctx) {
   const viewSeg = el('div', { class: 'wf-seg', role: 'group', 'aria-label': 'Como ver' }, ...viewButtons);
   const head = header({ icon: 'workflows', title: 'Workflows', sub: null, actions: [viewSeg, seg, periodSeg] });
 
-  area.replaceChildren(head, loading({ label: 'Carregando os workflows' }));
+  area.replaceChildren(head, loading({ label: 'Carregando os workflows', pending: true }));
 
   function chooseNode(id) {
     node = node === id ? null : id;

@@ -339,6 +339,6 @@ describe('Every screen marks the loading card of its first paint (#765, N4)', ()
 
   test('a part that reads after the data is never marked', () => {
     assert.doesNotMatch(ui('screens/history.js'), /loading\([^)]*pending/);
-    assert.doesNotMatch(ui('screens/cloud-connections.js').slice(ui('screens/cloud-connections.js').indexOf('function draw')), /loading\([^)]*pending/);
+    assert.equal((ui('screens/cloud-connections.js').match(/loading\([^)]*pending/g) ?? []).length, 1, 'only the first paint of the screen, not the part drawn after');
   });
 });
