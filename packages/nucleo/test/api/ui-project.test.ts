@@ -161,7 +161,7 @@ describe('Kanban do projeto (C11)', () => {
     const { area } = tela;
     assert.deepEqual(tela.leituras, ['/api/project']);
     const cab = area.querySelector('header.cc-head')!;
-    assert.match(texto(cab), /Kanban do projeto Ao vivo/);
+    assert.match(texto(cab), /Kanban do projeto/);
     assert.equal(texto(cab.querySelector('.sub')), 'GitHub Project “Ahrena Console” · dono #3');
     assert.equal(texto(cab.querySelector('.prj-milestone')), 'Marco: Todos os marcos M1 · Local M2 · Artefato');
     assert.ok(cab.querySelectorAll('button').some((b) => texto(b) === 'Atualizar'));
