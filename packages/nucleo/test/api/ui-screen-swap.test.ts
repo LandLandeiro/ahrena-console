@@ -329,6 +329,21 @@ describe('Every screen marks the loading card of its first paint (#765, N4)', ()
     });
   }
 
+  // Each anchor ties the mark to the paint that really is the first one (N5, N6): a mark on a later line fails.
+  const ANCHORED: [string, string, RegExp][] = [
+    ['connections.js', 'Conexões', /replaceChildren\(head, loading\(\{[^}]*pending: true[^}]*\}\)\);\s*await read\(\)/],
+    ['repos.js', 'Repositórios', /replaceChildren\(head, loading\(\{[^}]*pending: true[^}]*\}\)\);\s*await read\(\)/],
+    ['cloud-connections.js', 'AWS', /loading\(\{ label: 'Lendo os perfis da AWS', pending: !aws \}\)/],
+    ['dev-console.js', 'Dev Console', /replaceChildren\(header, loadingState\(\{ label: 'Lendo o Dev Console', pending: true \}\)\);\s*function go/],
+    ['work-board-parts.js', 'Mural de trabalho (wb-board)', /mode === 'skeleton' \? \{ 'data-swap-pending': '' \}/],
+    ['agent-view.js', 'Agente (av-loading)', /av-root av-loading state loading'[^}]*'data-swap-pending': ''/],
+  ];
+  for (const [file, name, anchor] of ANCHORED) {
+    test(`${name} (${file}): the mark sits on the first paint (N5, N6)`, () => {
+      assert.match(ui(`screens/${file}`), anchor);
+    });
+  }
+
   test('a card that comes back on a later read is marked only while nothing has been shown yet (N3 stays fixed)', () => {
     for (const file of ['kanban.js', 'analytics.js', 'analytics-delivery.js', 'agent-config.js', 'claude-config.js', 'codex-config.js', 'feed.js']) {
       const calls = ui(`screens/${file}`).match(/loading\(\{[^}]*pending[^}]*\}/g) ?? [];
@@ -339,6 +354,8 @@ describe('Every screen marks the loading card of its first paint (#765, N4)', ()
 
   test('a part that reads after the data is never marked', () => {
     assert.doesNotMatch(ui('screens/history.js'), /loading\([^)]*pending/);
-    assert.equal((ui('screens/cloud-connections.js').match(/loading\([^)]*pending/g) ?? []).length, 1, 'only the first paint of the screen, not the part drawn after');
+    const cloud = ui('screens/cloud-connections.js').match(/loading\([^)]*pending[^)]*\)/g) ?? [];
+    assert.equal(cloud.length, 2, 'the screen draw and the AWS body, which is marked only while no profile has been read');
+    assert.ok(cloud.some((c) => /pending: !aws/.test(c)), 'the AWS body is the first paint only while aws is empty');
   });
 });
