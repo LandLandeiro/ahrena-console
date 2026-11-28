@@ -308,3 +308,22 @@ export function shrinkBaseline(findings, baseline) {
     .map((e) => ({ ...e, count: Math.min(e.count, actual.get(keyOf(e))?.count ?? 0) }))
     .filter((e) => e.count > 0)
 }
+
+/* #766: the warning of the subtitles. A subtitle of the screen registry (`sub:` of packages/nucleo/ui/screens.js) says the state now or
+   is absent (null); one that starts with a descriptive article ("O", "A", "As", "Os", "Todos os", "Um"...) is the sentence that
+   explains the screen, which is what the rule of docs/brand/voice.md takes out. A warning, not a finding: it never reaches the baseline. */
+const DESCRIPTIVE_ARTICLES = ['Todos os', 'Todas as', 'Uma', 'Um', 'As', 'Os', 'O', 'A']
+
+/** The subtitles of a screens.js source that start with a descriptive article: `{ line, article, text, message }`. */
+export function subtitleWarnings(source) {
+  const warnings = []
+  const literal = /\bsub:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g
+  for (const match of source.matchAll(literal)) {
+    const text = match[1] ?? match[2]
+    const article = DESCRIPTIVE_ARTICLES.find((a) => text.startsWith(`${a} `))
+    if (!article) continue
+    const line = source.slice(0, match.index).split('\n').length
+    warnings.push({ line, article, text, message: `subtitle "${text}" starts with the article "${article}": say the state now (how many, who, what changed, what waits for the person) or leave only the title` })
+  }
+  return warnings
+}

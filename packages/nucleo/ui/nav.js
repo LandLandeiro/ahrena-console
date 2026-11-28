@@ -1,80 +1,151 @@
 // The sidebar (C1, C24): one block per section of the registry, and the remote machines (issue 178).
 //
+// The bar follows the mode (#754): `sidebarSections` gets `appMode()` and a switch draws it again, keeping what a redraw keeps.
+// In Projeto no remote item is drawn, in any state: its warning is the Mural band, and the arrow of an outdated núcleo is in the account menu (#754).
 // The registry is static; the remote machines come from `machines.json`, which only the core reads.
 // `readMachines()` reads `GET /api/machines` and, when the list changed, draws the sidebar again with
 // `machineItems(list)` added: each remote is an item of the Máquinas block, after "Esta máquina",
-// with its state dot. The counters (the "4" of the Dashboard) and the lit item survive the redraw.
-// `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Conexões the dot that sums up the
-// worst cloud connector; a core without the route (404) shows no dot.
+// with its state dot. The counters, the tags and the lit item survive the redraw (ADR-0028).
+// `readConnectors()` reads `GET /api/connectors` (issue 277) and puts on Configuração (which receives Conexões) the dot
+// that sums up the worst cloud connector; a core without the route (404) shows no dot.
 
 import { el, icon } from './dom.js';
+import { appMode, onModeChange } from './mode.js';
 import { machineItems, MACHINES_ROUTE, SCREENS, sidebarSections } from './screens.js';
 import { CONNECTORS_ROUTE, connectorsDot } from './screens/cloud-format.js';
+import { CORE_OUTDATED_LABEL } from './screens/machine-core-format.js';
 
 /** The state of a remote machine, said on its dot: the color alone does not say it. */
 export const MACHINE_STATE_LABELS = { connected: 'Conectada', unreachable: 'Sem conexão', 'incompatible-version': 'Versão diferente', 'not-configured': 'Sem configuração', stopped: 'Parada por você', 'owner-auth': 'Acesso bloqueado', updating: 'Atualizando' };
 
 /** How soon the sidebar reads the machines again while one is being updated (issue 484): the dot must not lag. (ADR-0024) */
 const UPDATING_REREAD_MS = 5000;
+const MACHINE_PATH = '/ui/machines/';
 
-/** The yellow arrow of a remote whose núcleo is older than the app (issue 449): the color alone does not say it. */
-const CORE_OUTDATED_LABEL = 'Núcleo defasado';
+/** Conexões has no item of its own since decision 0029: its dot goes on Configuração, the item that receives it (#754). */
+const CONNECTIONS_ITEM = 'agent-config';
 
-/** Draws the sidebar into `nav` at once; `read` is the shell's read layer. */
-export function createNav({ nav, read, screens = SCREENS }) {
+/** A label this long gets a tooltip with the full text: the item cuts it with an ellipsis (ADR-0028). */
+const LONG_LABEL = 24;
+
+/**
+ * Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are;
+ * `onHeld(map)` hears, on every good read, `Map(id -> 'stopped' | 'updating')`: the one source of the band of the machine filter and of the
+ * session Detail (#754), so no screen reads `/api/machines` for it.
+ * `onCoreOutdated(list)` hears, on every read, the remotes whose núcleo is older than the app (`[{ id, label, route }]`, any state of the
+ * machine, both modes): the account menu draws them (#754).
+ */
+export function createNav({ nav, read, screens = SCREENS, onMachines = () => {}, onCoreOutdated = () => {}, onHeld = () => {} }) {
   const items = new Map();
   const counts = new Map();
+  const tags = new Map();
   let lit = null;
+  let revealed = null;
   let remoteItems = [];
   // The dots that are not a machine's: `id → { state, label }` (Conexões, issue 277).
   const dots = new Map();
   // The one re-read pending while a machine is being updated; never two at once. (ADR-0024)
   let updatingTimer = null;
 
+  // #767: what each item last said, so a number that changed rolls in and the same one drawn again does not.
+  const said = new Map();
+  function rolls(id, text) {
+    const before = said.get(id);
+    said.set(id, text);
+    return before !== undefined && before !== text ? text : null;
+  }
+
+  function side(id) {
+    const tag = tags.get(id);
+    if (tag) {
+      const text = tag.note ? `${tag.text} ${tag.note}` : tag.text;
+      return el('span', { class: 'cc-nav-tag', 'data-tone': tag.tone, 'data-roll': rolls(id, text), title: tag.note ? text : null }, tag.text, tag.note ? el('span', { class: 'cc-sr-only' }, ` ${tag.note}`) : null);
+    }
+    const n = counts.get(id);
+    if (!n) said.delete(id);
+    return n ? el('span', { class: 'cc-nav-count', 'data-roll': rolls(id, String(n)) }, String(n)) : null;
+  }
+
   function draw() {
+    // ADR-0028: emptying the list sends the scroll to the top, so it is put back.
+    const scrolled = nav.scrollTop;
+    const focused = globalThis.document?.activeElement;
+    const focusedId = focused && nav.contains(focused) ? focused.closest?.('a[data-screen]')?.getAttribute('data-screen') : null;
+    const keepInView = litInView();
     items.clear();
     const groups = [];
-    for (const section of sidebarSections([...screens, ...remoteItems])) {
+    for (const section of sidebarSections([...screens, ...remoteItems], undefined, appMode())) {
       const titleId = section.label ? `cc-nav-title-${section.id}` : null;
       const group = el(
         'div',
         { class: 'cc-nav-section', 'data-section': section.id, role: titleId && 'group', 'aria-labelledby': titleId },
-        titleId && el('div', { class: 'cc-nav-title eyebrow', id: titleId }, section.label),
+        titleId && el('div', { class: 'cc-nav-title', id: titleId }, section.label),
       );
       for (const screen of section.items) {
-        const q = el('span', { class: 'q', hidden: true });
         const mark = screen.state ? { state: screen.state, label: screen.stateLabel ?? MACHINE_STATE_LABELS[screen.state] ?? screen.state } : (dots.get(screen.id) ?? null);
-        const dot = mark ? el('span', { class: 'cc-nav-dot', 'data-state': mark.state, role: 'img', 'aria-label': mark.label, title: mark.label }) : null;
+        // ADR-0028: a machine's dot says its state in text the link reads once; Conexões keeps the image with its label.
+        const dot = !mark ? null : screen.state ? el('span', { class: 'cc-nav-dot', 'data-state': mark.state, title: mark.label }, el('span', { class: 'cc-sr-only' }, mark.label)) : el('span', { class: 'cc-nav-dot', 'data-state': mark.state, role: 'img', 'aria-label': mark.label, title: mark.label });
         const flag = screen.coreOutdated ? el('span', { class: 'cc-nav-flag', role: 'img', 'aria-label': CORE_OUTDATED_LABEL, title: CORE_OUTDATED_LABEL }, icon('arrow-up-circle')) : null;
-        const a = el('a', { class: 'cc-nav', href: screen.route, 'data-screen': screen.id }, icon(screen.item.icon), el('span', { class: 'cc-nav-label' }, screen.item.label), flag, dot, q);
-        items.set(screen.id, { a, q });
+        const a = el('a', { class: 'cc-nav', href: screen.route, 'data-screen': screen.id }, icon(screen.item.icon), el('span', { class: 'cc-nav-label', title: screen.item.label.length > LONG_LABEL ? screen.item.label : null }, screen.item.label), flag, dot, side(screen.id));
+        items.set(screen.id, { a });
         group.append(a);
       }
       groups.push(group);
     }
     nav.replaceChildren(...groups);
-    for (const [id, n] of counts) counter(id, n);
-    highlight(lit);
+    nav.scrollTop = scrolled;
+    paintLit();
+    reveal();
+    // ADR-0028: whoever saw the lit item keeps seeing it when a row appears above it.
+    if (keepInView) items.get(lit)?.a.scrollIntoView?.({ block: 'nearest' });
+    if (focusedId) items.get(focusedId)?.a.focus({ preventScroll: true });
+  }
+
+  // ADR-0028: measured before a redraw; without boxes (the first draw, a DOM that does not lay out) nothing was seen.
+  function litInView() {
+    const box = items.get(lit)?.a.getBoundingClientRect?.();
+    const frame = nav.getBoundingClientRect?.();
+    return Boolean(box && frame && box.bottom > frame.top && box.top < frame.bottom);
+  }
+
+  function paintLit() {
+    for (const [k, { a }] of items) {
+      a.classList.toggle('on', k === lit);
+      if (k === lit) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
   }
 
   function highlight(id) {
     lit = id;
-    for (const [k, { a }] of items) {
-      a.classList.toggle('on', k === id);
-      if (k === id) {
-        a.setAttribute('aria-current', 'page');
-        // On a short window the list scrolls: the lit item must not stay out of sight.
-        a.scrollIntoView?.({ block: 'nearest' });
-      } else a.removeAttribute('aria-current');
-    }
+    paintLit();
+    reveal();
+  }
+
+  // ADR-0028: a newly lit item is brought into view once; a redraw must not pull the list back to it.
+  function reveal() {
+    if (lit === revealed || !items.has(lit)) return;
+    revealed = lit;
+    items.get(lit).a.scrollIntoView?.({ block: 'nearest' });
+  }
+
+  function redrawSide(id) {
+    const item = items.get(id);
+    if (!item) return;
+    item.a.querySelector('.cc-nav-tag, .cc-nav-count')?.remove();
+    const next = side(id);
+    if (next) item.a.append(next);
   }
 
   function counter(id, n) {
     counts.set(id, n);
-    const item = items.get(id);
-    if (!item) return;
-    item.q.hidden = !n;
-    item.q.textContent = n ? String(n) : '';
+    redrawSide(id);
+  }
+
+  function tag(id, next) {
+    if (next) tags.set(id, next);
+    else tags.delete(id);
+    redrawSide(id);
   }
 
   async function readMachines() {
@@ -86,6 +157,9 @@ export function createNav({ nav, read, screens = SCREENS }) {
       return;
     }
     const next = machineItems(list);
+    onMachines(1 + next.length);
+    onHeld(new Map(next.filter((item) => item.state === 'stopped' || item.state === 'updating').map((item) => [item.route.slice(MACHINE_PATH.length), item.state])));
+    onCoreOutdated(next.filter((item) => item.coreOutdated).map(({ id, title, route }) => ({ id, label: title, route })));
     if (!updatingTimer && next.some((item) => item.state === 'updating')) {
       updatingTimer = setTimeout(() => {
         updatingTimer = null;
@@ -108,13 +182,15 @@ export function createNav({ nav, read, screens = SCREENS }) {
       if (e?.status !== 404) return;
       next = null;
     }
-    const before = dots.get('connections') ?? null;
+    const before = dots.get(CONNECTIONS_ITEM) ?? null;
     if (JSON.stringify(before) === JSON.stringify(next)) return;
-    if (next) dots.set('connections', next);
-    else dots.delete('connections');
+    if (next) dots.set(CONNECTIONS_ITEM, next);
+    else dots.delete(CONNECTIONS_ITEM);
     draw();
   }
 
+  // #754: the bar follows the mode; the screen's own redraw is the shell's, and this one runs first (it is registered first).
+  const stop = onModeChange(() => draw());
   draw();
-  return { draw, readMachines, readConnectors, highlight, counter };
+  return { draw, readMachines, readConnectors, highlight, counter, tag, stop };
 }

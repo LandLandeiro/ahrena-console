@@ -481,7 +481,7 @@ describe('a running agent (issue 521)', () => {
   test('new steps raise "N passos novos" and the view does not scroll by itself', async () => {
     let current = view({ state: 'working', end: null, result: null, steps: [step(1), step(2)] });
     const { area, change } = await mountAgentView({ [`${BASE}/agents/${ATHENA}`]: () => current });
-    assert.match(texto(area.querySelector('.av-state')), /Ativa|Rodando/);
+    assert.match(texto(area.querySelector('.av-state')), /Trabalhando|Rodando/);
     let scrolled = 0;
     const proto = ElementoFalso.prototype;
     const [intoView, scrollTo] = [proto.scrollIntoView, proto.scrollTo];

@@ -130,9 +130,9 @@ describe('#245 attention on every /ui route', () => {
     assert.deepEqual(
       board.columns.map((c) => [c.id, c.label]),
       [
-        ['active', 'Ativas'],
+        ['active', 'Trabalhando'],
         ['blocked', 'Precisam de você'],
-        ['idle', 'Ociosas'],
+        ['idle', 'Em pausa'],
         ['completed', 'Concluídas'],
         ['abandoned', 'Abandonadas'],
       ],

@@ -1,12 +1,12 @@
-// issue 245: the shared attention vocabulary of the /ui (ui/attention.js) and how the Sessões and
-// Detail screens use it: "Precisa de você" (blocked) and "Ociosa" (idle), never the old waiting label.
+/* #753: the shared attention vocabulary of the /ui (ui/attention.js) and how the Sessões and Detail screens use it:
+   "Precisa de você" (blocked) and "Em pausa" (idle), never the old waiting label. */
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { ElementoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 // @ts-expect-error: browser modules, plain JavaScript
 import * as attention from '../../ui/attention.js';
 // @ts-expect-error: idem
-import { PILLS, badgeEl, pillCount, stateFromQuery } from '../../ui/screens/sessions.js';
+import { PILLS, pillCount, stateCell, stateFromQuery } from '../../ui/screens/sessions.js';
 // @ts-expect-error: idem
 import { bandTitle, idleNote } from '../../ui/screens/session-detail.js';
 
@@ -16,8 +16,8 @@ const classes = (n: ElementoFalso) => (n.getAttribute('class') ?? '').split(/\s+
 
 describe('attention vocabulary (issue 245)', () => {
   test('labels, plurals and every reason of the core with its pt-BR label', () => {
-    assert.deepEqual(attention.ATTENTION_LABEL, { blocked: 'Precisa de você', idle: 'Ociosa' });
-    assert.deepEqual(attention.ATTENTION_PLURAL, { blocked: 'Precisam de você', idle: 'Ociosas' });
+    assert.deepEqual(attention.ATTENTION_LABEL, { blocked: 'Precisa de você', idle: 'Em pausa' });
+    assert.deepEqual(attention.ATTENTION_PLURAL, { blocked: 'Precisam de você', idle: 'Em pausa' });
     const labels = Object.fromEntries(Object.entries(attention.ATTENTION_REASONS as Record<string, { label: string; level: string }>).map(([k, v]) => [k, [v.level, v.label]]));
     assert.deepEqual(labels, {
       permission: ['blocked', 'Pede permissão'],
@@ -37,7 +37,7 @@ describe('attention vocabulary (issue 245)', () => {
     assert.deepEqual(attention.attentionOf({ level: 'idle', reason: 7 }), { level: 'idle', reason: null });
     assert.equal(attention.attentionTone({ level: 'blocked', reason: 'error' }), 'error');
     assert.equal(attention.attentionText({ level: 'blocked', reason: 'question' }), 'Precisa de você');
-    assert.equal(attention.attentionText({ level: 'idle', reason: 'turn_ended' }), 'Ociosa');
+    assert.equal(attention.attentionText({ level: 'idle', reason: 'turn_ended' }), 'Em pausa');
     assert.equal(attention.attentionText({ level: 'blocked', reason: 'error' }), 'Com erro');
     assert.equal(attention.reasonLabel({ level: 'blocked', reason: 'something-new' }), null, 'never a raw value on screen');
   });
@@ -74,10 +74,10 @@ describe('attention vocabulary (issue 245)', () => {
 });
 
 describe('Sessões: the blocked and idle pills (issue 245)', () => {
-  test('the status pills: Precisam de você and Ociosas side by side, with the counts of the core', () => {
+  test('the status pills: Precisam de você and Em pausa side by side, with the counts of the core', () => {
     assert.deepEqual(
       PILLS.map(([v, label]: [string, string]) => `${v}:${label}`),
-      ['all:Todas', 'active:Ativas', 'blocked:Precisam de você', 'idle:Ociosas', 'completed:Concluídas', 'error:Erro', 'abandoned:Abandonadas'],
+      ['all:Todas', 'blocked:Precisam de você', 'active:Trabalhando', 'idle:Em pausa', 'completed:Concluídas', 'error:Com erro'],
     );
     assert.equal(pillCount({ blocked: 5, idle: 3 }, 'blocked'), '5');
     assert.equal(pillCount({ blocked: 5 }, 'idle'), null);
@@ -90,14 +90,18 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
     assert.equal(stateFromQuery('?status=nonsense').status, 'all');
   });
 
-  test('the status cell: the attention pill and its reason; an error keeps only "Com erro"; no raw status', () => {
-    const cell = (status: string, a: unknown) => (badgeEl(status, a) as ElementoFalso[]).map((n) => texto(n));
-    assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'permission' }), ['Precisa de você', 'Pede permissão']);
-    assert.deepEqual(cell('waiting', { level: 'idle', reason: 'turn_ended' }), ['Ociosa', 'Sua vez']);
-    assert.deepEqual(cell('error', { level: 'blocked', reason: 'error' }), ['Com erro']);
-    assert.deepEqual(cell('active', null), ['Ativa']);
-    assert.deepEqual(cell('waiting', null), ['Ativa'], 'waiting without attention (delegating) is not waiting on you');
-    assert.deepEqual(cell('nonsense', null), [], 'nothing raw on screen');
+  test('the state cell (issue 759): the tag with the state or the reason of a block; a pause is "Em pausa"; an error keeps only "Com erro"; no raw status', () => {
+    const cell = (status: string, a: unknown) => {
+      const tag = stateCell(status, a) as ElementoFalso | null;
+      return tag ? texto(tag) : null;
+    };
+    assert.equal(cell('waiting', { level: 'blocked', reason: 'permission' }), 'Pede permissão');
+    assert.equal(cell('waiting', { level: 'blocked', reason: 'question' }), 'Pergunta');
+    assert.equal(cell('waiting', { level: 'idle', reason: 'turn_ended' }), 'Em pausa');
+    assert.equal(cell('error', { level: 'blocked', reason: 'error' }), 'Com erro');
+    assert.equal(cell('active', null), 'Trabalhando');
+    assert.equal(cell('waiting', null), 'Trabalhando', 'waiting without attention (delegating) is not waiting on you');
+    assert.equal(cell('nonsense', null), null, 'nothing raw on screen');
   });
 });
 
@@ -110,8 +114,8 @@ describe('Detalhe: the band only when blocked, a muted line when idle (issue 245
 
   test('the idle line says what happened and since when, and that nothing blocks', () => {
     const now = Date.parse('2026-10-20T12:00:00Z');
-    assert.equal(idleNote({ level: 'idle', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Ociosa · o turno terminou há 1 min e a vez é sua. Nada trava a sessão.');
-    assert.match(idleNote({ level: 'idle', reason: 'interrupted' }, '2026-10-20T11:54:00Z', now), /^Ociosa · interrompida há 6 min/);
-    assert.match(idleNote({ level: 'idle', reason: 'first_prompt' }, null, now), /^Ociosa · aberta no prompt, sem o primeiro pedido\. Nada trava a sessão\.$/);
+    assert.equal(idleNote({ level: 'idle', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Em pausa · o turno terminou há 1 min e a vez é sua. Nada trava a sessão.');
+    assert.match(idleNote({ level: 'idle', reason: 'interrupted' }, '2026-10-20T11:54:00Z', now), /^Em pausa · interrompida há 6 min/);
+    assert.match(idleNote({ level: 'idle', reason: 'first_prompt' }, null, now), /^Em pausa · aberta no prompt, sem o primeiro pedido\. Nada trava a sessão\.$/);
   });
 });

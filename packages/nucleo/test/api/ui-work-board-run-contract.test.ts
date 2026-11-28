@@ -210,7 +210,7 @@ const press = (node: ElementoFalso | null, what: string) => {
   assert.ok(node, `${what} is on screen`);
   node.dispatchEvent({ type: 'click' });
 };
-const popup = (s: Screen) => s.area.querySelector('div.wb-plan-pop');
+const popup = (s: Screen) => s.area.querySelector('div.pop');
 const notice = (s: Screen) => s.area.querySelector('[data-field="notice"]');
 const clickCard = (s: Screen, n: number) => articleOf(s, n).dispatchEvent({ type: 'click' });
 async function openPanel(s: Screen, n: number) {
@@ -266,7 +266,7 @@ describe('#532/AC-2 confirming posts to POST /api/work/run and the card shows Em
     press(buttonIn(articleOf(s, 506), 'run'), 'Executar plano');
     const pop = popup(s)!;
     assert.ok(pop, 'the confirmation opens');
-    assert.ok(articleOf(s, 506).parentNode?.querySelector('div.wb-plan-pop') ?? s.area.querySelector('.wb-anchor div.wb-plan-pop'), 'anchored on the card');
+    assert.ok(articleOf(s, 506).parentNode?.querySelector('div.pop') ?? s.area.querySelector('div.pop'), 'anchored on the card');
     assert.match(texto(pop), /Executar o plano da #506/);
     assert.match(texto(pop), new RegExp(REPO));
     assert.ok(!/Conta/.test(texto(pop)), 'decision 14 of #508: no Conta row');
@@ -297,7 +297,7 @@ describe('#532/AC-2 confirming posts to POST /api/work/run and the card shows Em
     core.runAnswer = () => answer(200, { ok: true, opened: 'terminal', key: KEY(506) });
     const s = await open(core);
     press(buttonIn(articleOf(s, 506), 'run'), 'Executar plano');
-    press(popup(s)!.querySelector('button[data-target="terminal"]'), 'Terminal');
+    press(popup(s)!.querySelector('button[data-value="terminal"]'), 'Terminal');
     await confirmRun(s, core);
     assert.equal(core.runs[0]!.target, 'terminal');
     await until(() => notice(s) !== null, 'the notice');
@@ -310,7 +310,7 @@ describe('#532/AC-2 confirming posts to POST /api/work/run and the card shows Em
     const s = await open(core);
     await openPanel(s, 506);
     press(buttonIn(panelOf(s)!, 'run'), 'Executar plano in the panel');
-    assert.ok(panelOf(s)!.querySelector('div.wb-plan-pop'), 'the confirmation sits in the panel');
+    assert.ok(panelOf(s)!.querySelector('div.pop'), 'the confirmation sits in the panel');
     press(buttonIn(popup(s)!, 'cancel'), 'Cancelar');
     assert.equal(popup(s), null);
     press(buttonIn(articleOf(s, 507), 'run'), 'Executar plano in Na fila');
@@ -363,7 +363,7 @@ describe('#532/AC-4 a missing folder shows the command with Copiar comando and t
     await until(() => popup(s)?.getAttribute('data-kind') === 'folder', 'the missing-folder block');
     const block = popup(s)!;
     assert.match(texto(block), new RegExp(`O Console não achou ${REPO} em nenhuma pasta deste Mac`));
-    assert.equal(texto(block.querySelector('pre.wb-plan-cmd')), command);
+    assert.equal(texto(block.querySelector('pre.pop-code')), command);
     press(buttonIn(block, 'copy'), 'Copiar comando');
     await until(() => copied.length === 1, 'the command is copied');
     assert.deepEqual(copied, [command]);
@@ -461,7 +461,7 @@ describe('#532/AC-5 a card with a live session shows Abrir sessão, which opens 
 });
 
 describe('#532 one confirmation at a time (465-6, decision 13): opening Planejar/Replanejar or Executar plano closes the other', () => {
-  const dialogs = (s: Screen) => s.area.querySelectorAll('div.wb-plan-pop');
+  const dialogs = (s: Screen) => s.area.querySelectorAll('div.pop');
   const isRun = (n: ElementoFalso) => /Executar o plano da/.test(n.getAttribute('aria-label') ?? '');
 
   test('#532 Replanejar open, then Executar plano: only the run confirmation shows and has focus', async () => {
@@ -509,11 +509,11 @@ describe('#532 the run confirmation does not depend on where the last plan confi
     const s = await open(core);
     await openPanel(s, 506);
     press(buttonIn(panelOf(s)!, 'replan'), 'Replanejar in the panel');
-    assert.equal(s.area.querySelectorAll('div.wb-plan-pop').length, 1, 'the plan confirmation is open');
+    assert.equal(s.area.querySelectorAll('div.pop').length, 1, 'the plan confirmation is open');
     press(buttonIn(popup(s)!, 'cancel'), 'Cancelar');
     assert.equal(popup(s), null);
     press(buttonIn(articleOf(s, 506), 'run'), 'Executar plano on the board card');
-    assert.equal(s.area.querySelectorAll('div.wb-plan-pop').length, 1, 'one run confirmation is drawn');
+    assert.equal(s.area.querySelectorAll('div.pop').length, 1, 'one run confirmation is drawn');
     assert.match(popup(s)!.getAttribute('aria-label') ?? '', /Executar o plano da/);
     await confirmRun(s, core);
     assert.deepEqual(core.runs, [{ repo: REPO, number: 506, target: 'desktop' }]);
@@ -524,11 +524,11 @@ describe('#532 the run confirmation does not depend on where the last plan confi
     const s = await open(core);
     await openPanel(s, 506);
     press(buttonIn(panelOf(s)!, 'replan'), 'Replanejar in the panel');
-    assert.equal(s.area.querySelectorAll('div.wb-plan-pop').length, 1, 'the plan confirmation is open');
+    assert.equal(s.area.querySelectorAll('div.pop').length, 1, 'the plan confirmation is open');
     press(buttonIn(popup(s)!, 'cancel'), 'Cancelar');
     assert.equal(popup(s), null);
     press(buttonIn(panelOf(s)!, 'run'), 'Executar plano in the panel');
-    assert.equal(s.area.querySelectorAll('div.wb-plan-pop').length, 1, 'one run confirmation is drawn');
+    assert.equal(s.area.querySelectorAll('div.pop').length, 1, 'one run confirmation is drawn');
     assert.ok(panelOf(s)!.contains(popup(s)!), 'it is inside the panel');
     assert.match(popup(s)!.getAttribute('aria-label') ?? '', /Executar o plano da/);
     await confirmRun(s, core);

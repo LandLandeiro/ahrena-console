@@ -35,10 +35,10 @@ export function error({ title = 'Sem conexão com o núcleo', text, retry = null
 }
 
 /** Error in one part, with the rest of the screen still up: the red band with the title highlighted. */
-export function errorBand({ title, text, action = null }) {
+export function errorBand({ title, text, action = null, className = null }) {
   return el(
     'div',
-    { class: 'error-band', role: 'alert' },
+    { class: className ? `error-band ${className}` : 'error-band', role: 'alert' },
     icon('error'),
     el('p', {}, el('b', {}, title), text ? ` ${text}` : null),
     action ? el('button', { type: 'button', class: 'btn outline', onClick: action.onClick }, action.label) : null,

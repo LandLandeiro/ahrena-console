@@ -1,28 +1,39 @@
 // A tela Sessões (C3, #28): a tabela das sessões com busca, filtro por diretório, ordenação, as
-// pílulas de status e as linhas que cabem na altura da janela (issue 279; no mínimo 10). Filtro, ordem
+// filtros de estado no `.seg` (com a contagem de cada um, issue 759) e as linhas que cabem na altura da janela (issue 279; no mínimo 10). Filtro, ordem
 // e página vão para o servidor (`GET /api/sessions`, src/api/sessions.ts) e ficam na query da URL, para
 // o Voltar do Detalhe cair no mesmo lugar.
 // A linha leva ao Detalhe, `/ui/sessions/<id>`. The last column is the icon that opens the session
 // where it runs (C71, issue 285); its click stays in the cell and never navigates the row.
 
+import { rememberSessions } from '../session-seed.js';
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { attentionBadges, attentionOf, statusWithoutAttention } from '../attention.js';
+import { attentionOf, reasonLabel } from '../attention.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
+import { agentMonogram } from '../agent-monogram.js';
 import { lastAvailability, loadAvailability, messageAction, useMessageStyle } from './session-message.js';
 import { openAction } from '../open-action.js';
+import { stateLabel } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
-import { createMachineFilter, isRemote, itemHref, itemKey, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
+import { createMachineFilter, isRemote, itemHref, itemKey, machineLabel, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
-// The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-// old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`).
+/* ADR-0028: the `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
+   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Em pausa" (`idle`). Issue 759: the six
+   filters of the new language; `abandoned` is still a valid `status` (a bookmark keeps filtering) but has no button, the
+   sessions it holds show under Todas. The words are in state-labels.js: each is `[value, label]` and its label is read
+   when the button is drawn. */
+const pill = (value, id, options) => {
+  const p = [value, null];
+  Object.defineProperty(p, 1, { enumerable: true, get: () => stateLabel(id, options) });
+  return p;
+};
 export const PILLS = [
   ['all', 'Todas'],
-  ['active', 'Ativas'],
-  ['blocked', 'Precisam de você'],
-  ['idle', 'Ociosas'],
-  ['completed', 'Concluídas'],
-  ['error', 'Erro'],
-  ['abandoned', 'Abandonadas'],
+  pill('blocked', 'blocked', { plural: true }),
+  pill('active', 'active', { plural: true }),
+  pill('idle', 'idle', { plural: true }),
+  pill('completed', 'completed', { plural: true }),
+  pill('error', 'error'),
 ];
 
 // O rótulo da ordem diz também o sentido: o ⇅ ao lado inverte.
@@ -32,15 +43,11 @@ const ORDERS = {
   cost: { desc: 'Custo: maior', asc: 'Custo: menor' },
 };
 
-export const STATUS = {
-  active: 'Ativa',
-  completed: 'Concluída',
-  error: 'Com erro',
-  abandoned: 'Abandonada',
-};
-
 /** An old bookmark's `?status=waiting` opens the ones that need you. */
 const STATUS_ALIASES = { waiting: 'blocked' };
+
+/** The `status` values the query may carry: the six filters and the one bookmarks may still hold. */
+const STATUSES = [...PILLS.map(([v]) => v), 'abandoned'];
 
 const DEFAULTS = { status: 'all', search: '', dir: '', order: 'activity', direction: 'desc', page: 1 };
 
@@ -54,7 +61,7 @@ export function stateFromQuery(query) {
   const status = STATUS_ALIASES[p.get('status') ?? ''] ?? p.get('status');
   const order = p.get('order');
   return {
-    status: PILLS.some(([v]) => v === status) ? status : DEFAULTS.status,
+    status: STATUSES.includes(status) ? status : DEFAULTS.status,
     search: (p.get('search') ?? '').slice(0, 200),
     dir: (p.get('dir') ?? '').startsWith('/') ? p.get('dir') : '',
     order: Object.hasOwn(ORDERS, order ?? '') ? order : DEFAULTS.order,
@@ -148,17 +155,16 @@ export function shortId(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(id) ? id.slice(0, 8) : id;
 }
 
-// As colunas, na ordem; a classe dá a largura de cada uma (sessions.css).
+// As colunas, na ordem; a classe dá a largura de cada uma (sessions.css). The last two have no visible header
+// (the Mensagem button and the open icon say what they are); the third item says so for the reader.
 export const COLUMNS = [
-  ['c-session', 'Sessão'],
-  ['c-status', 'Status'],
-  ['c-activity', 'Última atividade'],
-  ['c-duration', 'Duração'],
-  ['c-agents', 'Agentes'],
-  ['c-cost', 'Custo'],
-  ['c-dir', 'Diretório'],
-  ['c-message', 'Mensagem'],
-  ['c-open', ''],
+  ['c-session', 'Sessão', true],
+  ['c-status', 'Estado', true],
+  ['c-machine', 'Máquina', true],
+  ['c-duration', 'Duração', true],
+  ['c-activity', 'Atualizada', true],
+  ['c-message', 'Mensagem', false],
+  ['c-open', 'Abrir', false],
 ];
 
 /**
@@ -185,14 +191,18 @@ function selector(label, options, value, onChange) {
   return el('label', { class: 'field' }, s, icon('open-list'));
 }
 
-/** The status cell: the attention pill and its reason (issue 245), or the status badge. */
-export function badgeEl(status, attention) {
-  if (attentionOf(attention)) return attentionBadges(attention);
-  // Waiting without attention does not wait on the person (delegating…): "Ativa". Nothing raw on screen.
-  const st = statusWithoutAttention(status);
-  if (!Object.hasOwn(STATUS, st)) return [];
-  return [el('span', { class: `badge b-${st}` }, el('span', { class: 'p' }), STATUS[st])];
+const KNOWN_STATUSES = ['active', 'waiting', 'completed', 'error', 'abandoned'];
+
+/** The state cell: the tag of the Mural, icon and words, in the words of the mode (issue 759); no coloured pill. */
+export function stateCell(status, attention) {
+  if (!attentionOf(attention) && !KNOWN_STATUSES.includes(status)) return null;
+  const { kind, label } = stateOfSession({ attention, status });
+  return kind ? stateTag({ kind, label }) : null;
 }
+
+/** The monogram of the row: the initial of the provider that runs it (the list does not carry the agent's name). */
+const PROVIDER_NAMES = { claude: 'Claude', codex: 'Codex' };
+export const providerName = (s) => PROVIDER_NAMES[s?.identity?.provider] ?? 'Claude';
 
 /**
  * The subtitle (C45): "15 sessões registradas · 3 na Workstation" with Todas; one machine chosen,
@@ -251,10 +261,9 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'sessions',
     title: 'Sessões',
-    sub: '…',
+    sub: null,
     actions: [el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar'), newSessionButton({ read: ctx.read, write: ctx.write })],
   });
-  const sub = head.querySelector('.sub');
 
   // ---------- filtros ----------
   const search = el('input', { type: 'search', placeholder: 'Buscar sessões…', 'aria-label': 'Buscar sessões', value: state.search, maxlength: 200 });
@@ -267,7 +276,7 @@ export async function mount(area, ctx) {
   const dirSlot = el('span', { class: 'dir-slot' });
   const orderSlot = el('span', { class: 'order-slot' });
   const invert = el('button', { type: 'button', class: 'field square', 'aria-label': 'Inverter a ordem', title: 'Inverter a ordem', onClick: () => change({ direction: state.direction === 'desc' ? 'asc' : 'desc', page: 1 }) }, icon('invert'));
-  const pills = el('div', { class: 'seg', role: 'group', 'aria-label': 'Status' });
+  const pills = el('div', { class: 'seg', role: 'group', 'aria-label': 'Estado' });
   for (const [v, label] of PILLS) pills.append(el('button', { type: 'button', 'data-status': v, onClick: () => change({ status: v, page: 1 }) }, label, el('b', { class: 'sessions-pill-count' })));
   // With a remote, the machine filter and the status pills share a row of their own (in 1100 they fold
   // into two); with none, the pills stay where they always were.
@@ -282,7 +291,7 @@ export async function mount(area, ctx) {
       return;
     }
     statusSlot.setAttribute('class', 'sessions-status-slot sessions-machine-row');
-    statusSlot.replaceChildren(control, el('span', { class: 'sessions-status-group' }, el('span', { class: 'sessions-filter-label' }, 'Status'), pills));
+    statusSlot.replaceChildren(control, el('span', { class: 'sessions-status-group' }, el('span', { class: 'sessions-filter-label' }, 'Estado'), pills));
   }
 
   const body = el('div', { class: 'sessions-body' }, loading({ label: 'Carregando as sessões' }));
@@ -295,7 +304,8 @@ export async function mount(area, ctx) {
     for (const b of pills.children) {
       b.setAttribute('aria-pressed', String(b.dataset.status === state.status));
       const n = b.querySelector('.sessions-pill-count');
-      if (n) n.replaceChildren(pillCount(counts, b.dataset.status) ?? '');
+      const count = pillCount(counts, b.dataset.status);
+      if (n) n.replaceChildren(count === null ? '' : ` ${count}`);
     }
   }
 
@@ -366,21 +376,33 @@ export async function mount(area, ctx) {
     }).catch(() => {});
   }
 
+  /** The secondary line of the Sessão cell: why a pause (when it is one), the folder, the short id and the account. */
+  function metaOf(s) {
+    const a = attentionOf(s.attention);
+    const why = a?.level === 'idle' ? reasonLabel(a) : null;
+    const parts = [why ? el('span', { class: 'sessions-why' }, why) : null, s.cwd ? el('span', { class: 'sessions-folder', title: s.cwd }, lastPart(s.cwd)) : null, el('span', { class: 'mono sessions-id' }, shortId(s.id)), account(s.account)];
+    return el('small', { class: 'sessions-meta' }, ...parts.filter(Boolean));
+  }
+
+  function machineCell(s) {
+    if (isRemote(s)) return machineTag(s);
+    const m = machineLabel(s);
+    return el('span', { class: 'sessions-machine' }, icon(m.icon), m.text);
+  }
+
   function row(s) {
     // Issue 243 (C49): a remote session opens its Detail with `?machine=<id>`.
     const target = itemHref(s);
     const tr = el(
       'tr',
       { class: 'session-row', 'data-key': itemKey(s) },
-      el('td', { class: 'nm' }, el('a', { href: target, title: s.title }, el('b', {}, s.title)), el('small', {}, el('span', { class: 'mono' }, shortId(s.id)), account(s.account), machineTag(s))),
-      el('td', { class: 'st' }, ...badgeEl(s.status, s.attention)),
-      el('td', { class: 'c-muted', title: new Date(s.lastActivity).toLocaleString('pt-BR') }, age(s.lastActivity)),
-      // Os dois pedaços não quebram por dentro: na coluna estreita, o tempo desce para a linha de baixo.
-      el('td', { class: 'mono dur' }, s.running ? el('span', { class: 'c-active' }, 'rodando ·') : null, s.running ? ' ' : null, el('span', {}, duration(s.durationMs))),
-      el('td', { class: 'mono' }, String(s.agents)),
-      el('td', { class: 'mono' }, cost(s.costUsd)),
-      // Corta no começo (o fim do caminho é o que distingue): o LRM mantém a barra inicial no lugar.
-      el('td', { class: 'dir', title: s.cwd ?? '' }, s.cwd ? `\u200e${s.cwd}\u200e` : '—'),
+      // Issue 759 (A9): the title is the session's name; the folder and the id are the secondary line.
+      el('td', { class: 'nm' }, el('div', { class: 'sessions-who' }, agentMonogram(providerName(s)), el('div', { class: 'sessions-text' }, el('a', { href: target, title: s.title }, el('b', {}, s.title)), metaOf(s)))),
+      el('td', { class: 'st' }, stateCell(s.status, s.attention)),
+      el('td', { class: 'mach' }, machineCell(s)),
+      // Issue 759 (M9): "rodando ·" is plain text, never a state colour: a paused session is not working.
+      el('td', { class: 'mono dur' }, s.running ? el('span', { class: 'sessions-running' }, 'rodando ·') : null, s.running ? ' ' : null, el('span', {}, duration(s.durationMs))),
+      el('td', { class: 'when', title: new Date(s.lastActivity).toLocaleString('pt-BR') }, age(s.lastActivity)),
       messageTd(s),
       // Empty when there is nothing to open: the column keeps its width, the others stay aligned.
       el('td', { class: 'sessions-open' }, openAction({ id: s.id, open: s.open, machine: s.machine }, { size: 'icon', write: ctx.write, machine: s.machine?.label ?? null })),
@@ -403,7 +425,7 @@ export async function mount(area, ctx) {
     return el(
       'div',
       { class: 'card' },
-      el('table', { class: 'table' }, el('thead', {}, el('tr', {}, ...COLUMNS.map(([className, c]) => el('th', { scope: 'col', class: className }, c)))), el('tbody', {}, ...list.items.map(row))),
+      el('table', { class: 'table' }, el('thead', {}, el('tr', {}, ...COLUMNS.map(([className, c, shown]) => el('th', { scope: 'col', class: className }, shown ? c : el('span', { class: 'cc-sr-only' }, c))))), el('tbody', {}, ...list.items.map(row))),
     );
   }
 
@@ -424,7 +446,6 @@ export async function mount(area, ctx) {
   function draw(list) {
     machines.update(list);
     placeMachineFilter();
-    sub.textContent = registeredText(list, { choice: machines.choice, machines: machines.machines() });
     // A página pedida pode ter sumido (a lista encolheu): fica a que o núcleo devolveu.
     if (list.page !== state.page) {
       state = { ...state, page: list.page };
@@ -432,6 +453,8 @@ export async function mount(area, ctx) {
     }
     drawFilters(list.directories, list.counts);
     if (list.items.length) {
+      // Issue 765: the detail of a session opens with its header from what this list showed.
+      rememberSessions(list.items);
       messageCells = new Map();
       body.replaceChildren(table(list), footer(list));
       askAvailability(list.items);

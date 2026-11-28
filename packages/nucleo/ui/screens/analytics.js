@@ -12,6 +12,7 @@
 // - Com mais de uma conta, o custo leva a divisão por conta ao lado (decisão 0006).
 
 import { header, el, icon } from '../dom.js';
+import { costSub } from '../subtitles.js';
 import { loading, error, errorBand, empty } from '../states.js';
 
 export const OVERVIEW_ROUTE = '/api/analytics';
@@ -23,8 +24,6 @@ export const GROUP_BYS = ['repo', 'project'];
 const STYLE = '/ui/analytics.css';
 export const REREAD_MS = 4000;
 
-const OVERVIEW_SUB = 'Uso, custo e produtividade das sessões';
-const COST_SUB = 'Custo estimado pelo transcript, com o preço de cada modelo';
 
 // ---------- Formatação (pt-BR) ----------
 
@@ -370,7 +369,7 @@ export function overviewScreen(d) {
     el(
       'div',
       { class: 'an-stats an-five' },
-      stat({ id: 'sessions', rotulo: 'Sessões', valor: quantity(n.sessions.total), sub: plural(n.sessions.active, 'ativa', 'ativas'), icone: 'sessions', cor: 'accent' }),
+      stat({ id: 'sessions', rotulo: 'Sessões', valor: quantity(n.sessions.total), sub: `${quantity(n.sessions.active)} trabalhando`, icone: 'sessions', cor: 'accent' }),
       stat({ id: 'agents', rotulo: 'Agentes', valor: quantity(n.agents.total), sub: plural(n.agents.active, 'ativo', 'ativos'), icone: 'an-bot', cor: 'active' }),
       stat({ id: 'tokens', rotulo: 'Tokens', valor: quantity(n.tokens.total), sub: n.tokens.cachePct === null ? 'cache sem dado' : `${percent(n.tokens.cachePct)} de cache`, icone: 'port', cor: 'accent' }),
       stat({
@@ -545,7 +544,6 @@ export async function mount(area, ctx, { releituraMs: rereadMs = REREAD_MS } = {
     return mountDelivery(area, ctx, { rereadMs });
   }
   const tab = requested === undefined ? 'overview' : requested === 'cost' ? 'cost' : null;
-  const sub = tab === 'cost' ? COST_SUB : OVERVIEW_SUB;
   const timeZone = browserTimeZone();
   let days = 30;
   let last = null; // a última resposta, para exportar e para manter a tela numa releitura que falha
@@ -553,7 +551,9 @@ export async function mount(area, ctx, { releituraMs: rereadMs = REREAD_MS } = {
   let turn = 0;
   let wait = null;
 
-  const head = (actions = []) => analyticsHeader(sub, actions);
+  // issue 766: only the cost tab has a number of yesterday's kind to say (today against the daily average); the overview has only its title.
+  const head = (actions = [], sub = null) => analyticsHeader(sub, actions);
+  const costLine = (data) => (tab === 'cost' ? costSub({ today: data?.todaySummary?.usd, average: data?.period?.dailyAverage, days: data?.days ?? days }) : null);
 
   if (!tab) {
     ctx.title?.('Analytics');
@@ -600,7 +600,7 @@ export async function mount(area, ctx, { releituraMs: rereadMs = REREAD_MS } = {
           tab === 'overview'
             ? [head(), empty({ title: 'Nenhuma sessão ainda', text: 'Os números aparecem quando o console registrar a primeira sessão do Claude Code.' })]
             : [head([selector()]), tabs('cost'), empty({ title: `Nenhum custo nos últimos ${days} dias`, text: 'Escolha um período maior ou volte depois de usar o Claude Code.' })];
-      } else nodes = [head(actions(data)), ...(tab === 'cost' ? costScreen(data) : overviewScreen(data))];
+      } else nodes = [head(actions(data), costLine(data)), ...(tab === 'cost' ? costScreen(data) : overviewScreen(data))];
       area.replaceChildren(...nodes);
     } catch (e) {
       if (e?.name === 'AbortError' || mine !== turn) return;

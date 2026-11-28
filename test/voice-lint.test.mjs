@@ -13,6 +13,7 @@ import {
   lintText,
   loadRules,
   shrinkBaseline,
+  subtitleWarnings,
 } from './voice-lint.lib.mjs'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
@@ -296,4 +297,36 @@ test('the UI strings hold the rules, with no new violation and no stale baseline
   const { added, stale } = compareToBaseline(findings, baseline)
   assert.deepEqual(added, [], `new voice violations (fix the text, do not add to the baseline):\n${added.join('\n')}`)
   assert.deepEqual(stale, [], `baseline entries that no longer occur (run VOICE_LINT_SHRINK=1 to remove them):\n${stale.join('\n')}`)
+})
+
+test('#766: a subtitle of the registry that starts with a descriptive article gets a warning', () => {
+  const source = [
+    "  { id: 'a', title: 'A', sub: 'O agora das suas sessões', icon: 'x' },",
+    "  { id: 'b', title: 'B', sub: 'As sessões por status', icon: 'x' },",
+    "  { id: 'c', title: 'C', sub: 'Os eventos de hoje', icon: 'x' },",
+    '  { id: \'d\', title: \'D\', sub: "Todos os eventos das sessões, ao vivo", icon: \'x\' },',
+    "  { id: 'e', title: 'E', sub: 'Um card por sessão aberta', icon: 'x' },",
+    "  { id: 'f', title: 'F', sub: 'A telemetria medida pelo núcleo daqui', icon: 'x' },",
+  ].join('\n')
+  const warnings = subtitleWarnings(source)
+  assert.deepEqual(warnings.map((w) => [w.line, w.article]), [[1, 'O'], [2, 'As'], [3, 'Os'], [4, 'Todos os'], [5, 'Um'], [6, 'A']])
+  assert.match(warnings[0].message, /state now/)
+})
+
+test('#766: a subtitle that says the state, a null one and a word that only starts like an article give no warning', () => {
+  const source = [
+    "  { id: 'a', sub: '4 sessões precisam de você. 3 trabalhando, 1 em pausa e 2 concluídas.' },",
+    "  { id: 'b', sub: null },",
+    "  { id: 'c', sub: 'Osciladores parados' },",
+    "  { id: 'd', sub: 'Nada precisa de você agora.' },",
+    "  { id: 'e', subtitle: 'O texto de outro campo' },",
+  ].join('\n')
+  assert.deepEqual(subtitleWarnings(source), [])
+})
+
+test('#766: the subtitles of the registry hold the rule today (a warning is shown, not failed, if one comes back)', (t) => {
+  const source = readFileSync(join(ROOT, 'packages/nucleo/ui/screens.js'), 'utf8')
+  const warnings = subtitleWarnings(source)
+  for (const w of warnings) t.diagnostic(`WARNING screens.js:${w.line} ${w.message}`)
+  assert.equal(Array.isArray(warnings), true)
 })

@@ -108,7 +108,7 @@ export async function mount(area, ctx) {
     if (catalog) return catalog;
   }
   loadStyle();
-  const head = header({ icon: 'plug', title: 'Conexões', sub: 'As contas de fora que o console usa. A credencial nunca sai do cofre do sistema.' });
+  const head = header({ icon: 'plug', title: 'Conexões', sub: null });
   let github = null;
   let failure = null;
   let notice = null; // a refused write, in pt-BR
@@ -514,9 +514,6 @@ export async function mount(area, ctx) {
       return area.replaceChildren(head, loading({ label: 'Lendo a conexão' }));
     }
     if (github.state !== 'connected') confirming = false;
-    const vault = github.vault === 'secret-service' ? 'do Secret Service' : github.vault === 'keychain' ? 'do Keychain' : 'do cofre do sistema';
-    const sub = head.querySelector('.sub');
-    if (sub) sub.textContent = `As contas de fora que o console usa. A credencial nunca sai ${vault}.`;
     const bands = [];
     if (notice) bands.push(errorBand({ title: 'Não deu certo.', text: notice, action: { label: 'Fechar', onClick: () => ((notice = null), draw()) } }));
     if (failure) bands.push(errorBand({ title: 'Sem conexão com o núcleo.', text: `${failure.message}. Mostrando a última leitura.`, action: { label: 'Tentar de novo', onClick: () => read() } }));

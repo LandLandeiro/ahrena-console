@@ -22,18 +22,31 @@
 /* full (Detail header): the state wraps beside the button, never pushing the row sideways. */
 .open-size-full .open-status { max-width: 320px; }
 
-/* small (wall foot): the foot has no room for a sentence, so the state opens above the button, like the
-   icon's below it; the foot keeps its height and the card's neighbours keep theirs (rule 9). */
-.open-size-small { flex: 1 1 auto; }
-.open-size-small .open-button { flex: none; min-width: 0; }
-.open-size-small .open-status { position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(260px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
+/* small (wall card): the action spans the card's act area and the state opens below the button, over the card's own foot,
+   so it never covers the title above (ADR-0028); the grid keeps its height and the neighbours theirs (rule 9). */
+.open-size-small { display: flex; flex: 1 1 auto; width: 100%; max-width: 100%; }
+.open-size-small .open-button { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+/* ADR-0028: overflow hidden clipped the descenders under the button's line-height of 1. */
+.open-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.open-size-small .open-status { position: absolute; left: 0; top: calc(100% + 6px); z-index: 3; width: max-content; max-width: min(360px, 100%); padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
+
+/* ADR-0028: the action of an opened leader card (it spans the grid) puts the state beside the button, so it never
+   covers the nested titles under it; up to 600px there is no room beside, and it stays below. */
+@media (min-width: 601px) {
+  .open-size-small.open-beside { display: inline-flex; width: auto; }
+  .open-size-small.open-beside .open-status { left: calc(100% + 8px); top: 0; bottom: auto; width: max-content; max-width: 300px; }
+}
 
 /* icon (Sessions row, Dashboard inbox): the icon alone; the state opens below it, to the left. */
-.open-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); flex: none; cursor: pointer; font: inherit; }
+.open-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 7px; border: 1px solid var(--border-control); background: var(--surface); color: var(--muted); flex: none; cursor: pointer; font: inherit; }
 .open-icon:hover:not([aria-disabled="true"]) { color: var(--text); background: var(--raised); }
-.open-icon:focus-visible, .open-copy:focus-visible, .open-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.open-icon:focus-visible, .open-copy:focus-visible, .open-close:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .open-icon[aria-busy="true"] { color: var(--accent-text); }
 .open-icon .icon { font-size: 14px; }
 .open-size-icon .open-status { position: absolute; right: 0; top: calc(100% + 6px); z-index: 3; width: max-content; max-width: 260px; padding: 7px 9px; border-radius: 8px; background: var(--raised); border: 1px solid var(--border); white-space: normal; text-align: left; }
 .open-close { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); flex: none; cursor: pointer; font: inherit; }
 .open-close:hover { color: var(--text); background: var(--surface); }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.open-close { position: relative; }
+.open-close::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

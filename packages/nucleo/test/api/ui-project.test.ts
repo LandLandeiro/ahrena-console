@@ -161,8 +161,8 @@ describe('Kanban do projeto (C11)', () => {
     const { area } = tela;
     assert.deepEqual(tela.leituras, ['/api/project']);
     const cab = area.querySelector('header.cc-head')!;
-    assert.match(texto(cab), /Kanban do projeto Ao vivo/);
-    assert.equal(texto(cab.querySelector('.sub')), 'GitHub Project “Ahrena Console” · dono #3 · por Status · arraste para mudar');
+    assert.match(texto(cab), /Kanban do projeto/);
+    assert.equal(texto(cab.querySelector('.sub')), 'GitHub Project “Ahrena Console” · dono #3');
     assert.equal(texto(cab.querySelector('.prj-milestone')), 'Marco: Todos os marcos M1 · Local M2 · Artefato');
     assert.ok(cab.querySelectorAll('button').some((b) => texto(b) === 'Atualizar'));
 
@@ -575,7 +575,9 @@ describe('Kanban do projeto (C11)', () => {
     const achada = findScreen('/ui/project');
     assert.equal(achada.screen.id, 'project');
     assert.equal(achada.screen.file, '/ui/screens/project.js');
-    assert.deepEqual(SCREENS.find((t: { id: string }) => t.id === 'project').item, { label: 'Kanban do projeto', icon: 'github', section: 'delivery' });
+    const screen = SCREENS.find((t: { id: string }) => t.id === 'project');
+    assert.equal(screen.item, undefined);
+    assert.equal(screen.highlights, 'work');
   });
 
   // O CSS de cada tela fica na página depois que ela abre: uma classe de nome igual em duas telas quebra a outra.

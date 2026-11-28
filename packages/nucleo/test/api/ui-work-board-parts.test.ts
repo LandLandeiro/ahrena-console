@@ -186,7 +186,9 @@ describe('the work board files: served, and the /ui file rules', () => {
   });
 
   test('the on-screen copy mirrors the domain: the six columns, the reasons and the four levels', () => {
-    assert.deepEqual(COLUMNS, WORK_BOARD_COLUMNS.map(({ id, label, criterion }) => ({ id, label, criterion })));
+    // #760: the names come from ui/state-labels.js by column id; the core's payload `label` ("Em review", "Bloqueado") is not drawn.
+    assert.deepEqual(COLUMNS.map(({ id, criterion }: { id: string; criterion: string }) => ({ id, criterion })), WORK_BOARD_COLUMNS.map(({ id, criterion }) => ({ id, criterion })));
+    assert.deepEqual(COLUMNS.map((c: { label: string }) => c.label), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
     assert.deepEqual(Object.keys(BLOCKED_LABELS), WORK_BLOCKED_REASONS.map((r) => r.id));
     assert.deepEqual(Object.keys(LEVEL_LABELS), [...WORK_LEVELS]);
     assert.deepEqual(FILTER_FIELDS.map((f: { param: string }) => f.param), ['initiative', 'epic', 'type', 'label', 'repo', 'status']);
@@ -359,9 +361,9 @@ describe('#465/AC-2 the card (465-2), data only', () => {
     const running = workCard(CARDS.running[0], { primaryRepo: REPO, now: NOW });
     assert.equal(texto(running.querySelector('.wb-session')), '2 sessões');
     assert.ok(running.querySelector('.wb-session')!.classList.contains('wb-session-working'));
-    assert.equal(sessionText({ count: 1, state: 'working' }), 'trabalhando');
-    assert.equal(sessionText({ count: 1, state: 'needs-you' }), 'precisa de você');
-    assert.equal(sessionText({ count: 1, state: 'idle' }), 'ociosa');
+    assert.equal(sessionText({ count: 1, state: 'working' }), 'Trabalhando');
+    assert.equal(sessionText({ count: 1, state: 'needs-you' }), 'Precisa de você');
+    assert.equal(sessionText({ count: 1, state: 'idle' }), 'Em pausa');
     assert.equal(sessionText({ count: 0, state: null }), null);
 
     const review = workCard(CARDS.review[0], { primaryRepo: REPO, now: NOW });
@@ -382,7 +384,7 @@ describe('#465/AC-2 the card (465-2), data only', () => {
     assert.equal(cardAge(card(9, { column: 'running', columnSince: ago(40 * MIN) }), NOW), 'há 40 min');
     const running = workCard(card(500, { column: 'running', plan: { steps: 3 }, sessions: { count: 1, state: 'working', ids: ['x'] } }), { now: NOW, primaryRepo: REPO });
     assert.equal(running.querySelector('.wb-plan'), null);
-    assert.equal(texto(running.querySelector('.wb-session')), 'trabalhando');
+    assert.equal(texto(running.querySelector('.wb-session')), 'Trabalhando');
     assert.equal(texto(workCard(card(1, { plan: { steps: 1 } }), { now: NOW }).querySelector('.wb-plan')), 'plano · 1 passo');
   });
 
@@ -409,7 +411,7 @@ describe('#465/AC-3 Bloqueado says why', () => {
     assert.equal(texto(ci!.querySelector('.wb-reason')), 'CI falhou');
     assert.ok(ci!.querySelector('.wb-reason')!.classList.contains('wb-reason-ci-failed'));
     assert.ok(ci!.classList.contains('wb-card-fail'));
-    assert.equal(texto(needs!.querySelector('.wb-session')), 'precisa de você');
+    assert.equal(texto(needs!.querySelector('.wb-session')), 'Precisa de você');
     assert.ok(needs!.querySelector('.wb-session')!.classList.contains('wb-session-needs-you'));
   });
 
@@ -428,7 +430,7 @@ describe('#465/AC-2 the six columns', () => {
     assert.equal(board.getAttribute('aria-label'), 'Quadro por ciclo do agente');
     const cols = board.querySelectorAll('section.wb-col');
     assert.deepEqual(cols.map((c) => c.getAttribute('data-column')), ['planning', 'queued', 'running', 'review', 'blocked', 'done']);
-    assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-col-name'))), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído']);
+    assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-col-name'))), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
     assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-criterion'))), WORK_BOARD_COLUMNS.map((c) => c.criterion));
     assert.deepEqual(cols.map((c) => texto(c.querySelector('.wb-count'))), ['2', '1', '1', '1', '3', '3']);
     for (const c of cols) {
@@ -505,7 +507,7 @@ describe('#466/AC-2 the epic and initiative card (466-1)', () => {
     assert.match(texto(node.querySelector('.wb-progress')), /1\/7 filhas concluídas/);
     const bar = node.querySelector('[role="progressbar"]')!;
     assert.deepEqual([bar.getAttribute('aria-valuenow'), bar.getAttribute('aria-valuemax')], ['1', '7']);
-    assert.deepEqual(node.querySelectorAll('.wb-dist li').map((li) => li.getAttribute('aria-label')), ['Planejamento: 2', 'Em execução: 1', 'Bloqueado: 3', 'Concluído: 1']);
+    assert.deepEqual(node.querySelectorAll('.wb-dist li').map((li) => li.getAttribute('aria-label')), ['Planejamento: 2', 'Em execução: 1', 'Precisa de você: 3', 'Concluído: 1']);
     assert.equal(texto(node.querySelector('.wb-reason')), '3 filhas bloqueadas · 1 precisa de você · 2 CI falhou');
     const drill = buttonNamed(node, /Ver filhos/)!;
     assert.equal(texto(drill), 'Ver filhos (7)');
@@ -746,7 +748,7 @@ describe('#466/AC-3 the filter with no result (466-3)', () => {
   test('#466/AC-3 the columns stay with their names and zero, without Nenhuma', () => {
     const board = boardColumns({ mode: 'blank', counts: '0', now: NOW });
     assert.equal(board.querySelectorAll('section.wb-col').length, 6);
-    assert.deepEqual(board.querySelectorAll('.wb-col-name').map(texto), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído']);
+    assert.deepEqual(board.querySelectorAll('.wb-col-name').map(texto), ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído']);
   });
 });
 
@@ -790,7 +792,7 @@ describe('#465/AC-5 English internals, pt-BR on screen (ADR-0009)', () => {
     }
     assert.ok(data.has('data-column') && data.has('data-param') && data.has('data-level') && data.has('data-queue'));
     const copy = roots.map(texto).join(' ');
-    for (const words of ['Quadro do trabalho', 'Atualizar', 'Nível', 'Iniciativa', 'Limpar filtros', 'Copiar link', 'Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído', 'Ver filhos', 'Tentar agora', 'Trocar de Project', 'Nenhuma issue com estes filtros.']) {
+    for (const words of ['Quadro do trabalho', 'Atualizar', 'Nível', 'Iniciativa', 'Limpar filtros', 'Copiar link', 'Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído', 'Ver filhos', 'Tentar agora', 'Trocar de Project', 'Nenhuma issue com estes filtros.']) {
       assert.ok(copy.includes(words), `the screen says "${words}"`);
     }
   });
@@ -824,16 +826,31 @@ describe('#610/AC-1 the header counts organizations and Projects (598-1)', () =>
     const head = workBoardHeader({ organizations: ORGS, fetchedAt: NOW - 40_000, now: NOW });
     assert.match(texto(head.querySelector('.wb-orgs-count')), /^3 organizações · 5 Projects$/);
     assert.match(texto(head), /acme-labs, northwind e mira-dev \(você\)/);
-    assert.match(texto(head), /a coluna vem dos sinais; só a fila é sua/);
+    assert.doesNotMatch(texto(head), /a coluna vem dos sinais/, '#766: how the column is chosen is the mechanism, not the state');
     assert.doesNotMatch(texto(head), /GitHub Project “/);
   });
 
   test('#610/AC-1 one organization and one Project: today\'s header names them, nothing counts', () => {
     const named = workBoardHeader({ organizations: [org('acme-labs', [PLATFORM])], fetchedAt: NOW, now: NOW });
-    assert.match(texto(named), /acme-labs · GitHub Project “Plataforma” · a coluna vem dos sinais/);
+    assert.match(texto(named), /acme-labs · GitHub Project “Plataforma”/);
+    assert.doesNotMatch(texto(named), /a coluna vem dos sinais/);
     assert.equal(named.querySelector('.wb-orgs-count'), null);
     const today = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, fetchedAt: NOW, now: NOW });
-    assert.match(texto(today), /acme-labs\/app · GitHub Project “Plataforma” · a coluna vem dos sinais/);
+    assert.match(texto(today), /acme-labs\/app · GitHub Project “Plataforma”/);
+    assert.doesNotMatch(texto(today), /a coluna vem dos sinais/);
+  });
+
+  test('#766 the header ends with what waits for the person, from the columns the screen read', () => {
+    const columns = [
+      { id: 'planning', count: 3, cards: [] },
+      { id: 'review', count: 1, cards: [] },
+    ];
+    const one = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, columns, fetchedAt: NOW, now: NOW });
+    assert.match(texto(one.querySelector('.sub')), /^acme-labs\/app · GitHub Project “Plataforma” · 3 itens esperam um plano e 1 espera revisão\.$/);
+    const many = workBoardHeader({ organizations: ORGS, columns, fetchedAt: NOW, now: NOW });
+    assert.match(texto(many.querySelector('.sub')), /3 itens esperam um plano e 1 espera revisão\.$/);
+    const quiet = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, columns: [{ id: 'planning', count: 0, cards: [] }], fetchedAt: NOW, now: NOW });
+    assert.equal(texto(quiet.querySelector('.sub')), 'acme-labs/app · GitHub Project “Plataforma”');
   });
 
   test('#610/AC-1 the count leaves out an organization with a warning and marks "N com aviso"', () => {
