@@ -59,11 +59,12 @@ const working = (id: string, extra: Card = {}): Card => ({ id, title: `Sessão $
 const asking = (id: string, extra: Card = {}): Card => working(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'permission' }, activity: { type: 'permission', text: 'rm -rf build' }, ...extra });
 const wallOf = (cards: Card[]) => ({ version: 1, count: { all: cards.length, blocked: 1, idle: 0 }, cards });
 
-function start(initial: Card) {
+function start(initial: Card, withAnswer = true, shift?: (delta: number) => void) {
   resetOpenStates();
   resetMachineChoice();
   const area = new ElementoFalso('main');
   const waiting: number[] = [];
+  const answers: Array<{ id: unknown; kind: string }> = [];
   const state = { wall: initial };
   const leave = new AbortController();
   const ctx = {
@@ -77,12 +78,13 @@ function start(initial: Card) {
     onChange: () => {},
     onRestart: () => {},
     counter: () => {},
-    waiting: (n: number) => void waiting.push(n),
+    shiftWaiting: (delta: number) => (waiting.push(delta), shift?.(delta)),
+    ...(withAnswer ? { answer: async (card: Card, choice: { kind: string }) => void answers.push({ id: card.id, kind: choice.kind }) } : {}),
     title: () => {},
     navigate: () => {},
     liveState: () => 'live',
   };
-  return { area, waiting, leave, mounted: wall.mount(area, ctx) as Promise<() => void> };
+  return { area, waiting, answers, leave, mounted: wall.mount(area, ctx) as Promise<() => void> };
 }
 
 let stop: (() => void) | null = null;
@@ -99,10 +101,10 @@ afterEach(() => {
   mock.timers.reset();
 });
 
-async function mountWith(initial: Card) {
+async function mountWith(initial: Card, withAnswer = true, shift?: (delta: number) => void) {
   mock.timers.reset();
   mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: NOW });
-  const s = start(initial);
+  const s = start(initial, withAnswer, shift);
   const unmount = await s.mounted;
   stop = () => {
     unmount();
@@ -137,7 +139,8 @@ describe('#767: answer and undo', () => {
     assert.equal(cardOf(s, 'c1'), null, 'the card is out of "Precisam de você"');
     assert.ok(one(s.area, '.wall-sec-active [data-session="c1"]'), 'the session is in "Trabalhando"');
     assert.equal(blockedCount(s), '1');
-    assert.equal(s.waiting.at(-1), 1, 'the count of the bar goes down by 1');
+    assert.deepEqual(s.waiting, [-1], 'the bar moves by -1, it is not given the number of cards');
+    assert.deepEqual(s.answers, [{ id: 'c1', kind: 'allow' }], 'the answer went to ctx.answer');
   });
 
   test('a toast confirms "Você permitiu em ..." and offers "Desfazer"; the focus goes to the next card, never to the body', async () => {
@@ -169,7 +172,7 @@ describe('#767: answer and undo', () => {
     assert.ok(cardOf(s, 'c1'), 'the card is back');
     assert.equal(one(s.area, '.wall-sec-blocked').querySelectorAll('.wall-card').length, 2);
     assert.equal(blockedCount(s), '2');
-    assert.equal(s.waiting.at(-1), 2);
+    assert.deepEqual(s.waiting, [-1, 1], 'the undo moves the bar by +1');
     assert.equal(documentoFalso.activeElement, answerOf(s, 'c1'), 'the button of the card');
     assert.equal(toast(s), null, 'the toast is gone');
   });
@@ -272,10 +275,12 @@ describe('#767: reduced motion', () => {
     assert.match(block, /\.wall-toast-line \{[^}]*display: none/);
   });
 
-  test('the CSS: the press shrink is 96% in 80 ms and 120 ms back, by transform only; reduced motion takes it, the slide and the roll away', () => {
+  test('the CSS: the press shrink is 96% and takes --motion-fast, in and back, by transform only; reduced motion takes it, the slide and the roll away', () => {
     const shell = css('shell.css');
     assert.match(shell, /--btn-press-scale: \.96/);
-    assert.match(shell, /--btn-press-in: 80ms/);
+    assert.doesNotMatch(shell, /--btn-press-in/, 'no loose duration: the press uses the token');
+    assert.doesNotMatch(shell, /\b80ms\b/);
+    assert.match(shell, /\.btn:active:not\(:disabled\):not\(\[aria-disabled="true"\]\) \{[^}]*transition-duration: var\(--motion-fast\)/);
     assert.match(shell, /\.btn:active:not\(:disabled\):not\(\[aria-disabled="true"\]\) \{[^}]*transform: scale\(var\(--btn-press-scale\)\)/);
     assert.match(shell, /\.btn \{[^}]*transition: transform var\(--motion-fast\) var\(--ease-out\)/);
     assert.match(shell, /@media \(prefers-reduced-motion: reduce\) \{\s*\.btn \{[^}]*transition: none;[^}]*\}\s*\.btn:active[^}]*transform: none/);
@@ -328,25 +333,54 @@ describe('#767: the keys of the card', () => {
     assert.equal(answerOf(s, 'c1').getAttribute('aria-busy'), null, 'and does not answer');
   });
 
-  test('1 to 9 choose the option of a card that has them', async () => {
-    const s = await mountWith(wallOf([asking('c1', { attention: { level: 'blocked', reason: 'question' }, activity: { type: 'question', text: 'Qual pasta?', options: ['Sim', 'Não'] } })]));
-    assert.equal(all(s.area, 'button[data-answer="option"]').length, 2);
-    hover(s, 'c1');
-    press('2');
-    await flush();
-    mock.timers.tick(220);
-    assert.match(text(toast(s)), /Você escolheu Não em Sessão c1/);
-    press('9');
-  });
-
-  test('the hint of the keys shows at the corner of the card only in Dev', async () => {
+  test('the hint of the keys is in the flow of the card, in the row of the buttons, and only in Dev', async () => {
     const dev = await mountWith(wallOf([asking('c1')]));
-    assert.ok(cardOf(dev, 'c1')!.querySelector('.wall-hint'));
+    const hint = cardOf(dev, 'c1')!.querySelector('.wall-hint');
+    assert.ok(hint);
+    assert.ok(hint!.closest('.wall-act'), 'inside the row of the card, not over its footer');
+    const rule = css('wall.css').match(/\n\.wall-hint \{[^}]*\}/)?.[0] ?? '';
+    assert.ok(rule, 'the hint has its rule');
+    assert.doesNotMatch(rule, /position: (absolute|fixed)/);
     stop?.();
     stop = null;
     display.setDisplayMode('project');
     const project = await mountWith(wallOf([asking('c1')]));
     assert.equal(cardOf(project, 'c1')!.querySelector('.wall-hint'), null);
+  });
+
+  test('1 to 9 mean nothing: the contract does not declare options, so a question has no option buttons', async () => {
+    const s = await mountWith(wallOf([asking('c1', { attention: { level: 'blocked', reason: 'question' }, activity: { type: 'question', text: 'Qual pasta?', options: ['Sim', 'Não'] } })]));
+    assert.equal(all(s.area, 'button[data-answer]').length, 0);
+    cardOf(s, 'c1')!.dispatchEvent({ type: 'mouseenter' });
+    press('2');
+    await flush();
+    assert.equal(toast(s), null);
+    assert.deepEqual(s.answers, []);
+  });
+});
+
+describe('#767: with no ctx.answer there is nothing to press', () => {
+  test('the card of a permission shows no Permitir, no Negar, no hint, and the keys do nothing', async () => {
+    const s = await mountWith(wallOf([asking('c1'), asking('c2')]), false);
+    assert.equal(all(s.area, 'button[data-answer]').length, 0);
+    assert.equal(all(s.area, '.wall-hint').length, 0);
+    assert.equal(all(s.area, '[aria-keyshortcuts]').length, 0);
+    cardOf(s, 'c1')!.dispatchEvent({ type: 'mouseenter' });
+    press('a');
+    press('n');
+    await flush();
+    assert.equal(toast(s), null, 'no toast of an answer that was not sent');
+    assert.equal(blockedCount(s), '2', 'both sessions still wait');
+    assert.ok(cardOf(s, 'c1') && cardOf(s, 'c2'));
+    assert.deepEqual(s.waiting, []);
+  });
+
+  test('choicesOf gives no choice without who sends it', async () => {
+    // @ts-expect-error: browser module, plain JavaScript
+    const { choicesOf } = await import('../../ui/wall-answers.js');
+    assert.deepEqual(choicesOf(asking('c1')), []);
+    assert.deepEqual(choicesOf(asking('c1'), false), []);
+    assert.deepEqual(choicesOf(asking('c1'), true).map((c: { kind: string }) => c.kind), ['allow', 'deny']);
   });
 });
 
@@ -381,13 +415,35 @@ describe('#767: the number that rolls', () => {
     assert.ok(count.getAttribute('data-roll'));
   });
 
-  test('the counts show a number the screen knows, without a read', () => {
+  test('the counts walk by difference over the last number read: -1 on an answer, +1 on Desfazer', async () => {
     const shown: unknown[] = [];
-    const counts = createCounts({ read: async () => ({}), nav: { tag: (_id: string, tag: unknown) => void shown.push(tag) } });
-    counts.show(1);
-    assert.deepEqual(shown.at(-1), { tone: 'waiting', text: '1 espera' });
-    counts.show(0);
-    assert.equal(shown.at(-1), null);
+    const counts = createCounts({ read: async (route: string) => (route === '/api/attention' ? { blocked: 3 } : { columns: [] }), nav: { tag: (id: string, tag: unknown) => void (id === 'wall' && shown.push(tag)) } });
+    counts.shift(-1);
+    assert.equal(shown.length, 0, 'no number read yet, nothing to walk from');
+    await counts.refresh();
+    assert.deepEqual(shown.at(-1), { tone: 'waiting', text: '3 esperam' });
+    counts.shift(-1);
+    assert.deepEqual(shown.at(-1), { tone: 'waiting', text: '2 esperam' });
+    counts.shift(1);
+    assert.deepEqual(shown.at(-1), { tone: 'waiting', text: '3 esperam' });
+    counts.shift(-1);
+    counts.shift(-1);
+    counts.shift(-1);
+    counts.shift(-1);
+    assert.equal(shown.at(-1), null, 'never below zero');
+  });
+
+  test('with 3 read from attention and one answer, the bar says 2, not the number of cards of the Mural', async () => {
+    const shown: Array<{ text: string } | null> = [];
+    const counts = createCounts({ read: async (route: string) => (route === '/api/attention' ? { blocked: 3 } : { columns: [] }), nav: { tag: (id: string, tag: { text: string } | null) => void (id === 'wall' && shown.push(tag)) } });
+    await counts.refresh();
+    const s = await mountWith(wallOf([asking('c1'), asking('c2')]), true, (delta) => counts.shift(delta));
+    answerOf(s, 'c1').click();
+    await flush();
+    mock.timers.tick(220);
+    assert.equal(shown.at(-1)?.text, '2 esperam');
+    one(s.area, '[data-toast="undo"]').click();
+    assert.equal(shown.at(-1)?.text, '3 esperam');
   });
 });
 
