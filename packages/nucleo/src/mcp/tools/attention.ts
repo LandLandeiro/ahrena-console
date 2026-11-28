@@ -86,7 +86,9 @@ export async function needingYou(fleet: FleetReader, accounts: readonly string[]
     items.push(toItem(s, await fleet.attention(s), now));
   }
   const weight = (g: McpAttentionGroup) => (g === 'blocking' ? 0 : 1);
-  return items.sort((a, b) => weight(a.group) - weight(b.group) || a.waitingSince.localeCompare(b.waitingSince) || a.sessionId.localeCompare(b.sessionId));
+  // "Sua vez" is blocking too (#761), with the lowest urgency: after the other blocking items.
+  const yourTurn = (i: AttentionItem) => Number(i.reason === 'turn_ended');
+  return items.sort((a, b) => weight(a.group) - weight(b.group) || yourTurn(a) - yourTurn(b) || a.waitingSince.localeCompare(b.waitingSince) || a.sessionId.localeCompare(b.sessionId));
 }
 
 function toItem(s: FleetSession, a: Attention, now: number): AttentionItem {
