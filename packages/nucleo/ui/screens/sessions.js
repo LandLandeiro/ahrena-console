@@ -14,9 +14,9 @@ import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
-/* The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`). The words are in
-   state-labels.js (ADR-0028): each pill is `[value, label]` and its label is read when the pill is drawn. */
+/* ADR-0028: the `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
+   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Em pausa" (`idle`). The words are in
+   state-labels.js: each pill is `[value, label]` and its label is read when the pill is drawn. */
 const pill = (value, id, options) => {
   const p = [value, null];
   Object.defineProperty(p, 1, { enumerable: true, get: () => stateLabel(id, options) });
@@ -190,7 +190,7 @@ function selector(label, options, value, onChange) {
 /** The status cell: the attention pill and its reason (issue 245), or the status badge. */
 export function badgeEl(status, attention) {
   if (attentionOf(attention)) return attentionBadges(attention);
-  // Waiting without attention does not wait on the person (delegating…): "Ativa". Nothing raw on screen.
+  // ADR-0028: waiting without attention does not wait on the person (delegating…): "Trabalhando". Nothing raw on screen.
   const st = statusWithoutAttention(status);
   if (!Object.hasOwn(STATUS, st)) return [];
   return [el('span', { class: `badge b-${st}` }, el('span', { class: 'p' }), STATUS[st])];

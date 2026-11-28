@@ -22,7 +22,7 @@ export const LIMIT = 500;
 export const STATUS = stateLabels({ active: 'active', waiting: needsOrIdleLabel, completed: 'completed', error: 'error' });
 
 /**
- * The row pill (issue 245): `{ attention }` when the event stands for one ("Precisa de você", "Ociosa",
+ * ADR-0028: the row pill (issue 245): `{ attention }` when the event stands for one ("Precisa de você", "Em pausa",
  * "Com erro"), else `{ status }` (a waiting one without attention is idle; unknown is completed).
  */
 export function rowPill(ev) {

@@ -1,5 +1,5 @@
-// issue 245: the shared attention vocabulary of the /ui (ui/attention.js) and how the Sessões and
-// Detail screens use it: "Precisa de você" (blocked) and "Em pausa" (idle), never the old waiting label.
+/* #753: the shared attention vocabulary of the /ui (ui/attention.js) and how the Sessões and Detail screens use it:
+   "Precisa de você" (blocked) and "Em pausa" (idle), never the old waiting label. */
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 import { ElementoFalso, instalarDomFalso, texto } from './fake-dom.ts';

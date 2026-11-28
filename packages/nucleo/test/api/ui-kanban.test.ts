@@ -163,7 +163,7 @@ describe('Kanban: registro e arquivos', () => {
   });
 });
 
-// issue 245: the old waiting column split in two, "Precisam de você" (with the errors) and "Em pausa".
+// #753: the old waiting column split in two, "Precisam de você" (with the errors) and "Em pausa".
 describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
   const card = (id: string, extra: Record<string, unknown>) => ({ id, title: `Sessão ${id}`, status: 'active', reason: null, attention: null, lastPrompt: null, lastActivity: '2026-10-20T12:00:00Z', start: '2026-10-20T11:00:00Z', running: true, durationMs: 60_000, agents: 1, model: 'Opus 5.5', costUsd: 1, cwd: '/x', account: null, ...extra });
   const BOARD = {

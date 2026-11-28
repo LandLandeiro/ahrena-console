@@ -1,15 +1,15 @@
-// The attention vocabulary of every /ui screen (issue 245): the old "waiting for you" split in two.
-//
-// - `blocked` ("Precisa de você"): the session is stuck until the person acts. Yellow, highlighted, always
-//   with the reason (permission, question, plan, decision). An `error` session is blocked too, but keeps
-//   its own red "Com erro" pill.
-// - `idle` ("Ociosa"): the turn ended and nothing is stuck. Neutral tokens, hollow dot, no fill, the
-//   reason in a light chip (turn ended, interrupted, at the prompt).
-//
-// The words are not written here: they are read from state-labels.js (#760), in the mode of the moment.
-//
-// Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
-// "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen.
+/* #753: the attention vocabulary of every /ui screen (issue 245): the old "waiting for you" split in two.
+
+   - `blocked` ("Precisa de você"): the session is stuck until the person acts. Yellow, highlighted, always
+     with the reason (permission, question, plan, decision). An `error` session is blocked too, but keeps
+     its own red "Com erro" pill.
+   - `idle` ("Em pausa"; "Ociosa" before #753): the turn ended and nothing is stuck. Neutral tokens, hollow dot, no fill, the
+     reason in a light chip (turn ended, interrupted, at the prompt).
+
+   The words are not written here: they are read from state-labels.js (#760), in the mode of the moment.
+
+   Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
+   "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen. */
 
 import { el, icon } from './dom.js';
 import { stateLabel, stateLabels } from './state-labels.js';
@@ -86,7 +86,7 @@ export function attentionTone(value) {
   return isError(a) ? 'error' : a.level;
 }
 
-/** The pill text: "Com erro", "Precisa de você", "Ociosa"; `null` without attention. */
+/** #753: the pill text: "Com erro", "Precisa de você", "Em pausa"; `null` without attention. */
 export function attentionText(value) {
   const tone = attentionTone(value);
   if (!tone) return null;
@@ -99,7 +99,7 @@ export function reasonLabel(value) {
   return a?.reason ? (ATTENTION_REASONS[a.reason]?.label ?? null) : null;
 }
 
-/** The pill of an attention: yellow "Precisa de você", neutral hollow "Ociosa" or red "Com erro". */
+/** #753: the pill of an attention: yellow "Precisa de você", neutral hollow "Em pausa" or red "Com erro". */
 export function attentionPill(value, { extraClass = '' } = {}) {
   const tone = attentionTone(value);
   if (!tone) return null;

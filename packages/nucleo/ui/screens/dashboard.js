@@ -154,8 +154,8 @@ export function idleChips(attention) {
 const badge = (status) => el('span', { class: `badge b-${status}` }, el('span', { class: 'p' }), STATUS_LABEL[status] ?? '');
 
 /**
- * The pill of a card or a row: the attention when there is one (Precisa de você, Ociosa, Com erro);
- * a waiting one without it does not wait on the person and is active; the rest by status.
+ * ADR-0028: the pill of a card or a row: the attention when there is one (Precisa de você, Em pausa, Com erro);
+ * a waiting one without it does not wait on the person and is working ("Trabalhando"); the rest by status.
  */
 export function statusPill(status, attention) {
   if (attentionOf(attention)) return attentionPill(attention);
@@ -232,7 +232,7 @@ function miniActions(c, write) {
   );
 }
 
-/** The idle ones, apart and neutral: "3 em pausa · sem pressa", a light chip per session and the link. */
+/** ADR-0028: the idle ones, apart and neutral: "3 em pausa · sem pressa", a light chip per session and the link. */
 function idleRow(attention) {
   const total = idleCount(attention);
   if (!total) return null;

@@ -1,4 +1,4 @@
-// ADR-0028: four sections (Precisam de você as cards; Ativas, Ociosas and Concluídas as rows), a sentence and a state filter; `GET /api/wall` comes in the core's order.
+// ADR-0028: four sections (Precisam de você as cards; Trabalhando, Em pausa and Concluídas as rows), a sentence and a state filter; `GET /api/wall` comes in the core's order.
 //
 // As barras são `<progress>`: a largura sai do `value`, sem estilo inline (a CSP bloqueia).
 // As funções sem DOM (formatação e o que cada card mostra) saem exportadas para o teste.

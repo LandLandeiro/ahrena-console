@@ -1,10 +1,9 @@
-// #753 (decision 0028): the state names "Trabalhando" and "Em pausa" in place of "Ativa" and "Ociosa".
-//
-// - the map: `stateLabel('active')` is "Trabalhando", `stateLabel('idle')` is "Em pausa", the same in both modes, and in the
-//   plural of pills and filters; the compound filter is "Precisa de você ou em pausa";
-// - the guard: no text the /ui shows (string and template text of ui/**/*.js, the markup of ui/**/*.html; comments and the
-//   README are not read) says "ativa(s)" or "ociosa(s)", except a short list of texts that are not a session state,
-//   each with its reason. An exception that matches nothing fails, so the list cannot go stale.
+/* #753 (ADR-0028): the state names "Trabalhando" and "Em pausa" in place of "Ativa" and "Ociosa".
+   - the map: `stateLabel('active')` is "Trabalhando", `stateLabel('idle')` is "Em pausa", the same in both modes, and in the
+     plural of pills and filters; the compound filter is "Precisa de você ou em pausa";
+   - the guard: no text the /ui shows (string and template text of the .js files under ui/, the markup of its .html files; comments and the
+     README are not read) says "ativa(s)" or "ociosa(s)", except a short list of texts that are not a session state,
+     each with its reason. An exception that matches nothing fails, so the list cannot go stale. */
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -54,13 +53,11 @@ describe('#753 the map: Trabalhando and Em pausa', () => {
   });
 });
 
-// ---------- The guard ----------
-
-/** A session state in the old words: "ativa", "ativas", "ociosa", "ociosas" (and the masculine, which no session state uses). */
+/** #753: a session state in the old words: "ativa", "ativas", "ociosa", "ociosas" (and the masculine, which no session state uses). */
 const OLD_WORD = /(?<![\p{L}\p{N}_-])(?:ativ[ao]s?|ocios[ao]s?)(?![\p{L}\p{N}_-])/giu;
 
 /**
- * The texts that say "ativo" or "ocioso" and are not a session state, each with why. The text is removed from its line
+ * #753: the texts that say "ativo" or "ocioso" and are not a session state, each with why. The text is removed from its line
  * before the line is searched; one that matches nothing fails.
  */
 const NOT_SESSION_STATES: { file: string; text: string; why: string }[] = [
@@ -95,7 +92,7 @@ export function withoutComments(source: string, markup = false): string {
       out += blank(source.slice(i, j));
       i = j;
     } else if (c === '/' && /^[(,=:[!&|?{};]?$/.test(lastSignificant())) {
-      // A regular expression literal: blanked, it is not text on screen and its quotes and backticks are not strings.
+      // #753: a regular expression literal is blanked, it is not text on screen and its quotes and backticks are not strings.
       let j = i + 1;
       let inClass = false;
       while (j < n && source[j] !== '\n' && (inClass || source[j] !== '/')) {
@@ -112,7 +109,7 @@ export function withoutComments(source: string, markup = false): string {
       out += source.slice(i, j + 1);
       i = j + 1;
     } else if (c === '`') {
-      // A template: its text is kept whole; an expression inside it can hold a comment, which is rare enough to read as text.
+      // #753: a template keeps its text whole; an expression inside it can hold a comment, which is rare enough to read as text.
       let j = i + 1;
       while (j < n && source[j] !== '`') j += source[j] === '\\' ? 2 : 1;
       out += source.slice(i, j + 1);

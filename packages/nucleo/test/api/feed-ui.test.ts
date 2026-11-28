@@ -399,9 +399,9 @@ describe('Feed de atividade: a tela', () => {
       return texto;
     };
     try {
-      assert.match(await ajuda(), /: Ativa, Precisa de você \(travada até você agir\), Ociosa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
+      assert.match(await ajuda(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
       labels.setStateLabelMode('project');
-      assert.match(await ajuda(), /: Ativa, Precisa de você \(travada até você agir\), Ociosa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
+      assert.match(await ajuda(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
     } finally {
       labels.setStateLabelMode('dev');
     }

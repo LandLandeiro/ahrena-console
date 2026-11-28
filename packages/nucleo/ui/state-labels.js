@@ -1,6 +1,7 @@
 /* The one map of state labels of the /ui (#760), in two columns, Dev and Projeto: a screen asks this module for the words of a
    state and never writes its own (test/api/ui-state-labels.test.ts refuses one written by hand). The mode lives here only, so
-   a screen reads `stateLabel(id)` while it draws and holds no label in a constant (use `stateLabels(...)`). This file imports nothing. */
+   a screen reads `stateLabel(id)` while it draws and holds no label in a constant (use `stateLabels(...)`). This file imports nothing.
+   #753: "Trabalhando" and "Em pausa" replace "Ativa" and "Ociosa" in both columns; the reason of a pause stays beside them. */
 
 /** The two columns, in the order they are offered. */
 export const STATE_MODES = Object.freeze(['dev', 'project']);

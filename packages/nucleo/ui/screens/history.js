@@ -103,7 +103,7 @@ export function appendDays(currentOnes, newOnes) {
 const STATUS = stateLabels(['completed', 'error', 'abandoned', 'active']);
 
 function badge(status) {
-  // A closed session that ended waiting (issue 245): neutral "Ociosa", never the old "waiting for you".
+  // ADR-0028: a closed session that ended waiting (issue 245): neutral "Em pausa", never the old "waiting for you".
   if (status === 'waiting') return attentionPill({ level: 'idle', reason: null });
   const known = Object.hasOwn(STATUS, status);
   return el('span', { class: `badge b-${known ? status : 'abandoned'}` }, el('span', { class: 'p' }), known ? STATUS[status] : '—');

@@ -71,9 +71,9 @@ export function agentsLabel(n) {
 }
 
 /**
- * Status da sessão ou do agente → a cor (classe) e o rótulo do selo. O agente "working" é ativo. The
- * waiting ones are drawn by their `attention` (issue 245): "Precisa de você" or "Ociosa". The label is the state's in
- * state-labels.js (ADR-0028), read when the badge is drawn.
+ * ADR-0028: status da sessão ou do agente → a cor (classe) e o rótulo do selo. O agente "working" é "Trabalhando". The
+ * waiting ones are drawn by their `attention` (issue 245): "Precisa de você" or "Em pausa". The label is the state's in
+ * state-labels.js, read when the badge is drawn.
  */
 const STATUS = {
   active: { cor: 'active', stateId: 'active' },
