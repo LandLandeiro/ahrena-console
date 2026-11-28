@@ -155,11 +155,14 @@ function rig(answer: { dash?: () => unknown; sessions?: () => unknown; cost?: ()
   const area = new ElementoFalso('main');
   return { ctx, area, reads, leave, listeners };
 }
+// Two rows tied to the clock the test runs under: both start today and both sit in the last minutes before now, so
+// they are inside the window of the bars at any hour (00:00 to 23:59) and in any time zone.
 const liveRows = () => {
   const now = Date.now();
   const h = new Date(now);
-  const start = new Date(h.getFullYear(), h.getMonth(), h.getDate(), 0, 5).getTime();
-  return [session('k1', start, Math.min(now, start + 60_000), 'completed'), session('k2', Math.min(start + 120_000, now - 1000), now, 'active')];
+  const midnight = new Date(h.getFullYear(), h.getMonth(), h.getDate()).getTime();
+  const start = Math.max(midnight, now - 20 * 60_000);
+  return [session('k1', start, Math.min(now, start + 60_000), 'completed'), session('k2', Math.max(midnight, Math.min(start + 120_000, now - 1000)), now, 'active')];
 };
 
 describe('issue 759: the Início mounted', () => {
