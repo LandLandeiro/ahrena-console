@@ -219,28 +219,28 @@ describe('issue 277: files, classes, icons and the registry', () => {
     assert.deepEqual([...new Set(names.filter((n) => !ICON_NAMES.includes(n)))], []);
   });
 
-  test('/ui/connections/aws and /ui/connections/github light Conexões; Conexões has the dot of the worst connector', async () => {
+  test('/ui/connections/aws and /ui/connections/github light Configuração, which receives Conexões; Configuração has the dot of the worst connector', async () => {
     const aws = findScreen('/ui/connections/aws');
     assert.equal(aws.screen.file, '/ui/screens/cloud-connections.js');
-    assert.equal(litItem(aws.screen, aws.params), 'connections');
+    assert.equal(litItem(aws.screen, aws.params), 'agent-config');
     const gh = findScreen('/ui/connections/github');
     assert.equal(gh.screen.file, '/ui/screens/connections.js');
-    assert.equal(litItem(gh.screen, gh.params), 'connections');
+    assert.equal(litItem(gh.screen, gh.params), 'agent-config');
     let answer: () => Promise<unknown> = async () => connectorsBody();
     const nav = new ElementoFalso('nav');
     const { readConnectors } = createNav({ nav, read: async (route: string) => (route === '/api/connectors' ? answer() : []), screens: SCREENS });
-    assert.equal(nav.querySelector('[data-screen="connections"] .cc-nav-dot'), null);
+    assert.equal(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'), null);
     await readConnectors();
-    const dot = nav.querySelector('[data-screen="connections"] .cc-nav-dot')!;
+    const dot = nav.querySelector('[data-screen="agent-config"] .cc-nav-dot')!;
     assert.equal(dot.getAttribute('data-state'), 'cloud-error');
     assert.equal(dot.getAttribute('aria-label'), 'AWS · 1 sessão expirada');
     // Offline keeps the dot; a core without the route takes it away.
     answer = async () => Promise.reject(Object.assign(new Error('offline'), { status: 0 }));
     await readConnectors();
-    assert.ok(nav.querySelector('[data-screen="connections"] .cc-nav-dot'));
+    assert.ok(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'));
     answer = async () => Promise.reject(notFound());
     await readConnectors();
-    assert.equal(nav.querySelector('[data-screen="connections"] .cc-nav-dot'), null);
+    assert.equal(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'), null);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     for (const s of ['cloud-ok', 'cloud-warn', 'cloud-error']) assert.match(css, new RegExp(`\\.cc-nav-dot\\[data-state="${s}"\\]`));
   });
@@ -332,6 +332,16 @@ describe('issue 277: Conexões, the catalog (C57, C60, C61)', () => {
     m.area.querySelector('[data-card="all-sessions"] tr[data-machine="workstation"] button[data-cl-action="login"]')!.click();
     assert.deepEqual(m.navigated, [{ route: '/ui/connections/aws?machine=workstation&login=sessao-exemplo', state: { startLogin: 'sessao-exemplo' } }]);
     assert.deepEqual(m.writes, [], 'the catalog itself writes nothing');
+  });
+
+  test('the catalog says in its body, not in the subtitle, that the console never keeps nor shows the credentials (#766)', async () => {
+    const m = await mountScreen(connections, '/ui/connections', async (route) => {
+      if (route === '/api/connectors') return connectorsBody();
+      if (route === '/api/connections') return GITHUB;
+      return [];
+    });
+    const lines = m.area.querySelectorAll('.cl-lock').map((n) => texto(n));
+    assert.ok(lines.some((l) => /o console nunca as guarda nem mostra/.test(l)), lines.join(' | '));
   });
 
   test('no cloud configured: the dashed "Nenhuma nuvem conectada" card, and AWS under Adicionar with aws configure sso', async () => {

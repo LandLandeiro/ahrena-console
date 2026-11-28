@@ -26,3 +26,25 @@ that no longer occurs, so the baseline only shrinks.
 - When a fix removes a baselined violation, the test asks for it to leave the baseline:
   `VOICE_LINT_SHRINK=1 node --test --test-concurrency=1 test/voice-lint.test.mjs`.
 - Changing a rule is a change to the rules file, approved by the product owner, with a new version.
+
+## The subtitle says the state now
+
+Decision of issue 766. The line under a screen's title says something about the state now: how many, who, what changed,
+what waits for the person. If it explains how the screen works, it goes. If there is no useful state, the screen has only its
+title.
+
+- **State or nothing.** "4 sessões precisam de você. 3 trabalhando, 1 em pausa e 2 concluídas." (the Mural, and the sessions
+  board of the Kanban) and "3 itens esperam um plano e 1 espera revisão." (the work board) say the state. "O agora das suas
+  sessões" and "Um card por sessão aberta nesta máquina" describe the screen: they go.
+- **Only what the screen already read.** The sentence comes from the data the screen reads for its own body: no route and no
+  field of the API exist for a subtitle. Without the data that holds the state up, the screen keeps only its title (Analytics says
+  today's spend against the daily average of the period on the cost tab, and nothing on the overview, which reads no yesterday).
+- **Where it is written.** The registry (`packages/nucleo/ui/screens.js`) holds `sub: null` for every screen: the state is not
+  known there. The screen writes it after it reads with `setHeaderSub(head, text)` (`ui/dom.js`), the sentences are the pure
+  functions of `ui/subtitles.js`, and `setHeaderSub(head, null)` takes the line away when the state says nothing.
+- **Sessões has no subtitle**: the numbers are already in the filter.
+- **The same goes for help text inside a screen.** What helps the person decide stays ("Nada começa antes de você aprovar o
+  plano"); what describes the mechanism goes ("Uma sessão nova lê o item e escreve um plano").
+- **The warning.** `test/voice-lint.lib.mjs` (`subtitleWarnings`) warns when a `sub:` of `screens.js` or a `header({ sub })` of `ui/*.js` and
+  `ui/screens/*.js` starts with a descriptive article ("O", "A", "As", "Os", "Todos os", "Todas as", "Um", "Uma"). It is a
+  warning in the test output, not a finding of the baseline.

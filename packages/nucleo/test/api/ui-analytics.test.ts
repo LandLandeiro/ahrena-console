@@ -289,14 +289,14 @@ describe('Analytics: Visão geral', () => {
       assert.match(rotas[0]!, /^\/api\/analytics\?tz=[^&]+$/);
       const texto = area.textContent;
       assert.match(texto, /Analytics/);
-      assert.match(texto, /Uso, custo e produtividade das sessões/);
+      assert.doesNotMatch(texto, /Uso, custo e produtividade das sessões/, '#766: the overview has no data of yesterday: only its title');
       assert.match(texto, /Exportar/);
 
       const stats = comClasse(area, 'an-stat');
       assert.deepEqual(stats.map((s) => s.getAttribute('data-card')), ['sessions', 'agents', 'tokens', 'cost', 'events']);
       assert.deepEqual(
         stats.map((s) => s.textContent),
-        ['Sessões4124 ativas', 'Agentes1.0867 ativos', 'Tokens1,9 B71% de cache', 'Custo~US$ 341estimativa · 30 dias', 'Eventos48,1 mil~117 por sessão'],
+        ['Sessões4124 trabalhando', 'Agentes1.0867 ativos', 'Tokens1,9 B71% de cache', 'Custo~US$ 341estimativa · 30 dias', 'Eventos48,1 mil~117 por sessão'],
       );
       assert.equal(comClasse(area, 'an-accounts').length, 0, 'uma conta só: sem divisão');
 
@@ -421,7 +421,8 @@ describe('Analytics: Custo', () => {
     try {
       assert.match(rotas[0]!, /^\/api\/analytics\/cost\?days=30&tz=[^&]+$/);
       const texto = area.textContent;
-      assert.match(texto, /Custo estimado pelo transcript, com o preço de cada modelo/);
+      assert.doesNotMatch(texto, /Custo estimado pelo transcript/);
+      assert.match(texto, /O gasto de hoje está 9% acima da média diária de 30 dias\./);
       const botoes = porTag(area, 'button').filter((b) => b.getAttribute('data-days'));
       assert.deepEqual(botoes.map((b) => [b.textContent, b.getAttribute('aria-pressed')]), [['7 dias', 'false'], ['30 dias', 'true'], ['90 dias', 'false']]);
       assert.equal(porTag(comClasse(area, 'an-tabs')[0]!, 'a').find((a) => a.getAttribute('aria-current') === 'page')!.textContent, 'Custo');
@@ -525,15 +526,15 @@ describe('Analytics: Custo', () => {
 
 // ---------- Registro, rotas e regras da página ----------
 
-test('the registry: Analytics in the sidebar; /ui/analytics/cost opens the same screen and lights Analytics', () => {
+test('the registry: the item is "Uso e custo" (#754); /ui/analytics/cost opens the same screen and lights it', () => {
   const a = findScreen('/ui/analytics');
   assert.equal(a.screen.id, 'analytics');
-  assert.deepEqual(a.screen.item, { label: 'Analytics', icon: 'analytics', section: 'main' });
+  assert.deepEqual(a.screen.item, { label: 'Uso e custo', icon: 'analytics', section: 'main', project: { label: 'Custo', section: 'delivery', order: 3 } });
   const c = findScreen('/ui/analytics/cost');
   assert.equal(c.screen.highlights, 'analytics');
   assert.deepEqual(c.params, { tab: 'cost' });
   assert.equal(c.screen.file, a.screen.file);
-  assert.equal(SCREENS.filter((t: { item?: { label: string } }) => t.item?.label === 'Analytics').length, 1, 'um item só na barra');
+  assert.equal(SCREENS.filter((t: { item?: { label: string } }) => t.item?.label === 'Uso e custo').length, 1, 'um item só na barra');
 });
 
 test('as rotas e os períodos da tela são os do núcleo', async () => {

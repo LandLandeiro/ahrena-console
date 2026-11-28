@@ -226,10 +226,10 @@ describe('Dev Console: pure parts', () => {
     assert.deepEqual(v.mergeQueue.map((q) => queueNote(q, v.mergeQueue)), ['fecha #31', 'fecha #58 · base de #84', 'empilhado em #79']);
   });
 
-  test('issue 245: the scoreboard counts only what blocks, the idle ones apart; board cards say precisa de você or ociosa', () => {
+  test('issue 245: the scoreboard counts only what blocks, the idle ones apart; board cards say precisa de você or em pausa', () => {
     const { blockedSub, cardAttention } = screen;
-    assert.equal(blockedSub(2, 1, 1), '2 sessões, 1 decisão · 1 ociosa fora');
-    assert.equal(blockedSub(0, 0, 2), 'ninguém · 2 ociosas fora');
+    assert.equal(blockedSub(2, 1, 1), '2 sessões, 1 decisão · 1 em pausa fora');
+    assert.equal(blockedSub(0, 0, 2), 'ninguém · 2 em pausa fora');
     assert.equal(blockedSub(1, 0, 0), '1 sessão');
     assert.deepEqual(cardAttention({ id: 's', attention: { level: 'idle', reason: 'turn_ended' }, waitingOnYou: false }), { level: 'idle', reason: 'turn_ended' });
     assert.deepEqual(cardAttention({ id: 's', attention: null, waitingOnYou: true }), { level: 'blocked', reason: null }, 'an older core: waitingOnYou is blocked');
@@ -249,13 +249,12 @@ describe('Dev Console: pure parts', () => {
 // ---------- registration and files ----------
 
 describe('Dev Console: registration and files', () => {
-  test('#179/AC-1 /ui/dev-console opens the screen, with the item in Entrega after Repositórios, Kanban do projeto and Quadro do trabalho', () => {
+  test('#179/AC-1 /ui/dev-console opens the screen, without an item, lighting Repositórios', () => {
     const { screen: found } = findScreen('/ui/dev-console');
     assert.equal(found.id, 'dev-console');
     assert.equal(found.file, '/ui/screens/dev-console.js');
-    assert.deepEqual(found.item, { label: 'Dev Console', icon: 'gauge', section: 'delivery' });
-    const delivery = sidebarSections().find((s: { id: string }) => s.id === 'delivery').items.map((t: { id: string }) => t.id);
-    assert.deepEqual(delivery, ['repos', 'project', 'work', 'dev-console']);
+    assert.equal(found.item, undefined);
+    assert.equal(found.highlights, 'repos');
   });
 
   test('#179/AC-5 every icon the screen uses exists in dom.js', () => {

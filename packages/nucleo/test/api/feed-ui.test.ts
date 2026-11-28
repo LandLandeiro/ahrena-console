@@ -387,6 +387,26 @@ describe('Feed de atividade: a tela', () => {
     limpar();
   });
 
+  test('#760: the help sentence says the states in the words of the mode', async () => {
+    // @ts-expect-error: idem
+    const labels = await import('../../ui/state-labels.js');
+    const empty = () => ({ events: [], cursor: null, older: null, options: null });
+    const help = async () => {
+      const area = new Elemento('main');
+      const limpar = await mount(area, ctxFalso(empty).ctx);
+      const text = area.querySelector('.feed-about-body')!.querySelectorAll('p')[0]!.textContent;
+      limpar();
+      return text;
+    };
+    try {
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
+      labels.setStateLabelMode('project');
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
+    } finally {
+      labels.setStateLabelMode('dev');
+    }
+  });
+
   test('vazio, vazio com filtro, erro e "mostrar mais"', async () => {
     const area = new Elemento('main');
     let limpar = await mount(area, ctxFalso(() => ({ events: [], cursor: null, older: null, options: null })).ctx);

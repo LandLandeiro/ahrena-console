@@ -67,7 +67,7 @@
   .dash-mini-sm .dash-open-link { font-size: 0; }
 }
 
-/* ---------- ociosas (issue 245): a neutral row apart, no fill, the reason in a light chip ---------- */
+/* ---------- ADR-0028: em pausa (issue 245): a neutral row apart, no fill, the reason in a light chip ---------- */
 .dash-idle { padding: 9px 14px; display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--muted); min-width: 0; }
 .dash-idle-title { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; flex: none; }
 .dash-idle-title b { color: var(--text); font-weight: var(--weight-medium); }

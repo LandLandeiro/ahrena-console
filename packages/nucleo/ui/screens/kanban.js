@@ -8,9 +8,11 @@
 //   reset relê. A releitura volta cada coluna à página 1.
 // - O estilo está em `ui/kanban.css`, que a tela põe no <head> ao montar e tira ao sair.
 
-import { header, el, icon } from '../dom.js';
+import { header, el, icon, setHeaderSub } from '../dom.js';
+import { sessionBoardSub } from '../subtitles.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionBadges, attentionOf, attentionTone, statusWithoutAttention } from '../attention.js';
+import { stateLabel } from '../state-labels.js';
 import { createMachineFilter, itemHref, itemKey, isRemote, machineTag, queryWithMachine, whereText } from '../machine-filter.js';
 
 // ---------- Funções puras (testadas em test/api/ui-kanban.test.ts) ----------
@@ -70,20 +72,25 @@ export function agentsLabel(n) {
 }
 
 /**
- * Status da sessão ou do agente → a cor (classe) e o rótulo do selo. O agente "working" é ativo. The
- * waiting ones are drawn by their `attention` (issue 245): "Precisa de você" or "Ociosa".
+ * ADR-0028: status da sessão ou do agente → a cor (classe) e o rótulo do selo. O agente "working" é "Trabalhando". The
+ * waiting ones are drawn by their `attention` (issue 245): "Precisa de você" or "Em pausa". The label is the state's in
+ * state-labels.js, read when the badge is drawn.
  */
 const STATUS = {
-  active: { cor: 'active', rotulo: 'Ativa' },
-  working: { cor: 'active', rotulo: 'Ativa' },
-  completed: { cor: 'completed', rotulo: 'Concluída' },
-  error: { cor: 'error', rotulo: 'Com erro' },
-  abandoned: { cor: 'abandoned', rotulo: 'Abandonada' },
+  active: { cor: 'active', stateId: 'active' },
+  working: { cor: 'active', stateId: 'active' },
+  completed: { cor: 'completed', stateId: 'completed' },
+  error: { cor: 'error', stateId: 'error' },
+  abandoned: { cor: 'abandoned', stateId: 'abandoned' },
 };
 
 export function status(st) {
-  return STATUS[st] ?? { cor: 'abandoned', rotulo: '—' };
+  const s = Object.hasOwn(STATUS, st) ? STATUS[st] : null;
+  return s ? { cor: s.cor, rotulo: stateLabel(s.stateId) } : { cor: 'abandoned', rotulo: '—' };
 }
+
+/** The name of a column (ADR-0028): in the sessions view the state's plural from state-labels.js, whatever label the core sent; the agents view keeps the core's. */
+const columnName = (v, c) => (v === 'sessions' ? (stateLabel(c.id, { plural: true }) ?? c.label) : c.label);
 
 /** The card's tone: the attention (blocked, idle, error) first, then the status; waiting without attention is active. */
 export function cardTone(item) {
@@ -119,21 +126,11 @@ export function touchesBoard(changes) {
 
 // ---------- Peças ----------
 
-const SUB = {
-  sessions: 'As sessões por status, só leitura',
-  agents: 'Os agentes por status, só leitura',
-};
-
 /** The empty board; `where` is where its sessions would start (issue 243: "em uma das máquinas" with Todas). */
 const emptyFor = (view, where = 'nesta máquina') =>
   view === 'agents'
     ? { title: 'Nenhum agente ainda', text: `Quando uma sessão do Claude Code começar ${where}, os agentes dela aparecem aqui.` }
     : { title: 'Nenhuma sessão ainda', text: `Quando uma sessão do Claude Code começar ${where}, ela aparece aqui.` };
-
-/** Where each view's items come from, with a remote known (issue 243): "As sessões das duas máquinas…". */
-function subWith(view, of) {
-  return `${view === 'agents' ? 'Os agentes' : 'As sessões'} ${of} por status, só leitura`;
-}
 
 function badges(item) {
   if (attentionOf(item.attention)) return el('div', { class: 'kb-badges' }, ...attentionBadges(item.attention));
@@ -196,17 +193,15 @@ export async function mount(area, ctx) {
   );
   const toggle = el('div', { class: 'kb-seg', role: 'group', 'aria-label': 'Visão do Kanban' }, buttons.agents, buttons.sessions);
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'kanban', title: 'Kanban', sub: SUB[view], actions: [toggle, refresh] });
-  const sub = head.querySelector('.sub');
+  const head = header({ icon: 'kanban', title: 'Kanban', sub: null, actions: [toggle, refresh] });
   // Issue 243 (C46): the machine filter on its own row under the header; both views follow it.
   const machines = createMachineFilter(ctx, { onChange: () => ((boardInFlight = false), draw()), reread: () => draw(), onLayout: () => draw() });
-  const subText = () => (machines.hasRemotes() ? subWith(view, whereText(machines.choice, machines.machines(), { form: 'of' })) : SUB[view]);
 
   function switchTo(v) {
     if (v === view) return;
     view = v;
     for (const [k, b] of Object.entries(buttons)) b.setAttribute('aria-pressed', String(k === view));
-    sub.textContent = subText();
+    setHeaderSub(head, null);
     history.replaceState(history.state, '', `${location.pathname}${queryWithMachine(viewQuery(view), machines.choice)}`);
     boardInFlight = false;
     draw();
@@ -221,8 +216,9 @@ export async function mount(area, ctx) {
       const data = await ctx.read(machines.route(kanbanRoute(v)));
       if (mine !== reading) return;
       machines.update(data);
-      sub.textContent = subText();
       const columns = Array.isArray(data?.columns) ? data.columns : [];
+      // #766-subtitles: the sentence of the sessions board; the agents board says nothing (its columns are not the sessions').
+      setHeaderSub(head, v === 'sessions' ? sessionBoardSub(columns) : null);
       if (!columns.some((c) => c.total > 0)) {
         boardInFlight = false;
         // C48: the chosen remote is down; the notice says why the board is empty.
@@ -258,6 +254,7 @@ export async function mount(area, ctx) {
   function column(v, c) {
     const card = v === 'agents' ? agentCard : sessionCard;
     const color = columnColor(c.id);
+    const name = columnName(v, c);
     const list = el('div', { class: 'kb-cards' }, ...(c.items ?? []).map(card));
     const counter = el('span', { class: 'kb-n', 'aria-label': `${c.total} no total` }, String(c.total ?? 0));
     let page = c.page ?? 1;
@@ -303,8 +300,8 @@ export async function mount(area, ctx) {
 
     return el(
       'section',
-      { class: `kb-col${color === 'idle' ? ' kb-col-idle' : ''}`, 'aria-label': `${c.label}: ${c.total}` },
-      el('h2', { class: 'kb-head' }, el('span', { class: `kb-dot kb-d-${color}` }), el('span', { class: `kb-c-${color}`, title: c.label }, c.label), counter),
+      { class: `kb-col${color === 'idle' ? ' kb-col-idle' : ''}`, 'aria-label': `${name}: ${c.total}` },
+      el('h2', { class: 'kb-head' }, el('span', { class: `kb-dot kb-d-${color}` }), el('span', { class: `kb-c-${color}`, title: name }, name), counter),
       list,
       more,
     );
