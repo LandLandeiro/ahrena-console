@@ -1,5 +1,5 @@
 // #754, layer C: the bar of the registry. Dev has six fixed items (Agora 3, Entrega 3), one per machine and Configuração at the foot;
-// Projeto has five, and a machine that asks for action stays while the alert lasts. The mode hides items, never routes.
+// Projeto has five, and the machines are never in it, in any state (decision 0029 line 38, #754). The mode hides items, never routes.
 // A merged screen loses its item, lights the one that receives it and gets a row of tabs, which are links to routes that exist.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -168,42 +168,67 @@ describe('#754 C: the Projeto bar', () => {
     assert.equal(SCREENS.find((s: { id: string }) => s.id === 'wall').item.label, 'Mural ao vivo');
   });
 
-  test('a machine that asks for action stays: Sem conexão, Acesso bloqueado, Versão diferente and Sem configuração', () => {
-    const list = [
-      local,
-      machine('down', { state: 'unreachable', reason: 'port-closed' }),
-      machine('locked', { state: 'unreachable', reason: 'owner-auth-missing' }),
-      machine('other', { state: 'incompatible-version' }),
-      machine('bare', { state: 'not-configured' }),
-      machine('fine'),
-    ];
-    const items = machineItems(list);
-    const kept = (sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).find((s) => s.id === 'machines')!;
-    assert.deepEqual(kept.items.map((t) => t.id), ['machine-down', 'machine-locked', 'machine-other', 'machine-bare']);
-    assert.equal(kept.label, 'Máquinas');
+  const everyState = () => [
+    local,
+    machine('fine'),
+    machine('down', { state: 'unreachable', reason: 'port-closed' }),
+    machine('locked', { state: 'unreachable', reason: 'owner-auth-required' }),
+    machine('other', { state: 'incompatible-version' }),
+    machine('bare', { state: 'not-configured' }),
+    machine('old', { core: coreOld }),
+    machine('stop', { connection: { state: 'stopped' }, core: coreOld }),
+    machine('upd', { update: { configured: true, state: 'running', kind: 'update', phase: 'swap', startedAt: '2026-11-28T10:00:00.000Z' }, core: coreOld }),
+  ];
+  const machinesBlock = (items: unknown[], m: 'dev' | 'project') => (sidebarSections([...SCREENS, ...items], SECTIONS, m) as Block[]).find((s) => s.id === 'machines');
+
+  test('in Projeto no machine is in the bar, in any state: Sem conexão, Acesso bloqueado, Versão diferente, Sem configuração, the arrow, stopped and updating', () => {
+    const items = machineItems(everyState());
+    assert.equal(items.length, 8);
+    assert.equal(machinesBlock(items, 'project'), undefined);
+    assert.deepEqual((sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).map((s) => s.id), ['main', 'delivery']);
   });
 
-  test('a connected machine with an outdated core stays, with the arrow', () => {
-    const items = machineItems([machine('old', { core: coreOld })]);
+  test('no remote item carries the Projeto entry: the item says nothing for that mode', () => {
+    for (const item of machineItems(everyState()) as { id: string; item: Record<string, unknown> }[]) assert.equal(item.item.project, undefined, item.id);
+  });
+
+  test('a machine with no connection is not in the bar, with the arrow either', () => {
+    const items = machineItems([machine('down', { state: 'unreachable', reason: 'port-closed', core: coreOld })]);
     assert.equal(items[0].coreOutdated, true);
-    const kept = (sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).find((s) => s.id === 'machines');
-    assert.deepEqual(kept?.items.map((t) => t.id), ['machine-old']);
+    assert.equal(machinesBlock(items, 'project'), undefined);
   });
 
-  test('"Parada por você" and "Atualizando" do not ask for action: they do not enter, even with the arrow', () => {
-    const stopped = machine('stop', { connection: { state: 'stopped' }, core: coreOld });
-    const updating = machine('upd', { update: { configured: true, state: 'running', kind: 'update', phase: 'swap', startedAt: '2026-11-28T10:00:00.000Z' }, core: coreOld });
-    const items = machineItems([stopped, updating]);
-    assert.deepEqual(items.map((t: { state: string }) => t.state), ['stopped', 'updating']);
-    assert.equal((sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).find((s) => s.id === 'machines'), undefined);
-    // In Dev they are in the bar as they were (#754).
-    assert.equal((sidebarSections([...SCREENS, ...items], SECTIONS, 'dev') as Block[]).find((s) => s.id === 'machines')!.items.length, 3);
+  test('the route of a machine still opens: the registry keeps it and the item has its route', () => {
+    const items = machineItems(everyState());
+    assert.deepEqual(items.map((t: { route: string }) => t.route), ['/ui/machines/fine', '/ui/machines/down', '/ui/machines/locked', '/ui/machines/other', '/ui/machines/bare', '/ui/machines/old', '/ui/machines/stop', '/ui/machines/upd']);
   });
 
-  test('the label of a machine does not change in Projeto', () => {
+  test('Dev is the same for each state: the item stays, with its dot and the arrow', () => {
+    const items = machineItems(everyState());
+    const kept = machinesBlock(items, 'dev')!;
+    assert.deepEqual(kept.items.map((t) => t.id), ['this-machine', ...items.map((t: { id: string }) => t.id)]);
+    assert.deepEqual(items.map((t: { state: string }) => t.state), ['connected', 'unreachable', 'owner-auth', 'incompatible-version', 'not-configured', 'connected', 'stopped', 'updating']);
+    assert.deepEqual(items.map((t: { coreOutdated?: boolean }) => t.coreOutdated === true), [false, false, false, false, false, true, true, true]);
+  });
+
+  test('the nav draws no machine item in Projeto and every one in Dev, with the dot and the arrow', async () => {
+    const nav = new ElementoFalso('nav');
+    const { readMachines } = createNav({ nav, read: async () => everyState(), screens: SCREENS });
+    await readMachines();
+    assert.equal(nav.querySelectorAll('[data-screen^="machine-"]').length, 8);
+    assert.equal(nav.querySelectorAll('.cc-nav-flag').length, 3);
+    assert.equal(nav.querySelectorAll('.cc-nav-dot').length >= 8, true);
+    mode('project');
+    assert.equal(nav.querySelectorAll('[data-screen^="machine-"]').length, 0);
+    assert.equal(nav.querySelectorAll('.cc-nav-flag').length, 0);
+    assert.equal(nav.querySelector('[data-section="machines"]'), null);
+    mode('dev');
+    assert.equal(nav.querySelectorAll('[data-screen^="machine-"]').length, 8);
+  });
+
+  test('the label of a machine does not change in Dev', () => {
     const items = machineItems([machine('down', { state: 'unreachable', label: 'Workstation' })]);
-    const kept = (sidebarSections([...SCREENS, ...items], SECTIONS, 'project') as Block[]).find((s) => s.id === 'machines')!;
-    assert.deepEqual(kept.items.map((t) => t.item.label), ['Workstation']);
+    assert.deepEqual(machinesBlock(items, 'dev')!.items.map((t) => t.item.label), ['Esta máquina', 'Workstation']);
   });
 });
 
@@ -250,23 +275,22 @@ describe('#754 C: the nav draws the mode and redraws on a switch', () => {
     assert.equal(nav.querySelector('[data-screen="wall"] .cc-nav-tag')?.textContent, '3 esperam');
   });
 
-  test('a machine that asks for action stays in Projeto, with its dot and its arrow; one that does not leaves', async () => {
+  test('no machine is in the Projeto bar, whatever it asks, and the Dev bar draws each with its dot and its arrow', async () => {
     const down = machine('down', { state: 'unreachable', reason: 'port-closed', core: coreOld });
     const { nav, readMachines } = rig([down, machine('fine'), machine('stop', { connection: { state: 'stopped' }, core: coreOld })]);
     await readMachines();
-    mode('project');
     assert.ok(nav.querySelector('[data-screen="machine-down"] .cc-nav-dot'));
     assert.ok(nav.querySelector('[data-screen="machine-down"] .cc-nav-flag'));
-    assert.equal(nav.querySelector('[data-screen="machine-fine"]'), null);
-    assert.equal(nav.querySelector('[data-screen="machine-stop"]'), null);
-    assert.ok(nav.querySelector('[data-section="machines"]'));
+    mode('project');
+    for (const id of ['down', 'fine', 'stop']) assert.equal(nav.querySelector(`[data-screen="machine-${id}"]`), null, id);
+    assert.equal(nav.querySelector('[data-section="machines"]'), null);
   });
 
-  test('a read of the machines while in Projeto draws the Projeto bar', async () => {
+  test('a read of the machines while in Projeto draws the Projeto bar with no machine', async () => {
     mode('project');
     const { nav, readMachines } = rig([machine('down', { state: 'unreachable', reason: 'port-closed' })]);
     await readMachines();
-    assert.deepEqual(labels(nav), ['Sua atenção', 'Conversas', 'Quadro do trabalho', 'Decisões', 'Custo', 'DOWN']);
+    assert.deepEqual(labels(nav), ['Sua atenção', 'Conversas', 'Quadro do trabalho', 'Decisões', 'Custo']);
   });
 
   test('createNav gives a stop that ends the listening to the mode', () => {
