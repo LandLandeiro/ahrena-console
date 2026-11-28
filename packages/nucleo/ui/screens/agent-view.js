@@ -301,7 +301,7 @@ export function agentViewLoading({ sessionId, sessionTitle = null, agentId = nul
   const bone = (cls) => el('div', { class: `bone ${cls}` });
   return el(
     'section',
-    { class: 'av-root av-loading state loading', 'aria-busy': 'true', 'aria-label': 'Lendo o agente' },
+    { class: 'av-root av-loading state loading', 'aria-busy': 'true', 'aria-label': 'Lendo o agente', 'data-swap-pending': '' },
     crumb({ sessionId, sessionTitle, current: agentId ?? '…' }),
     el('div', { class: 'av-head' }, el('span', { class: 'av-ico' }, icon('subagent')), el('div', { class: 'bone medium av-skeleton-title' }), el('span', { class: 'av-reading' }, 'Lendo o agente…')),
     el('div', { class: 'av-facts' }, ...[1, 2, 3, 4].map(() => el('div', { class: 'card av-fact av-skeleton-fact' }, bone('short'), bone('medium')))),

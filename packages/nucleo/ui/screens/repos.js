@@ -274,7 +274,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(() => read());
 
-  area.replaceChildren(head, loading());
+  area.replaceChildren(head, loading({ pending: true }));
   await read();
   return () => {
     clearTimeout(timer);

@@ -665,7 +665,7 @@ export function boardColumns({
   };
   return el(
     'div',
-    { class: `wb-board${stale ? ' wb-board-stale' : ''}`, role: 'region', 'aria-label': 'Quadro por ciclo do agente', 'aria-busy': mode === 'skeleton' ? 'true' : null, 'data-mode': mode },
+    { class: `wb-board${stale ? ' wb-board-stale' : ''}`, role: 'region', 'aria-label': 'Quadro por ciclo do agente', 'aria-busy': mode === 'skeleton' ? 'true' : null, ...(mode === 'skeleton' ? { 'data-swap-pending': '' } : {}), 'data-mode': mode },
     ...source.map(column),
   );
 }

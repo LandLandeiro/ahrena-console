@@ -554,7 +554,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(() => read());
 
-  area.replaceChildren(head, loading({ label: 'Lendo a conexão' }));
+  area.replaceChildren(head, loading({ label: 'Lendo a conexão', pending: true }));
   await read();
 
   // The C42 button lands here with `?start=1` and its history state: start the flow once, and take the

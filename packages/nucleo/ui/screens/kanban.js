@@ -187,7 +187,7 @@ export async function mount(area, ctx) {
   let view = viewFromUrl(location.search);
   let reading = 0; // descarta resposta de leitura velha
   let boardInFlight = false;
-  // Issue 765: only the first paint holds the previous screen; a view or machine change later repaints the card in place.
+  // #765-perceived-speed: only the first paint holds the previous screen; a view or machine change later repaints the card in place.
   let answered = false;
 
   const buttons = Object.fromEntries(

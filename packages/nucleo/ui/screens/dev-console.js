@@ -454,7 +454,7 @@ export async function mount(area, ctx) {
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar');
   const header = screenHeader({ icon: 'gauge', title: 'Dev Console', sub: null, actions: [refresh] });
 
-  area.replaceChildren(header, loadingState({ label: 'Lendo o Dev Console' }));
+  area.replaceChildren(header, loadingState({ label: 'Lendo o Dev Console', pending: true }));
 
   function go(next) {
     if (screenRoute(next) === screenRoute(state)) return;
