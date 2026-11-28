@@ -58,6 +58,22 @@ describe('issue 764: the touch area of a control is 24 px at least', () => {
     });
   }
 
+  test('no small target relies on overflow-clip-margin, which WebKit (the desktop WKWebView) does not implement', () => {
+    const bad = allRules.filter((r) => r.selectors.some((s) => SMALL_TARGETS.includes(s)) && /overflow-clip-margin/.test(r.body)).map((r) => r.selectors.join(', '));
+    assert.deepEqual(bad, []);
+  });
+
+  test('.sm-link-action clips with overflow: hidden and gets its 24 px from padding-block and margin-block, so the area holds in WebKit', () => {
+    const rule = allRules.find((r) => r.selectors.includes('.sm-link-action') && /overflow:/.test(r.body));
+    assert.ok(rule, '.sm-link-action declares its overflow');
+    assert.match(rule!.body, /overflow:\s*hidden/);
+    const pad = Number(/padding-block:\s*(\d+)px/.exec(rule!.body)?.[1]);
+    const margin = Number(/margin-block:\s*-(\d+)px/.exec(rule!.body)?.[1]);
+    assert.equal(margin, pad, 'the margin takes back what the padding adds, the row keeps its height');
+    const line = Math.ceil(11 * 1.45);
+    assert.ok(line + 2 * pad >= MIN, `${line} px of text plus 2 x ${pad} px of padding is under ${MIN}`);
+  });
+
   test('the listed sizes are the drawing: none of the old ones was raised (the density stays)', () => {
     const size = (selector: string, prop: string) => {
       const r = rulesOf(css).find((x) => x.selectors.includes(selector) && new RegExp(`(^|[;\\s])${prop}:`).test(x.body));
