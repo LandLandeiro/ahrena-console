@@ -183,8 +183,8 @@ function who(tag, since, agent, mono, show) {
   return el('div', { class: 'wall-who' }, mono && show.agent ? agentMonogram(agent) : null, show.agent ? el('b', { class: 'wall-name' }, agent) : null, el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
 }
 
-// issue 754, M7: a remote machine says its name; this one only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
-const machineOf = (c, known, view) => (machineShown({ show: view.show, density: view.density, mode: view.mode, remote: isRemote(c), known }) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
+// issue 754, M7: a remote machine says its name; this one on a card once a remote is known, on a row only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
+const machineOf = (c, known, view, place) => (machineShown({ place, show: view.show, density: view.density, mode: view.mode, remote: isRemote(c), known }) ? el('span', { class: 'wall-mach' }, machineMark(c)) : null);
 
 // issue 754: the mono line of Exibir (model, cost, use of the conversation, branch); `null` when no field of it is on.
 const techOf = (c, view) => {
@@ -233,7 +233,7 @@ function card(c, write, nest, known, mono, view) {
     action || see ? el('div', { class: 'wall-act' }, action ?? see) : null,
     ...tree(c, summary, opened, nest),
     techOf(c, view),
-    foot(v, machineOf(c, known, view), view.show),
+    foot(v, machineOf(c, known, view, 'card'), view.show),
   );
   return { node, link };
 }
@@ -263,7 +263,7 @@ function row(c, write, nest, known, mono, view, place = '') {
         v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         view.show.plan && v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
-        machineOf(c, known, view),
+        machineOf(c, known, view, 'row'),
         action ? el('span', { class: 'wall-act' }, action) : null,
       ),
     ),

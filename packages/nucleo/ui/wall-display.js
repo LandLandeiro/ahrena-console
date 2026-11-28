@@ -13,10 +13,12 @@ export function techLine(card, show) {
 }
 
 /**
- * M7: the machine of a session shows only when it is not this one; in the Dev compact it shows on every one (once a remote is
- * known: with a single machine there is nothing to tell apart). The field off hides it.
+ * Whether a session names its machine. On a card (#751): a remote one always, this one once the core knows a remote.
+ * On a row (M7): only when it is not this one; in the Dev compact on every row, once a remote is known. The field off hides it.
  */
-export function machineShown({ show, density, mode, remote, known }) {
+export function machineShown({ place, show, density, mode, remote, known }) {
   if (!show.machine) return false;
-  return remote || (mode === 'dev' && density === 'compact' && known);
+  if (remote) return true;
+  if (place === 'card') return known;
+  return mode === 'dev' && density === 'compact' && known;
 }
