@@ -7,19 +7,31 @@
  *   `restart` does not read it again, and a restart after a drop does, once boot has read.
  */
 
-/** #750: wraps the read layer: while a route is being read, another shell read of it shares the promise. A read with options (a screen's signal) is its own. */
-export function shareReads(read) {
+/**
+ * #750: wraps the read layer: while a route is being read, another shell read of it shares the promise. A read with options (a screen's signal) is its own.
+ * Issue 765: `adopt(route, promise)` offers the answer of a screen's read; the next shell read of that route within 3 s takes it, once, instead of asking again.
+ */
+export function shareReads(read, { now = Date.now, ttlMs = 3000 } = {}) {
   const inflight = new Map();
-  return (route, options) => {
+  const adopted = new Map();
+  const shared = (route, options) => {
     if (options) return read(route, options);
-    const shared = inflight.get(route);
-    if (shared) return shared;
+    const taken = adopted.get(route);
+    if (taken) {
+      adopted.delete(route);
+      if (now() - taken.at <= ttlMs) return Promise.resolve(taken.value);
+    }
+    const inFlight = inflight.get(route);
+    if (inFlight) return inFlight;
     const promise = read(route);
     inflight.set(route, promise);
     const done = () => inflight.delete(route);
     promise.then(done, done);
     return promise;
   };
+  // A failed read (an abort on leaving the screen) is not adopted.
+  shared.adopt = (route, promise) => void promise.then((value) => adopted.set(route, { value, at: now() }), () => {});
+  return shared;
 }
 
 /** #750: `open()` is called when the first screen settles (mounted or failed); `ready` resolves then, or after `waitMs`. */

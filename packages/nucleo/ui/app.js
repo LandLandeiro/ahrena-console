@@ -19,6 +19,7 @@ import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
 import { createDrawer } from './drawer.js';
 import { createScreenGate, createShellLoad, shareReads } from './shell-load.js';
+import { createScreenSwap } from './screen-swap.js';
 
 const nav = document.getElementById('nav');
 const area = document.getElementById('content');
@@ -34,6 +35,13 @@ port.textContent = location.host;
  */
 const shellRead = shareReads(read);
 const gate = createScreenGate();
+// Issue 765: the screen that was open stays until the new one has its data or 300 ms pass; then a skeleton with its shape.
+const swap = createScreenSwap({ area });
+// Issue 765: until the first screen has settled the shell takes the answers the screen read, so a route is not asked twice.
+let coldLoad = true;
+gate.ready.then(() => {
+  coldLoad = false;
+});
 
 // ---------- Sidebar ----------
 
@@ -206,6 +214,7 @@ async function showScreen() {
     openScreenId = null;
     screenTabs.draw(null);
     document.title = 'Ahrena Console';
+    swap.settle();
     area.replaceChildren(empty({ title: 'Página não encontrada', text: `Nada em ${location.pathname}.`, action: { label: 'Ir para o Dashboard', onClick: () => navigate('/ui') } }));
     return;
   }
@@ -215,6 +224,7 @@ async function showScreen() {
   screenTabs.draw(tabsFor(screen.id, appMode()));
   document.title = `Ahrena Console · ${screen.title}`;
   if (!screen.file) {
+    swap.settle();
     area.replaceChildren(
       header({ icon: screen.icon, title: screen.title, sub: screen.sub ?? params.id ?? null }),
       empty({ title: 'Esta tela ainda não existe', text: 'Ela chega na próxima versão do console.' }),
@@ -224,7 +234,11 @@ async function showScreen() {
   }
   const ctx = {
     params,
-    read: (route, options) => read(route, { signal: leave.signal, ...options }),
+    read: (route, options) => {
+      const asked = read(route, { signal: leave.signal, ...options });
+      if (coldLoad && !options) shellRead.adopt(route, asked);
+      return asked;
+    },
     write: (route, body, options) => writeCounted(route, body, { signal: leave.signal, ...options }),
     signal: leave.signal,
     navigate,
@@ -241,16 +255,19 @@ async function showScreen() {
       onChange: (f) => (heldListeners.add(f), leave.signal.addEventListener('abort', () => heldListeners.delete(f)), () => heldListeners.delete(f)),
     },
   };
+  swap.begin(screen.id);
   try {
     const module = await import(screen.file);
     if (leave.signal.aborted) return;
     area.replaceChildren();
     const cleanup = await module.mount(area, ctx);
     if (typeof cleanup === 'function') leave.signal.addEventListener('abort', cleanup);
+    if (!leave.signal.aborted) swap.settle();
     drawLive();
   } catch (e) {
     if (leave.signal.aborted || e?.name === 'AbortError') return;
     screenFailed = true;
+    swap.settle();
     area.replaceChildren(error({ title: 'A tela não abriu', text: e?.message ?? String(e), retry: () => open() }));
   }
 }
