@@ -167,6 +167,13 @@ describe('#763/A7 one `.seg` and the radius tokens', () => {
     for (const file of ['kanban.css', 'work-board.css']) assert.doesNotMatch(css(file), /\.kb-seg|\.wb-levels|\.wb-level\b(?!-)/, file);
   });
 
+  test('the state column of a Feed row has a fixed basis but may shrink, so the "Sessão" button is not cut at 390 px', () => {
+    const rule = /\.feed-state\s*\{([^}]*)\}/.exec(css('feed.css'))?.[1] ?? '';
+    assert.doesNotMatch(rule, /flex:\s*none/);
+    assert.match(rule, /flex:\s*0 1 150px/);
+    assert.match(rule, /min-width:\s*0/);
+  });
+
   test('the CSS of the three screens writes no radius by hand: tokens, or 50% for a dot', () => {
     for (const file of ['kanban.css', 'feed.css', 'work-board.css', 'work-board-issue-panel.css']) {
       const radii = [...css(file).matchAll(/border-radius:\s*([^;}]+)/g)].map((m) => m[1]!.trim());
