@@ -251,7 +251,7 @@ select.sd-chip.on { color: var(--accent-text); border-color: var(--accent-line);
 .sd-event-head .sd-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-event-head .sd-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-event-head .sd-chip { display: inline-flex; align-items: center; }
-.sd-event-head .sd-status, .sd-event-head .attention-pill { justify-self: start; }
+.sd-event-head .state-tag, .sd-event-head .attention-pill { justify-self: start; }
 .sd-pre.sd-data { margin: 0 16px 14px 44px; }
 .sd-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
 
@@ -270,7 +270,7 @@ select.sd-chip.on { color: var(--accent-text); border-color: var(--accent-line);
   .sd-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sd-select { min-width: 0; flex: 1; }
   .sd-event-head { grid-template-columns: 16px 52px minmax(0, 1fr); }
-  .sd-event-head .sd-status, .sd-event-head .attention-pill, .sd-event-head .sd-chip, .sd-event-head .sd-type { display: none; }
+  .sd-event-head .state-tag, .sd-event-head .attention-pill, .sd-event-head .sd-chip, .sd-event-head .sd-type { display: none; }
   .sd-node.sd-sub { margin-left: calc(var(--sd-depth, 1) * 12px + 4px); }
 }
 
