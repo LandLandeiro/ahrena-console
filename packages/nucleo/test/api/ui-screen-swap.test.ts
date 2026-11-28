@@ -137,6 +137,70 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     assert.equal(inert(), false);
   });
 
+  test('mounted() in the real shape of Histórico: mount returns before the read, the ghost stays until the days arrive (A1)', () => {
+    const r = rig();
+    r.swap.begin('history');
+    const body = node('div', 'hist-body', node('div', 'hist-region', node('section', 'card state loading')));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Histórico'), node('div', 'hist-machines'), body);
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 1, 'the generic loading card never shows between the swap and the read');
+    assert.ok(r.watching, 'still watching for the days');
+    body.replaceChildren(node('div', 'hist-group'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('mounted() settles at once when the screen already has its data', () => {
+    const r = rig();
+    r.swap.begin('wall');
+    r.area.append(node('h1', '', 'Mural'), node('div', 'cards'));
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  test('the seeded header of Detalhe is data: aviso, marked header and a loading body settle at once (N1)', () => {
+    const r = rig();
+    r.swap.begin('session-detail');
+    const top = node('div', '', node('h1', '', 'Título da lista'));
+    top.setAttribute('data-swap-ready', '');
+    const body = node('div', 'sd-body', node('section', 'card state loading'));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('div', 'notice-slot'), top, body);
+    r.tick();
+    assert.equal(r.ghosts().length, 0, 'the seeded header shows before the read');
+  });
+
+  test('a loading card with no seed mark still holds the ghost (N1 does not weaken A1)', () => {
+    const r = rig();
+    r.swap.begin('session-detail');
+    const body = node('div', 'sd-body', node('section', 'card state loading'));
+    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    r.area.append(node('div', 'notice-slot'), node('div', '', node('h1', '', 'x')), body);
+    r.tick();
+    assert.equal(r.ghosts().length, 1);
+  });
+
+  test('with the drawer open the area stays inert through begin and settle (N2)', () => {
+    const column = node('div', 'cc-col');
+    const area = node('main', 'cc-main');
+    column.append(area);
+    area.append(node('h1', '', 'Início'));
+    let open = true;
+    const swap = createScreenSwap({ area, held: () => open, setTimer: () => 1, clearTimer: () => {}, observe: () => () => {} });
+    const inert = () => (area as unknown as { inert?: boolean }).inert;
+    swap.begin('sessions');
+    assert.equal(inert(), true);
+    area.append(node('h1', '', 'Sessões'));
+    swap.settle();
+    assert.equal(inert(), true, 'the content behind the drawer stays inert');
+    open = false;
+    swap.begin('wall');
+    area.append(node('h1', '', 'Mural'));
+    swap.settle();
+    assert.equal(inert(), false, 'and is free when the drawer is closed');
+  });
+
   test('settle with no ghost is a no-op, and a first load with nothing to keep shows a blank ghost then the skeleton', () => {
     const r = rig();
     r.swap.settle();
@@ -200,6 +264,15 @@ describe('The shell uses the swap (#765)', () => {
     assert.ok(begin > 0, 'begins with the screen id');
     assert.ok(begin < app.indexOf('await import(screen.file)'), 'before the module loads');
     assert.match(app, /swap\.settle\(\)/);
+  });
+  test('the mount returning is not the data arriving: app.js calls mounted(), and the drawer holds the area inert (A1, N2)', () => {
+    const mount = app.slice(app.indexOf('await module.mount(area, ctx)'), app.indexOf('drawLive();', app.indexOf('await module.mount(area, ctx)')));
+    assert.match(mount, /swap\.mounted\(\)/);
+    assert.doesNotMatch(mount, /swap\.settle\(\)/);
+    assert.match(app, /createScreenSwap\(\{ area, held: \(\) => drawer\.isOpen\(\) \}\)/);
+  });
+  test('the seed of Detalhe marks its header as data (N1)', () => {
+    assert.match(ui('screens/session-detail.js'), /setAttribute\('data-swap-ready', ''\)/);
   });
   test('a screen that does not exist leaves no ghost behind', () => {
     const lost = app.slice(app.indexOf('if (!found) {'), app.indexOf('const { screen, params } = found;'));
