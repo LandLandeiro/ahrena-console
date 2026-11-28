@@ -49,6 +49,9 @@ export function normalizeCore(raw) {
   };
 }
 
+/** The words of the arrow of a remote whose núcleo is older than the app (issue 449): the bar item and the account menu say the same. */
+export const CORE_OUTDATED_LABEL = 'Núcleo defasado';
+
 /** The warning (band, command, sidebar arrow) is for an outdated remote only; "ahead" and "unknown" have none. */
 export const coreOutdated = (core) => core?.status === 'outdated';
 

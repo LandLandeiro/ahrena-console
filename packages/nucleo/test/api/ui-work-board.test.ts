@@ -246,7 +246,7 @@ describe('#465/AC-2 the six columns over GET /api/work', () => {
     assert.deepEqual(s.columns(), WORK_BOARD_COLUMNS.map((c) => c.id));
     assert.deepEqual(
       s.area.querySelectorAll('section.wb-col').map((c) => texto(c.querySelector('.wb-col-name'))),
-      ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído'],
+      ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído'],
     );
     const expected = await apiNumbers(core, '?level=item');
     assert.ok(expected.length >= 5, 'the demo board has cards');
@@ -389,7 +389,7 @@ describe('#465/AC-4 Atualizar and GitHub down (ADR-0001)', () => {
     assert.equal(gated.refresh().getAttribute('aria-busy'), 'true');
     assert.ok(gated.refresh().hasAttribute('disabled'));
     assert.ok(gated.area.querySelectorAll('select.wb-select').every((x) => !x.hasAttribute('disabled')), 'the filters stay usable');
-    assert.ok(gated.area.querySelectorAll('button.wb-level').every((x) => !x.hasAttribute('disabled')), 'the level switch stays usable');
+    assert.ok(gated.area.querySelectorAll('.seg button').every((x) => !x.hasAttribute('disabled')), 'the level switch stays usable');
     assert.deepEqual(pushed, [], 'Atualizar is not a navigation');
     hold.release();
     await until(() => gated.refresh().getAttribute('aria-busy') === null);
@@ -503,15 +503,15 @@ describe('#466/AC-2 the levels and #466/AC-4 the chain of parents', () => {
   test('#466/AC-2 the level switch reads the other level and pushes it', async () => {
     const s = await open(core);
     assert.deepEqual(
-      s.area.querySelectorAll('button.wb-level').map((b) => [b.getAttribute('data-level'), texto(b)]),
+      s.area.querySelectorAll('.seg button').map((b) => [b.getAttribute('data-level'), texto(b)]),
       [['initiative', 'Iniciativa'], ['epic', 'Épico/Milestone'], ['item', 'Item'], ['plan', 'Plano de execução']],
     );
-    s.area.querySelector('button.wb-level[data-level="epic"]')!.click();
+    s.area.querySelector('.seg button[data-level="epic"]')!.click();
     await until(() => s.reads.length === 2 && s.area.querySelector('.wb-parent-card') !== null);
     assert.deepEqual(pushed, ['/ui/work?level=epic']);
     assert.equal(s.reads[1], '/api/work?level=epic');
     assert.deepEqual(s.numbers(), [EPIC]);
-    assert.equal(s.area.querySelector('button.wb-level[data-level="epic"]')!.getAttribute('aria-pressed'), 'true');
+    assert.equal(s.area.querySelector('.seg button[data-level="epic"]')!.getAttribute('aria-pressed'), 'true');
   });
 
   test('#466/AC-2 #466/AC-4 Ver filhos on epic #6 goes to level item with the epic filter, and each child shows the chain', async () => {
@@ -803,18 +803,16 @@ describe('#465 the keyboard focus survives the redraws', () => {
 });
 
 describe('#465 the screen is registered', () => {
-  test('#465 /ui/work is the work board, "Quadro do trabalho", right after the project kanban under Entrega', () => {
+  test('#465 /ui/work is the work board, "Quadro do trabalho", the first item under Entrega', () => {
     const found = findScreen('/ui/work');
     assert.ok(found, '/ui/work is a screen');
     assert.equal(found.screen.id, 'work');
     assert.equal(found.screen.route, '/ui/work');
     assert.equal(found.screen.title, 'Quadro do trabalho');
     assert.equal(found.screen.file, '/ui/screens/work-board.js');
-    assert.deepEqual(found.screen.item, { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery' });
-    const ids = SCREENS.map((t: { id: string }) => t.id);
-    assert.equal(ids.indexOf('work'), ids.indexOf('project') + 1);
+    assert.deepEqual(found.screen.item, { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery', project: { order: 1 } });
     const delivery = sidebarSections().find((b: { id: string }) => b.id === 'delivery');
-    assert.deepEqual(delivery.items.map((t: { id: string }) => t.id), ['repos', 'project', 'work', 'dev-console']);
+    assert.deepEqual(delivery.items.map((t: { id: string }) => t.id), ['work', 'repos', 'decisions']);
   });
 
   test('#465/AC-5 the core serves screens/work-board.js as JavaScript', async () => {

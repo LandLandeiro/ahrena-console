@@ -10,12 +10,14 @@ import { loading, error, errorBand, empty } from '../states.js';
 import { subagentNodeName } from './workflow-format.js';
 import { agentDepths, agentRouteId, agentViewHref } from './agent-view-format.js';
 import { openAction } from '../open-action.js';
+import { seedOf } from '../session-seed.js';
 import { create as workflowTab } from './session-detail-workflow.js';
 import { create as decisionsTab } from './session-detail-decisions.js';
 import { createComposeBox } from './session-message.js';
 import { messageBody } from './chat-text.js';
-import { downNotice, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
+import { downNotice, downText, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
 import { attentionOf, attentionPill, isBlocked, isIdle, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
+import { needsOrIdleLabel, stateLabel, stateLabels } from '../state-labels.js';
 
 // ---------- Formatos ----------
 
@@ -72,11 +74,12 @@ function when(iso, now = new Date()) {
   return `${prefix}, ${HOUR.format(d)}`;
 }
 
-// issue 245: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Ociosa").
-const STATUS = { active: 'Ativa', working: 'Ativa', error: 'Com erro', completed: 'Concluída', abandoned: 'Abandonada' };
+/* ADR-0028: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Em pausa", issue 245).
+   The words are in state-labels.js; the maps read the mode when they are read. */
+const STATUS = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' });
 const COLOR = { active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' };
 /** The timeline's status filter: the core's `waiting` takes both the blocked and the idle events. */
-const STATUS_FILTER = { ...STATUS, waiting: 'Precisa de você ou ociosa' };
+const STATUS_FILTER = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned', waiting: needsOrIdleLabel });
 
 /** The pill: the attention when there is one; a waiting one without it is active; the rest by status. */
 function statusPill(status, attention = null) {
@@ -93,7 +96,7 @@ export function idleNote(attention, since, now = Date.now()) {
     interrupted: when ? `interrompida há ${when}, no meio do turno` : 'interrompida no meio do turno',
     first_prompt: when ? `aberta no prompt há ${when}, sem o primeiro pedido` : 'aberta no prompt, sem o primeiro pedido',
   }[attentionOf(attention)?.reason ?? ''];
-  return `Ociosa · ${what ?? 'a vez é sua'}. Nada trava a sessão.`;
+  return `${stateLabel('idle')} · ${what ?? 'a vez é sua'}. Nada trava a sessão.`;
 }
 
 /** Texto com `código` entre crases: cada pedaço vira nó de texto ou `<code>`, nunca HTML. */
@@ -168,14 +171,17 @@ export function remoteDetailContext(ctx, base, machineId, { onRead = () => {}, o
         return answer;
       } catch (e) {
         if (!isMachineUnreachable(e)) throw e;
-        const m = normalizeMachines([{ ...e.body.machine, id: e.body.machine?.id ?? machineId }])[0] ?? { id: machineId, label: 'Máquina remota', lastReadAt: null };
+        const seen = normalizeMachines([{ ...e.body.machine, id: e.body.machine?.id ?? machineId }])[0] ?? { id: machineId, label: 'Máquina remota', lastReadAt: null };
+        // #754: the answer of the session does not say that the person stopped the machine or that it is updating; the list the sidebar reads does.
+        const m = { ...seen, held: ctx.heldMachines?.get?.().get(seen.id) ?? null };
         onUnreachable(m);
         if (answered.has(pathOf(route))) {
           const quiet = new Error('machine-unreachable');
           quiet.name = 'AbortError';
           throw quiet;
         }
-        const told = new Error(`${m.label} sem conexão. As sessões de lá voltam quando ela responder.`);
+        const t = m.held ? downText(m) : null;
+        const told = new Error(t ? `${t.title} ${t.text}` : `${m.label} sem conexão. As sessões de lá voltam quando ela responder.`);
         Object.assign(told, { status: e.status, body: e.body });
         throw told;
       }
@@ -287,9 +293,19 @@ export async function mount(area, ctx) {
     }
   }
 
+  // Issue 765: until the head answers, the header is what the list knew (title, state, reason) and the body says it is loading.
+  function paintSeed() {
+    const seed = headData ? null : seedOf(id);
+    if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+    const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
+    top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
+    body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
+    area.replaceChildren(noticeSlot, top, body);
+  }
+
   async function first() {
     // C49: while the remote is down and nothing was read, a retry keeps the notice on screen.
-    if (!(remoteId && down)) area.replaceChildren(loading({ label: 'Carregando a sessão' }));
+    if (!(remoteId && down)) paintSeed();
     if (!(await readHead())) return;
     tab ??= attentionOf(headData.session.attention) ? 'conversation' : 'agents';
     area.replaceChildren(noticeSlot, top, tabs, body);
@@ -388,9 +404,9 @@ function withCommand(text, command) {
 // The class of each tool state and of the band is its API value (`sd-e-<state>`, `sd-t-<type>`).
 /** The band title: "Precisa de você · Pede permissão." or "Com erro." */
 export function bandTitle(session) {
-  if (session.banner?.type === 'error' || session.attention?.reason === 'error') return 'Com erro.';
+  if (session.banner?.type === 'error' || session.attention?.reason === 'error') return `${stateLabel('error')}.`;
   const reason = reasonLabel(session.attention);
-  return reason ? `Precisa de você · ${reason}.` : 'Precisa de você.';
+  return reason ? `${stateLabel('blocked')} · ${reason}.` : `${stateLabel('blocked')}.`;
 }
 
 function band(c) {
@@ -730,13 +746,45 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
     while (list.childNodes[i]) list.childNodes[i].remove();
   }
 
+  // Issue 765: the first paint is the last block of 30 messages; the older ones come in the next turns of the loop,
+  // each put above the ones on screen with the scroll held where the reader is. A turn that arrives (a live delta, a
+  // new full read) cancels what is left and builds the whole list.
+  const BLOCK = 30;
+  let blocksToken = null;
+  const cancelBlocks = () => (blocksToken = null);
+  // A tool-only assistant message folds into the reply that follows it, so a cut never falls inside such a run.
+  const foldsForward = (m) => m.role !== 'you' && !m.text && !m.tools.some((f) => f.state === 'permission');
+  function renderInBlocks(all) {
+    cancelBlocks();
+    let from = all.length - BLOCK;
+    while (from > 0 && foldsForward(all[from - 1])) from--;
+    if (from <= 0) return render(buildEntries(all));
+    render(buildEntries(all.slice(from)));
+    const token = (blocksToken = {});
+    const step = () => {
+      if (blocksToken !== token || ctx.signal?.aborted) return;
+      let start = Math.max(0, from - BLOCK);
+      while (start > 0 && foldsForward(all[start - 1])) start--;
+      const older = buildEntries(all.slice(start, from));
+      const s = scroller();
+      const before = s?.scrollHeight ?? 0;
+      const first = list.firstChild;
+      for (const e of older) list.insertBefore(e.node, first);
+      if (s && !stuck) s.scrollTop += s.scrollHeight - before;
+      from = start;
+      if (from > 0) setTimeout(step, 0);
+      else blocksToken = null;
+    };
+    setTimeout(step, 0);
+  }
+
   function applyFull(c) {
     messages = c.messages ?? [];
     cursor = c.cursor ?? null;
     agent = c.agent;
     selector.replaceChildren(...c.agents.map((a) => el('option', { value: a.id, selected: a.id === c.agent }, a.name)));
     count.replaceChildren(icon('conversation'), `${num(c.total)} mensage${c.total === 1 ? 'm' : 'ns'}`);
-    render(buildEntries(messages));
+    renderInBlocks(messages);
     content.replaceChildren(bar, list, newPill);
     pending = 0;
     // Match the real scroll position: on the first draw the scroller is not attached yet (so this is
@@ -780,6 +828,7 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
       }
     }
     if (!(c.messages?.length)) return;
+    cancelBlocks();
     reconcile(buildEntries(messages));
     if (stuck) landAtBottom();
     else if (fresh > 0) {

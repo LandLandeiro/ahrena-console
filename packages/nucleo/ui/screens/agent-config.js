@@ -136,7 +136,6 @@ const state = {
   windowBackups: [],
 };
 
-const SUB = 'Seu Claude Code: skills, subagentes, comandos, MCP, hooks e memória';
 
 /** The screen's CSS, once in `<head>`; waits for it to load so it does not flash unstyled. */
 function ensureCss() {
@@ -183,7 +182,7 @@ export async function mount(area, ctx) {
   const projectSlot = el('span', { class: 'ac-project' });
   const seg = el('div', { class: 'ac-seg', role: 'group', 'aria-label': 'Escopo' });
   const refreshButton = el('button', { type: 'button', class: 'btn', onClick: () => load({ quiet: true, withSkill: true }) }, icon('refresh'), 'Atualizar');
-  const pageHeader = header({ icon: 'bot', title: 'Agent Config', sub: SUB, actions: [el('a', { class: 'btn outline', href: '/ui/agent-config?provider=codex' }, 'Codex · somente leitura'), projectSlot, seg, refreshButton] });
+  const pageHeader = header({ icon: 'bot', title: 'Agent Config', sub: null, actions: [el('a', { class: 'btn outline', href: '/ui/agent-config?provider=codex' }, 'Codex · somente leitura'), projectSlot, seg, refreshButton] });
 
   function drawSeg() {
     seg.replaceChildren(

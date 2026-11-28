@@ -409,7 +409,7 @@ describe('#388 the sidebar dot', () => {
     const { readMachines } = createNav({ nav, read: async () => list, screens: SCREENS });
     await readMachines();
     const dot = (id: string) => nav.querySelector(`[data-screen="machine-${id}"] .cc-nav-dot`)!;
-    const labels = ['ws-a', 'ws-b', 'ws-c', 'ws-d', 'ws-e'].map((id) => [dot(id).getAttribute('data-state'), dot(id).getAttribute('aria-label'), dot(id).getAttribute('title')]);
+    const labels = ['ws-a', 'ws-b', 'ws-c', 'ws-d', 'ws-e'].map((id) => [dot(id).getAttribute('data-state'), texto(dot(id)), dot(id).getAttribute('title')]);
     assert.deepEqual(labels, [
       ['owner-auth', 'Acesso bloqueado', 'Acesso bloqueado'],
       ['owner-auth', 'Prova do dono falhou', 'Prova do dono falhou'],

@@ -10,7 +10,8 @@
 
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { attentionPill } from '../attention.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
+import { stateLabel } from '../state-labels.js';
 import {
   toggleOne,
   load,
@@ -33,7 +34,7 @@ import {
   agentName,
   eventKey,
 } from './feed-state.js';
-import { createMachineFilter, machineIdOf, machineTag, whereText } from '../machine-filter.js';
+import { createMachineFilter, machineIdOf, machineTag } from '../machine-filter.js';
 
 const CSS = '/ui/feed.css';
 const CLOCK_MS = 5000;
@@ -65,8 +66,7 @@ export async function mount(area, ctx) {
 
   const pauseButton = el('button', { type: 'button', class: 'btn', 'aria-pressed': 'false', onClick: () => (state.pausado ? drop() : freeze()) });
   const refreshButton = el('button', { type: 'button', class: 'btn', onClick: () => reload() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'activity', title: 'Feed de atividade', sub: 'Todos os eventos das sessões, ao vivo', actions: [pauseButton, refreshButton] });
-  const sub = head.querySelector?.('.sub') ?? null;
+  const head = header({ icon: 'activity', title: 'Feed de atividade', sub: null, actions: [pauseButton, refreshButton] });
   // Issue 243 (C47): the machine filter on its own row under the header. The feed's own clock already asks
   // for new events every few seconds (which reads the remotes and their state too), and every change asks
   // again: the filter adds no timer and no debounce of its own.
@@ -77,7 +77,6 @@ export async function mount(area, ctx) {
     const parts = machines.parts();
     machineSlot.replaceChildren(...parts);
     machineSlot.hidden = parts.length === 0;
-    if (sub) sub.textContent = machines.hasRemotes() ? `Todos os eventos das sessões ${whereText(machines.choice, machines.machines(), { form: 'of' })}, ao vivo` : 'Todos os eventos das sessões, ao vivo';
   }
 
   // ---------- sobre ----------
@@ -85,11 +84,11 @@ export async function mount(area, ctx) {
   const about = el(
     'details',
     { class: 'card feed-about' },
-    el('summary', {}, icon('info'), el('b', {}, 'Sobre eventos, filtros e agrupamento'), el('span', {}, ' · como ler as pílulas, o ciclo de vida e os filtros')),
+    el('summary', {}, icon('info'), el('b', {}, 'Sobre eventos, filtros e agrupamento'), el('span', {}, ' · como ler o estado, o ciclo de vida e os filtros')),
     el(
       'div',
       { class: 'feed-about-body' },
-      el('p', {}, 'Cada linha é um evento gravado pelo núcleo, do mais novo para o mais velho. A pílula diz em que estado a sessão ficou depois dele: Ativa, Precisa de você (travada até você agir), Ociosa (o turno acabou e nada trava), Concluída ou Com erro.'),
+      el('p', {}, `Cada linha é um evento gravado pelo núcleo, do mais novo para o mais velho. O estado, com o ícone, diz em que a sessão ficou depois dele: ${stateLabel('active')}, ${stateLabel('blocked')} (travada até você agir), ${stateLabel('idle')} (o turno acabou e nada trava), ${stateLabel('completed')} ou ${stateLabel('error')}.`),
       el('p', {}, 'Uma sessão nasce, roda turnos, chama ferramentas e subagentes, e termina. O caminho projeto › sessão › agente diz de onde o evento veio; "Sessão" abre o detalhe dela.'),
       el('p', {}, 'Os filtros se somam. A busca olha o resumo e a ferramenta. Com a pausa, a lista para de mexer e os eventos novos esperam no aviso "novos".'),
     ),
@@ -193,7 +192,7 @@ export async function mount(area, ctx) {
       { class: `feed-row${isOpen ? ' feed-open' : ''}` },
       arrow,
       el('span', { class: 'feed-o mono feed-time' }, shortTime(ev.createdAt)),
-      pill.attention ? attentionPill(pill.attention) : el('span', { class: `badge b-${pill.status}` }, el('span', { class: 'p' }), STATUS[pill.status]),
+      el('span', { class: 'feed-state' }, stateTag(stateOfSession({ attention: pill.attention ?? null, status: pill.status ?? null }))),
       tag
         ? el('span', { class: 'feed-o feed-trail mf-with-tag', title: `${ev.machine.label} › ${path}` }, tag, el('span', {}, '›'), el('span', { class: 'mf-shrink' }, path))
         : el('span', { class: 'feed-o feed-trunc feed-trail', title: path }, path),

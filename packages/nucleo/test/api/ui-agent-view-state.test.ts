@@ -251,7 +251,7 @@ describe('a running agent', () => {
   test('the header follows the agent while the steps wait: it ends, and the result comes', async () => {
     let current = running([step(1)]);
     const { area, change } = await mountView(() => current);
-    assert.match(texto(area.querySelector('.av-state')), /Ativa/);
+    assert.match(texto(area.querySelector('.av-state')), /Trabalhando/);
     current = agent({ steps: [step(1), step(2)] });
     change();
     await settle();

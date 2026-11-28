@@ -289,7 +289,7 @@ describe('interaction: the confirmation is driven from the state', () => {
     let s = askPlan(initialIssueState(), c);
     const view = () =>
       planConfirm({ repo: c.repo, number: c.number, target: planOf(s, c).target, onTarget: (t: string) => (s = chooseTarget(s, c, t)), onCancel: () => (s = cancelPlan(s, c)), onConfirm: () => (s = confirmPlan(s, c)) });
-    view().querySelector('[data-target="terminal"]')?.click();
+    view().querySelector('[data-value="terminal"]')?.click();
     view().querySelector('[data-action="confirm"]')?.click();
     assert.equal(planOf(s, c).phase, 'posting');
     assert.equal(s.post.target, 'terminal');

@@ -13,7 +13,7 @@
 // - The whole response holds for `cacheMs`: a burst of changes does not redo the math on every request.
 //
 // #245: the session numbers split `blocked` ("Precisam de você", the errors included) from `idle`
-// ("Ociosas"), each active-agent card and each waiting activity row carries `attention` (src/api/attention.ts).
+// ("Em pausa"), each active-agent card and each waiting activity row carries `attention` (src/api/attention.ts).
 // The "precisam de você" inbox itself is `GET /api/attention`: its items carry the same `attention`, and
 // its `blocked` and `idle` counts are the inbox's and the neutral row's.
 //

@@ -1,12 +1,12 @@
 # Marca
 
-Os tokens da marca (cores, temas, status e tipografia) para o painel e o artefato. Item 8.2 do [backlog](../../docs/backlog-0.0.1.md).
+Os tokens da marca (cores, temas, status, raios, cores de agente, sombra e tipografia) para o painel e o artefato. Item 8.2 do [backlog](../../docs/backlog-0.0.1.md).
 
 A fonte é uma só: [docs/brand/tokens.json](../../docs/brand/tokens.json). O gerador lê esse arquivo e escreve as saídas abaixo, que vão para o repositório. Ninguém edita as saídas à mão.
 
 | Saída | Para quem | Como usa |
 | --- | --- | --- |
-| [gerado/marca.ts](gerado/marca.ts) | o painel (mod do Claude Code) e o núcleo | cores como strings hex: `paleta`, `ci`, `temas`, `ordemStatus`, `status`, `tipografia` |
+| [gerado/marca.ts](gerado/marca.ts) | o painel (mod do Claude Code) e o núcleo | cores como strings hex: `paleta`, `ci`, `temas`, `ordemStatus`, `status`, `tipografia`, `spacing`, `agent`, `radius`, `shadow` |
 | [gerado/marca.css](gerado/marca.css) | o artefato HTML | variáveis CSS: escuro no `:root`, claro por `prefers-color-scheme` ou `data-theme="light"` |
 | [packages/nucleo/ui/brand.css](../nucleo/ui/brand.css) | a interface que o núcleo serve em `/ui` | cópia do `marca.css`, para o núcleo levar a paleta quando é empacotado sozinho (no app desktop) |
 | [spikes/painel-teste/hooks/marca.ts](../../spikes/painel-teste/hooks/marca.ts) | o painel de teste | cópia do `marca.ts`, porque um módulo de hooks só importa arquivos de dentro do próprio plugin |
