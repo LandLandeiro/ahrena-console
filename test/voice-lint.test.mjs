@@ -14,6 +14,7 @@ import {
   loadRules,
   shrinkBaseline,
   subtitleWarnings,
+  subtitleWarningsOfTree,
 } from './voice-lint.lib.mjs'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
@@ -324,9 +325,17 @@ test('#766: a subtitle that says the state, a null one and a word that only star
   assert.deepEqual(subtitleWarnings(source), [])
 })
 
-test('#766: the subtitles of the registry hold the rule today (a warning is shown, not failed, if one comes back)', (t) => {
-  const source = readFileSync(join(ROOT, 'packages/nucleo/ui/screens.js'), 'utf8')
-  const warnings = subtitleWarnings(source)
-  for (const w of warnings) t.diagnostic(`WARNING screens.js:${w.line} ${w.message}`)
-  assert.equal(Array.isArray(warnings), true)
+test('#766: the warning reads the screens of packages/nucleo/ui/screens, where the header subtitles are', () => {
+  const root = mkdtempSync(join(tmpdir(), 'voice-lint-sub-'))
+  mkdirSync(join(root, 'packages/nucleo/ui/screens'), { recursive: true })
+  writeFileSync(join(root, 'packages/nucleo/ui/screens.js'), "export const SCREENS = [{ id: 'a', sub: null }]\n")
+  writeFileSync(join(root, 'packages/nucleo/ui/screens/fixture.js'), "const head = header({ icon: 'x', title: 'T', sub: 'O agora das suas sessões' })\nconst ok = header({ icon: 'x', title: 'U', sub: '3 sessões esperam você.' })\n")
+  const warnings = subtitleWarningsOfTree(root)
+  assert.deepEqual(warnings.map((w) => [w.file, w.line, w.article]), [['packages/nucleo/ui/screens/fixture.js', 1, 'O']])
+  assert.match(warnings[0].message, /state now/)
+})
+
+test('#766: the subtitles of the tree hold the rule today: the warning is shown in the output and never fails it', (t) => {
+  const warnings = subtitleWarningsOfTree(ROOT)
+  for (const w of warnings) t.diagnostic(`WARNING ${w.file}:${w.line} ${w.message}`)
 })

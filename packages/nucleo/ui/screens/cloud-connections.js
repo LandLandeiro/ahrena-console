@@ -244,6 +244,7 @@ async function mountCatalog(area, ctx, first) {
     const count = (githubOn ? 1 : 0) + (awsOn ? 1 : 0);
     area.replaceChildren(
       head,
+      lockLine('As credenciais ficam com as CLIs de cada nuvem e com o cofre do sistema: o console nunca as guarda nem mostra.'),
       ...(failure ? [errorBand({ title: 'Sem conexão com o núcleo.', text: `${failure.message}. Mostrando a última leitura.`, action: { label: 'Tentar de novo', onClick: () => refresh() } })] : []),
       eyebrow(`Conectadas · ${count}`),
       el('div', { class: 'cl-grid', 'data-grid': 'connected' }, ...connected),

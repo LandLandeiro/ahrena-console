@@ -45,6 +45,6 @@ title.
 - **Sessões has no subtitle**: the numbers are already in the filter.
 - **The same goes for help text inside a screen.** What helps the person decide stays ("Nada começa antes de você aprovar o
   plano"); what describes the mechanism goes ("Uma sessão nova lê o item e escreve um plano").
-- **The warning.** `test/voice-lint.lib.mjs` (`subtitleWarnings`) warns when a `sub:` of `screens.js` starts with a descriptive
-  article ("O", "A", "As", "Os", "Todos os", "Todas as", "Um", "Uma"). It is a warning in the test output, not a finding of the
-  baseline.
+- **The warning.** `test/voice-lint.lib.mjs` (`subtitleWarnings`) warns when a `sub:` of `screens.js` or a `header({ sub })` of `ui/*.js` and
+  `ui/screens/*.js` starts with a descriptive article ("O", "A", "As", "Os", "Todos os", "Todas as", "Um", "Uma"). It is a
+  warning in the test output, not a finding of the baseline.

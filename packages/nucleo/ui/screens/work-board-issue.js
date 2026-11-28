@@ -341,5 +341,8 @@ export function createIssueLayer({ ctx, area, cards, options = () => ({}), redra
   // issue 532: the screen closes this layer's open confirmation when the run layer opens its own (one at a time, 465-6).
   const closeConfirmation = () => Object.keys(s.plans).forEach((key) => apply(cancelPlan(s, { key })));
 
-  return { renderCard: view.renderCard, wrap: view.wrap, signature: view.signature, learn, afterDraw: view.afterDraw, closeConfirmation, stop };
+  // #766: the columns as the cards show them, with the "planejando…" this layer holds, for the header's count.
+  const withPlanning = (columns) => (Array.isArray(columns) ? columns.map((column) => (Array.isArray(column?.cards) ? { ...column, cards: column.cards.map((c) => (s.plans[c.key] ? cardWithPlanning(s, c) : c)) } : column)) : columns);
+
+  return { renderCard: view.renderCard, wrap: view.wrap, signature: view.signature, withPlanning, learn, afterDraw: view.afterDraw, closeConfirmation, stop };
 }
