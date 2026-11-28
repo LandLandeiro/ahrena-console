@@ -73,8 +73,8 @@ function when(iso, now = new Date()) {
   return `${prefix}, ${HOUR.format(d)}`;
 }
 
-// issue 245: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Ociosa").
-// The words are in state-labels.js (issue 760); the maps read the mode when they are read.
+/* issue 245: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Ociosa").
+   The words are in state-labels.js (ADR-0028); the maps read the mode when they are read. */
 const STATUS = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' });
 const COLOR = { active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' };
 /** The timeline's status filter: the core's `waiting` takes both the blocked and the idle events. */

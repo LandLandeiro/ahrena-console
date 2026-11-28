@@ -387,6 +387,26 @@ describe('Feed de atividade: a tela', () => {
     limpar();
   });
 
+  test('#760: a frase de ajuda diz os estados com as palavras do modo', async () => {
+    // @ts-expect-error: idem
+    const labels = await import('../../ui/state-labels.js');
+    const vazio = () => ({ events: [], cursor: null, older: null, options: null });
+    const ajuda = async () => {
+      const area = new Elemento('main');
+      const limpar = await mount(area, ctxFalso(vazio).ctx);
+      const texto = area.querySelector('.feed-about-body')!.querySelectorAll('p')[0]!.textContent;
+      limpar();
+      return texto;
+    };
+    try {
+      assert.match(await ajuda(), /: Ativa, Precisa de você \(travada até você agir\), Ociosa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
+      labels.setStateLabelMode('project');
+      assert.match(await ajuda(), /: Ativa, Precisa de você \(travada até você agir\), Ociosa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
+    } finally {
+      labels.setStateLabelMode('dev');
+    }
+  });
+
   test('vazio, vazio com filtro, erro e "mostrar mais"', async () => {
     const area = new Elemento('main');
     let limpar = await mount(area, ctxFalso(() => ({ events: [], cursor: null, older: null, options: null })).ctx);

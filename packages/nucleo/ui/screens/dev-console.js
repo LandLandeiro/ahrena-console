@@ -154,7 +154,7 @@ export function scoreboardCards(view) {
       tone: 'error',
       alert: s.ciFailingOrConflict > 0,
     },
-    { id: 'working', label: stateLabel('active'), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão trabalhando' : 'sessões trabalhando', icon: 'bot', tone: 'accent', alert: false },
+    { id: 'working', label: stateLabel('active', { plural: true }), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão trabalhando' : 'sessões trabalhando', icon: 'bot', tone: 'accent', alert: false },
     {
       // issue 245: only what blocks (sessions and decisions); the idle ones of the context stay apart.
       id: 'blocked',

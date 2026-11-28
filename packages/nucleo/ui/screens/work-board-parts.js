@@ -3,7 +3,7 @@ import { errorBand } from '../states.js';
 import { queueLimit } from './work-board-queue.js';
 import { boardColumnLabel } from '../state-labels.js';
 
-/** The six columns of the work board (issue 465), for the states with no payload. The names are state-labels.js's (issue 760), read when drawn; the payload `label` is ignored. */
+/** The six columns of the work board (issue 465), for the states with no payload. The names are state-labels.js's (ADR-0028), read when drawn; the payload `label` is ignored. */
 const column = (id, criterion) => ({ id, get label() { return boardColumnLabel(id); }, criterion });
 export const COLUMNS = [
   column('planning', 'Aberta, sem sessão de execução e fora da fila'),

@@ -99,7 +99,7 @@ export function appendDays(currentOnes, newOnes) {
 
 // ---------- Peças ----------
 
-// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
 const STATUS = stateLabels(['completed', 'error', 'abandoned', 'active']);
 
 function badge(status) {

@@ -73,22 +73,22 @@ export function agentsLabel(n) {
 /**
  * Status da sessão ou do agente → a cor (classe) e o rótulo do selo. O agente "working" é ativo. The
  * waiting ones are drawn by their `attention` (issue 245): "Precisa de você" or "Ociosa". The label is the state's in
- * state-labels.js (issue 760), read when the badge is drawn.
+ * state-labels.js (ADR-0028), read when the badge is drawn.
  */
 const STATUS = {
-  active: { cor: 'active', estado: 'active' },
-  working: { cor: 'active', estado: 'active' },
-  completed: { cor: 'completed', estado: 'completed' },
-  error: { cor: 'error', estado: 'error' },
-  abandoned: { cor: 'abandoned', estado: 'abandoned' },
+  active: { cor: 'active', stateId: 'active' },
+  working: { cor: 'active', stateId: 'active' },
+  completed: { cor: 'completed', stateId: 'completed' },
+  error: { cor: 'error', stateId: 'error' },
+  abandoned: { cor: 'abandoned', stateId: 'abandoned' },
 };
 
 export function status(st) {
   const s = Object.hasOwn(STATUS, st) ? STATUS[st] : null;
-  return s ? { cor: s.cor, rotulo: stateLabel(s.estado) } : { cor: 'abandoned', rotulo: '—' };
+  return s ? { cor: s.cor, rotulo: stateLabel(s.stateId) } : { cor: 'abandoned', rotulo: '—' };
 }
 
-/** The name of a column: in the sessions view the state's plural from state-labels.js, whatever label the core sent; the agents view keeps the core's. */
+/** The name of a column (ADR-0028): in the sessions view the state's plural from state-labels.js, whatever label the core sent; the agents view keeps the core's. */
 const columnName = (v, c) => (v === 'sessions' ? (stateLabel(c.id, { plural: true }) ?? c.label) : c.label);
 
 /** The card's tone: the attention (blocked, idle, error) first, then the status; waiting without attention is active. */

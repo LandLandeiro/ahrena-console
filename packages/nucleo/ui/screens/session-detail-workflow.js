@@ -147,7 +147,7 @@ export function nodeDetail(n) {
   return { texto: [who, duration(n.durationMs)].filter(Boolean).join(' · '), ajustes: false };
 }
 
-// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
 const STATE_LABEL = stateLabels({ active: 'active', completed: 'completed', error: 'failed' });
 // The class of each node state is its API value: `wfd-e-<state>`.
 const stateClass = (state) => `wfd-e-${state}`;

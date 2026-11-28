@@ -31,8 +31,8 @@ export const agentOf = (c) => AGENTS[c?.identity?.provider] ?? 'Claude';
 export const PARKED_PAGE = 7;
 export const PARKED_MAX = 100;
 
-// The state words are in state-labels.js (issue 760): `rotulo` is read when the filter is drawn, so a change of mode shows.
-// ADR-0028: the filter is the section of the card; "Concluídas" has no filter of its own and shows under "Todas".
+/* The state words are in state-labels.js (ADR-0028): `rotulo` is read when the filter is drawn, so a change of mode shows.
+   ADR-0028: the filter is the section of the card; "Concluídas" has no filter of its own and shows under "Todas". */
 const stateFilter = (id, passa, vazio) => ({
   id,
   get rotulo() {

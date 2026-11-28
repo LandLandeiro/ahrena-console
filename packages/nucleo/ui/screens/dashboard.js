@@ -25,7 +25,7 @@ const BACKGROUND_MS = 30_000;
 const IN_INBOX = 5;
 const IN_IDLE_ROW = 3;
 
-// The words are in state-labels.js (issue 760); the map reads the mode when it is read.
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
 export const STATUS_LABEL = stateLabels(['active', 'completed', 'error', 'abandoned']);
 // A subagent has no attention of its own (issue 245): a waiting one does not wait on the person, so it is active.
 const SUBAGENT_STATUS = { working: 'active', waiting: 'active', completed: 'completed', error: 'error' };
