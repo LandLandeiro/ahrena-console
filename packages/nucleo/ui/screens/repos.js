@@ -102,7 +102,7 @@ export async function mount(area, ctx) {
       refresh.removeAttribute('aria-busy');
     }
   });
-  const head = header({ icon: 'repos', title: 'Repositórios', sub: 'Organizações e repositórios da sua conta do GitHub', actions: [accountChip, refresh] });
+  const head = header({ icon: 'repos', title: 'Repositórios', sub: null, actions: [accountChip, refresh] });
 
   // ---------- filtros: montados uma vez ----------
   const search = el('input', { type: 'search', placeholder: 'Buscar repositórios…', 'aria-label': 'Buscar repositórios', autocomplete: 'off', spellcheck: 'false' });
@@ -229,7 +229,7 @@ export async function mount(area, ctx) {
     const e = screenState({ dados: data, falha: failure, temDado: hasList(data) });
     if (e.reler) timer = setTimeout(read, REREAD_MS);
     if (e.tela === 'error') return area.replaceChildren(head, failure ? error({ text: failure.message, retry }) : error({ title: 'O GitHub não respondeu', text: data.error ?? 'A leitura dos repositórios falhou.', retry: () => (area.replaceChildren(head, loading()), read({ forcar: true })) }));
-    if (e.tela === 'loading') return area.replaceChildren(head, loading());
+    if (e.tela === 'loading') return area.replaceChildren(head, loading({ pending: true }));
     if (e.tela === 'reading') return area.replaceChildren(head, loading({ label: 'Lendo o GitHub…' }));
     if (e.tela === 'no-github') return area.replaceChildren(head, empty({ icon: 'github', ...NO_GITHUB }));
     if (e.tela !== 'data') return area.replaceChildren(head, none());
@@ -274,7 +274,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(() => read());
 
-  area.replaceChildren(head, loading());
+  area.replaceChildren(head, loading({ pending: true }));
   await read();
   return () => {
     clearTimeout(timer);

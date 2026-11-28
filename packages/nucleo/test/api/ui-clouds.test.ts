@@ -219,28 +219,28 @@ describe('issue 277: files, classes, icons and the registry', () => {
     assert.deepEqual([...new Set(names.filter((n) => !ICON_NAMES.includes(n)))], []);
   });
 
-  test('/ui/connections/aws and /ui/connections/github light Conexões; Conexões has the dot of the worst connector', async () => {
+  test('/ui/connections/aws and /ui/connections/github light Configuração, which receives Conexões; Configuração has the dot of the worst connector', async () => {
     const aws = findScreen('/ui/connections/aws');
     assert.equal(aws.screen.file, '/ui/screens/cloud-connections.js');
-    assert.equal(litItem(aws.screen, aws.params), 'connections');
+    assert.equal(litItem(aws.screen, aws.params), 'agent-config');
     const gh = findScreen('/ui/connections/github');
     assert.equal(gh.screen.file, '/ui/screens/connections.js');
-    assert.equal(litItem(gh.screen, gh.params), 'connections');
+    assert.equal(litItem(gh.screen, gh.params), 'agent-config');
     let answer: () => Promise<unknown> = async () => connectorsBody();
     const nav = new ElementoFalso('nav');
     const { readConnectors } = createNav({ nav, read: async (route: string) => (route === '/api/connectors' ? answer() : []), screens: SCREENS });
-    assert.equal(nav.querySelector('[data-screen="connections"] .cc-nav-dot'), null);
+    assert.equal(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'), null);
     await readConnectors();
-    const dot = nav.querySelector('[data-screen="connections"] .cc-nav-dot')!;
+    const dot = nav.querySelector('[data-screen="agent-config"] .cc-nav-dot')!;
     assert.equal(dot.getAttribute('data-state'), 'cloud-error');
     assert.equal(dot.getAttribute('aria-label'), 'AWS · 1 sessão expirada');
     // Offline keeps the dot; a core without the route takes it away.
     answer = async () => Promise.reject(Object.assign(new Error('offline'), { status: 0 }));
     await readConnectors();
-    assert.ok(nav.querySelector('[data-screen="connections"] .cc-nav-dot'));
+    assert.ok(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'));
     answer = async () => Promise.reject(notFound());
     await readConnectors();
-    assert.equal(nav.querySelector('[data-screen="connections"] .cc-nav-dot'), null);
+    assert.equal(nav.querySelector('[data-screen="agent-config"] .cc-nav-dot'), null);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     for (const s of ['cloud-ok', 'cloud-warn', 'cloud-error']) assert.match(css, new RegExp(`\\.cc-nav-dot\\[data-state="${s}"\\]`));
   });
@@ -334,6 +334,16 @@ describe('issue 277: Conexões, the catalog (C57, C60, C61)', () => {
     assert.deepEqual(m.writes, [], 'the catalog itself writes nothing');
   });
 
+  test('the catalog says in its body, not in the subtitle, that the console never keeps nor shows the credentials (#766)', async () => {
+    const m = await mountScreen(connections, '/ui/connections', async (route) => {
+      if (route === '/api/connectors') return connectorsBody();
+      if (route === '/api/connections') return GITHUB;
+      return [];
+    });
+    const lines = m.area.querySelectorAll('.cl-lock').map((n) => texto(n));
+    assert.ok(lines.some((l) => /o console nunca as guarda nem mostra/.test(l)), lines.join(' | '));
+  });
+
   test('no cloud configured: the dashed "Nenhuma nuvem conectada" card, and AWS under Adicionar with aws configure sso', async () => {
     const m = await mountScreen(connections, '/ui/connections', async (route) => {
       if (route === '/api/connectors') return connectorsBody(aws({ state: 'not-configured', sessions: [], outOfScope: [] }));
@@ -406,6 +416,44 @@ describe('issue 277: Conexões › AWS (C58, C59)', () => {
     const m = await mountScreen(awsScreen, '/ui/connections/aws?login=sessao-exemplo', async (route) => (route === '/api/connectors' ? connectorsBody() : []));
     await new Promise((r) => setTimeout(r, 20));
     assert.deepEqual(m.writes, []);
+  });
+
+  // #765: a first read that fails with anything but 404 must not leave the pending card, which would hold the ghost over the screen for good.
+  for (const [what, make] of [
+    ['a 500', () => Object.assign(new Error('falhou'), { name: 'ReadError', status: 500 })],
+    ['a network error', () => new TypeError('Failed to fetch')],
+  ] as [string, () => Error][]) {
+    test(`#765: the first read failing with ${what} leaves no pending mark, shows the error band, and keeps Atualizar and the machine picker`, async () => {
+      let calls = 0;
+      const m = await mountScreen(awsScreen, '/ui/connections/aws', async (route) => {
+        if (route === '/api/machines') return MACHINES;
+        if (route === '/api/connectors') {
+          calls += 1;
+          if (calls === 1) throw make();
+          return connectorsBody();
+        }
+        return [];
+      });
+      assert.equal(m.area.querySelector('[data-swap-pending]'), null, 'no first-read card left to hold the ghost');
+      assert.match(texto(m.area), /Sem conexão com o núcleo\./);
+      assert.match(texto(m.area), /Tentar de novo/);
+      assert.ok(m.area.querySelector('button[data-cl-action="refresh"]'), 'Atualizar stays');
+      assert.deepEqual(m.area.querySelectorAll('.cl-seg button').map((b) => texto(b)), ['Este Mac', 'Workstation'], 'the machine picker stays');
+      const retry = m.area.querySelectorAll('button').find((b) => /Tentar de novo/.test(texto(b)))!;
+      retry.click();
+      await until(() => calls === 2 && m.area.querySelector('[data-session]') !== null);
+      assert.equal(m.area.querySelector('[data-swap-pending]'), null);
+    });
+  }
+
+  test('#765: a 404 on the first read still takes its own path (the "missing" card), with no band and no pending mark', async () => {
+    const m = await mountScreen(awsScreen, '/ui/connections/aws', async (route) => {
+      if (route === '/api/connectors') throw notFound();
+      return [];
+    });
+    assert.equal(m.area.querySelector('[data-swap-pending]'), null);
+    assert.match(texto(m.area), /Este núcleo não tem os conectores de nuvem/);
+    assert.doesNotMatch(texto(m.area), /Sem conexão com o núcleo/);
   });
 });
 

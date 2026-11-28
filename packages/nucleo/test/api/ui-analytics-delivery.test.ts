@@ -329,7 +329,7 @@ describe('Delivery: the tab per repository', () => {
     try {
       assert.match(routes[0]!, /^\/api\/analytics\/delivery\?days=30&groupBy=repo&tz=[^&]+$/);
       const text = visible(area);
-      assert.match(text, /O ritmo de entrega de cada repositório no GitHub, com o esforço do Claude no mesmo repositório/);
+      assert.doesNotMatch(text, /O ritmo de entrega de cada repositório/, '#766: the tab explains no mechanism under the title');
       assert.match(text, /Exportar/);
       const tabLinks = byTag(withClass(area, 'an-tabs')[0]!, 'a');
       assert.deepEqual(tabLinks.map((a) => [a.textContent, a.getAttribute('aria-current')]), [['Visão geral', null], ['Custo', null], ['Entregas', 'page']]);
@@ -511,7 +511,7 @@ describe('Delivery: per project', () => {
       assert.equal(urls.at(-1), '/ui/analytics/delivery?groupBy=project');
       await until(() => withClass(area, 'an-stat').length === 6);
       const text = visible(area);
-      assert.match(text, /O ritmo de entrega de cada GitHub Project, com o esforço do Claude nos repositórios dele/);
+      assert.doesNotMatch(text, /O ritmo de entrega de cada GitHub Project/, '#766: the tab explains no mechanism under the title');
       assert.match(text, /dentro do próprio projeto/);
       assert.match(text, /o pico de cada projeto está no canto/);
       assert.match(text, /o esforço do projeto é a soma dos repositórios dele/);

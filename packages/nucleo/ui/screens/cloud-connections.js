@@ -45,7 +45,6 @@ import {
   sessionPill,
 } from './cloud-format.js';
 
-const SUB = 'As contas de fora que o console usa. As credenciais ficam com as CLIs de cada nuvem e com o cofre do sistema: o console nunca as guarda nem mostra.';
 const GITHUB_DETAIL = '/ui/connections/github';
 const SOON = {
   gcp: { name: 'Google Cloud', sub: 'gcloud · configurações', text: 'Fase 2: as configurações do gcloud, a conta de cada uma e o gcloud auth login.' },
@@ -92,7 +91,7 @@ export async function tryCatalog(area, ctx) {
 
 async function mountCatalog(area, ctx, first) {
   loadCloudStyle(ctx.signal);
-  const head = header({ icon: 'plug', title: 'Conexões', sub: SUB });
+  const head = header({ icon: 'plug', title: 'Conexões', sub: null });
   let local = first;
   let github = null;
   let machines = [];
@@ -245,6 +244,7 @@ async function mountCatalog(area, ctx, first) {
     const count = (githubOn ? 1 : 0) + (awsOn ? 1 : 0);
     area.replaceChildren(
       head,
+      lockLine('As credenciais ficam com as CLIs de cada nuvem e com o cofre do sistema: o console nunca as guarda nem mostra.'),
       ...(failure ? [errorBand({ title: 'Sem conexão com o núcleo.', text: `${failure.message}. Mostrando a última leitura.`, action: { label: 'Tentar de novo', onClick: () => refresh() } })] : []),
       eyebrow(`Conectadas · ${count}`),
       el('div', { class: 'cl-grid', 'data-grid': 'connected' }, ...connected),
@@ -270,7 +270,7 @@ async function mountCatalog(area, ctx, first) {
   });
   ctx.onRestart(() => refresh());
 
-  area.replaceChildren(head, loading({ label: 'Lendo as conexões' }));
+  area.replaceChildren(head, loading({ label: 'Lendo as conexões', pending: true }));
   await Promise.all([readGithub(), readRemotes()]);
   draw();
   schedule();
@@ -432,7 +432,8 @@ export async function mount(area, ctx) {
     const now = Date.now();
     const remote = machineId !== LOCAL_ID;
     const label = labelOf(machineId);
-    if (status === 'loading') return [loading({ label: 'Lendo os perfis da AWS' })];
+    if (status === 'loading' && failure) return [errorBand({ title: 'Sem conexão com o núcleo.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } })];
+    if (status === 'loading') return [loading({ label: 'Lendo os perfis da AWS', pending: !aws })];
     if (status === 'missing') return [empty({ icon: 'cloud', title: 'Este núcleo não tem os conectores de nuvem', text: 'Ele é de uma versão anterior. Atualize o console para ver as sessões da AWS.' })];
     if (status === 'not-found') return [empty({ icon: 'server', title: 'Máquina não encontrada', text: `Nenhuma máquina "${machineId}" no ~/.ahrena-console/machines.json deste núcleo.`, action: { label: 'Ver este Mac', onClick: () => select(LOCAL_ID) } })];
     if (status === 'unsupported') return [empty({ icon: 'git-compare', title: `O núcleo da ${label} não tem os conectores de nuvem`, text: 'Ele é de uma versão anterior. Atualize o núcleo de lá para ver os perfis dela.' })];

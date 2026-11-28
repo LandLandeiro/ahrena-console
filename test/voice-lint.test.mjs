@@ -13,6 +13,8 @@ import {
   lintText,
   loadRules,
   shrinkBaseline,
+  subtitleWarnings,
+  subtitleWarningsOfTree,
 } from './voice-lint.lib.mjs'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
@@ -296,4 +298,44 @@ test('the UI strings hold the rules, with no new violation and no stale baseline
   const { added, stale } = compareToBaseline(findings, baseline)
   assert.deepEqual(added, [], `new voice violations (fix the text, do not add to the baseline):\n${added.join('\n')}`)
   assert.deepEqual(stale, [], `baseline entries that no longer occur (run VOICE_LINT_SHRINK=1 to remove them):\n${stale.join('\n')}`)
+})
+
+test('#766: a subtitle of the registry that starts with a descriptive article gets a warning', () => {
+  const source = [
+    "  { id: 'a', title: 'A', sub: 'O agora das suas sessões', icon: 'x' },",
+    "  { id: 'b', title: 'B', sub: 'As sessões por status', icon: 'x' },",
+    "  { id: 'c', title: 'C', sub: 'Os eventos de hoje', icon: 'x' },",
+    '  { id: \'d\', title: \'D\', sub: "Todos os eventos das sessões, ao vivo", icon: \'x\' },',
+    "  { id: 'e', title: 'E', sub: 'Um card por sessão aberta', icon: 'x' },",
+    "  { id: 'f', title: 'F', sub: 'A telemetria medida pelo núcleo daqui', icon: 'x' },",
+  ].join('\n')
+  const warnings = subtitleWarnings(source)
+  assert.deepEqual(warnings.map((w) => [w.line, w.article]), [[1, 'O'], [2, 'As'], [3, 'Os'], [4, 'Todos os'], [5, 'Um'], [6, 'A']])
+  assert.match(warnings[0].message, /state now/)
+})
+
+test('#766: a subtitle that says the state, a null one and a word that only starts like an article give no warning', () => {
+  const source = [
+    "  { id: 'a', sub: '4 sessões precisam de você. 3 trabalhando, 1 em pausa e 2 concluídas.' },",
+    "  { id: 'b', sub: null },",
+    "  { id: 'c', sub: 'Osciladores parados' },",
+    "  { id: 'd', sub: 'Nada precisa de você agora.' },",
+    "  { id: 'e', subtitle: 'O texto de outro campo' },",
+  ].join('\n')
+  assert.deepEqual(subtitleWarnings(source), [])
+})
+
+test('#766: the warning reads the screens of packages/nucleo/ui/screens, where the header subtitles are', () => {
+  const root = mkdtempSync(join(tmpdir(), 'voice-lint-sub-'))
+  mkdirSync(join(root, 'packages/nucleo/ui/screens'), { recursive: true })
+  writeFileSync(join(root, 'packages/nucleo/ui/screens.js'), "export const SCREENS = [{ id: 'a', sub: null }]\n")
+  writeFileSync(join(root, 'packages/nucleo/ui/screens/fixture.js'), "const head = header({ icon: 'x', title: 'T', sub: 'O agora das suas sessões' })\nconst ok = header({ icon: 'x', title: 'U', sub: '3 sessões esperam você.' })\n")
+  const warnings = subtitleWarningsOfTree(root)
+  assert.deepEqual(warnings.map((w) => [w.file, w.line, w.article]), [['packages/nucleo/ui/screens/fixture.js', 1, 'O']])
+  assert.match(warnings[0].message, /state now/)
+})
+
+test('#766: the subtitles of the tree hold the rule today: the warning is shown in the output and never fails it', (t) => {
+  const warnings = subtitleWarningsOfTree(ROOT)
+  for (const w of warnings) t.diagnostic(`WARNING ${w.file}:${w.line} ${w.message}`)
 })

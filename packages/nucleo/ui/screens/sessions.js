@@ -5,24 +5,32 @@
 // A linha leva ao Detalhe, `/ui/sessions/<id>`. The last column is the icon that opens the session
 // where it runs (C71, issue 285); its click stays in the cell and never navigates the row.
 
+import { rememberSessions } from '../session-seed.js';
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionBadges, attentionOf, statusWithoutAttention } from '../attention.js';
 import { lastAvailability, loadAvailability, messageAction, useMessageStyle } from './session-message.js';
 import { openAction } from '../open-action.js';
+import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
-// The `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-// old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Ociosas" (`idle`).
+/* ADR-0028: the `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
+   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Em pausa" (`idle`). The words are in
+   state-labels.js: each pill is `[value, label]` and its label is read when the pill is drawn. */
+const pill = (value, id, options) => {
+  const p = [value, null];
+  Object.defineProperty(p, 1, { enumerable: true, get: () => stateLabel(id, options) });
+  return p;
+};
 export const PILLS = [
   ['all', 'Todas'],
-  ['active', 'Ativas'],
-  ['blocked', 'Precisam de você'],
-  ['idle', 'Ociosas'],
-  ['completed', 'Concluídas'],
-  ['error', 'Erro'],
-  ['abandoned', 'Abandonadas'],
+  pill('active', 'active', { plural: true }),
+  pill('blocked', 'blocked', { plural: true }),
+  pill('idle', 'idle', { plural: true }),
+  pill('completed', 'completed', { plural: true }),
+  pill('error', 'failed'),
+  pill('abandoned', 'abandoned', { plural: true }),
 ];
 
 // O rótulo da ordem diz também o sentido: o ⇅ ao lado inverte.
@@ -32,12 +40,7 @@ const ORDERS = {
   cost: { desc: 'Custo: maior', asc: 'Custo: menor' },
 };
 
-export const STATUS = {
-  active: 'Ativa',
-  completed: 'Concluída',
-  error: 'Com erro',
-  abandoned: 'Abandonada',
-};
+export const STATUS = stateLabels(['active', 'completed', 'error', 'abandoned']);
 
 /** An old bookmark's `?status=waiting` opens the ones that need you. */
 const STATUS_ALIASES = { waiting: 'blocked' };
@@ -188,7 +191,7 @@ function selector(label, options, value, onChange) {
 /** The status cell: the attention pill and its reason (issue 245), or the status badge. */
 export function badgeEl(status, attention) {
   if (attentionOf(attention)) return attentionBadges(attention);
-  // Waiting without attention does not wait on the person (delegating…): "Ativa". Nothing raw on screen.
+  // ADR-0028: waiting without attention does not wait on the person (delegating…): "Trabalhando". Nothing raw on screen.
   const st = statusWithoutAttention(status);
   if (!Object.hasOwn(STATUS, st)) return [];
   return [el('span', { class: `badge b-${st}` }, el('span', { class: 'p' }), STATUS[st])];
@@ -251,10 +254,9 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'sessions',
     title: 'Sessões',
-    sub: '…',
+    sub: null,
     actions: [el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar'), newSessionButton({ read: ctx.read, write: ctx.write })],
   });
-  const sub = head.querySelector('.sub');
 
   // ---------- filtros ----------
   const search = el('input', { type: 'search', placeholder: 'Buscar sessões…', 'aria-label': 'Buscar sessões', value: state.search, maxlength: 200 });
@@ -285,7 +287,9 @@ export async function mount(area, ctx) {
     statusSlot.replaceChildren(control, el('span', { class: 'sessions-status-group' }, el('span', { class: 'sessions-filter-label' }, 'Status'), pills));
   }
 
-  const body = el('div', { class: 'sessions-body' }, loading({ label: 'Carregando as sessões' }));
+  const firstRead = loading({ label: 'Carregando as sessões' });
+  firstRead.setAttribute('data-swap-pending', '');
+  const body = el('div', { class: 'sessions-body' }, firstRead);
   area.replaceChildren(head, machines.notices, filters, body);
 
   function drawFilters(directories, counts = null) {
@@ -424,7 +428,6 @@ export async function mount(area, ctx) {
   function draw(list) {
     machines.update(list);
     placeMachineFilter();
-    sub.textContent = registeredText(list, { choice: machines.choice, machines: machines.machines() });
     // A página pedida pode ter sumido (a lista encolheu): fica a que o núcleo devolveu.
     if (list.page !== state.page) {
       state = { ...state, page: list.page };
@@ -432,6 +435,8 @@ export async function mount(area, ctx) {
     }
     drawFilters(list.directories, list.counts);
     if (list.items.length) {
+      // #765: the detail of a session opens with its header from what this list showed.
+      rememberSessions(list.items);
       messageCells = new Map();
       body.replaceChildren(table(list), footer(list));
       askAvailability(list.items);

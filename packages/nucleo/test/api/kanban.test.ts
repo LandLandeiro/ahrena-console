@@ -94,9 +94,9 @@ describe('#31 GET /api/kanban com o simulador', () => {
     assert.deepEqual(
       corpo.columns.map((c) => [c.id, c.label]),
       [
-        ['active', 'Ativas'],
+        ['active', 'Trabalhando'],
         ['blocked', 'Precisam de você'],
-        ['idle', 'Ociosas'],
+        ['idle', 'Em pausa'],
         ['completed', 'Concluídas'],
         ['abandoned', 'Abandonadas'],
       ],

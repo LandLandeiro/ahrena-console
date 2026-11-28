@@ -252,7 +252,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(() => read());
 
-  root.replaceChildren(loading());
+  root.replaceChildren(loading({ pending: true }));
   const n = ++request;
   try {
     data = await ctx.read(route);

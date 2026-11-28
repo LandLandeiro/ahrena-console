@@ -25,7 +25,7 @@ export async function mountClaudeConfig(area, ctx) {
   const pageHeader = () => header({ icon: 'settings', title: 'Configurações do Claude', sub: 'Esta máquina · somente leitura', actions: [el('a', { class: 'btn outline', href: '/ui/agent-config?provider=codex' }, 'Codex'), el('a', { class: 'btn outline', href: '/ui/agent-config' }, 'Agent Config'), el('button', { class: 'btn', onClick: load }, 'Atualizar')] });
   async function load() {
     const current = ++sequence;
-    area.replaceChildren(pageHeader(), loading({ label: 'Lendo configurações' }));
+    area.replaceChildren(pageHeader(), loading({ label: 'Lendo configurações', pending: current === 1 }));
     try {
       const d = await ctx.read(`/api/agent-config/claude?${params}`);
       if (ctx.signal.aborted || current !== sequence) return;

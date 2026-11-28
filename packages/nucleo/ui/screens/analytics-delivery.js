@@ -33,11 +33,6 @@ function validKeyFor(groupBy, key) {
   return groupBy === 'project' ? PROJECT_NUMBER.test(parts[1]) : REPO_NAME.test(parts[1]);
 }
 
-const SUBS = {
-  repo: 'O ritmo de entrega de cada repositório no GitHub, com o esforço do Claude no mesmo repositório',
-  project: 'O ritmo de entrega de cada GitHub Project, com o esforço do Claude nos repositórios dele',
-};
-
 // ---------- Formatting (pt-BR) ----------
 
 const integer = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
@@ -508,7 +503,7 @@ export async function mountDelivery(area, ctx, { rereadMs = REREAD_MS } = {}) {
   };
 
   const head = (withExport = false) =>
-    analyticsHeader(SUBS[state.groupBy], [
+    analyticsHeader(null, [
       el(
         'div',
         { class: 'an-seg', role: 'group', 'aria-label': 'Período' },
@@ -606,7 +601,7 @@ export async function mountDelivery(area, ctx, { rereadMs = REREAD_MS } = {}) {
 
   async function draw({ quiet = false } = {}) {
     const mine = ++turn;
-    if (!quiet) area.replaceChildren(head(), bar(last && last.groupBy === state.groupBy ? last : null), loading());
+    if (!quiet) area.replaceChildren(head(), bar(last && last.groupBy === state.groupBy ? last : null), loading({ pending: !last }));
     try {
       const data = await ctx.read(deliveryRoute(state, timeZone));
       if (mine !== turn) return;

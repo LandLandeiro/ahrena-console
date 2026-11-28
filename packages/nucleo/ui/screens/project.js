@@ -9,7 +9,7 @@
 // - Enquanto um movimento ou um arrasto está em curso, a releitura espera: um quadro lido antes do
 //   movimento não pode desfazê-lo na tela.
 
-import { header, el, icon } from '../dom.js';
+import { header, el, icon, setHeaderSub } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { connectEmptyFor, connectionChanged, isGithubNotConnected } from '../github-connect.js';
 import { createSwitch, envBand, loadPickerStyle, mountPicker } from './project-picker.js';
@@ -127,10 +127,9 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'github',
     title: 'Kanban do projeto',
-    sub: 'GitHub Project · por Status · arraste para mudar',
+    sub: null,
     actions: [projectSwitch.node, el('label', { class: 'prj-milestone' }, el('span', {}, 'Marco:'), selector, icon('chevron-down')), refreshButton],
   });
-  const sub = head.querySelector('.sub');
   const actionsBox = head.querySelector('.actions');
   // O toast mora numa região viva fixa, logo depois do cabeçalho: o leitor de tela anuncia o que entra
   // nela, e o Tab chega ao Desfazer sem atravessar o quadro. Foco ou mouse em cima seguram o tempo.
@@ -146,7 +145,7 @@ export async function mount(area, ctx) {
   function drawHeader() {
     const p = board.project ?? {};
     const where = p.owner && p.number ? ` · ${p.owner} #${p.number}` : '';
-    if (sub) sub.textContent = `GitHub Project “${p.title ?? ''}”${where} · por ${p.field || 'Status'} · arraste para mudar`;
+    setHeaderSub(head, `GitHub Project “${p.title ?? ''}”${where}`);
     if (actionsBox) setHidden(actionsBox, false);
     setHidden(projectSwitch.node, Boolean(board.envOverride));
     const milestones = Array.isArray(board.milestones) ? board.milestones : [];
@@ -165,7 +164,7 @@ export async function mount(area, ctx) {
     mode = 'other';
     projectSwitch.close();
     if (actionsBox) setHidden(actionsBox, true);
-    if (sub && subText) sub.textContent = subText;
+    if (subText) setHeaderSub(head, subText);
     switchArea(...nodes);
   }
 
@@ -202,7 +201,7 @@ export async function mount(area, ctx) {
     }
     const mine = ++latestRead;
     pendingReads++;
-    if (!board && mode !== 'picker' && mode !== 'connect') switchArea(loading({ label: 'Lendo o GitHub Project' }));
+    if (!board && mode !== 'picker' && mode !== 'connect') switchArea(loading({ label: 'Lendo o GitHub Project', pending: true }));
     if (force) refreshButton.setAttribute('aria-busy', 'true');
     try {
       const fresh = await ctx.read(force ? `${ROUTE}?refresh=1` : ROUTE);

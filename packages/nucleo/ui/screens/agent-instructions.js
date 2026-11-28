@@ -592,7 +592,7 @@ export async function mountInstructions(area, ctx, { owner, name }) {
     flow?.live();
   });
 
-  body.replaceChildren(loading());
+  body.replaceChildren(loading({ pending: true }));
   await Promise.all([read(), readInstall()]);
   return () => {
     clearTimeout(timer);

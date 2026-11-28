@@ -12,6 +12,7 @@ import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { decimal, duration, modelName, num, percent, when, tokens } from './workflow-format.js';
 import { initialOpen, treeKpiRow, treePanel } from './workflow-tree.js';
+import { stateLabel } from '../state-labels.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -44,17 +45,17 @@ export function coverageText(d) {
   const inPeriod = d.sessions - outside; // `sessions` already counts the active ones older than the period
   const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
   if (d.period !== 'all' && inPeriod === 0 && outside > 0) {
-    return { title: `Nada em ${p.label}`, text: `Há ${plural(outside, 'sessão ativa mais velha', 'sessões ativas mais velhas')} e ${outside === 1 ? 'ela entra' : 'elas entram'} mesmo assim: sessões ativas nunca ficam de fora do período.` };
+    return { title: `Nada em ${p.label}`, text: `Há ${plural(outside, 'sessão trabalhando mais velha', 'sessões trabalhando mais velhas')} e ${outside === 1 ? 'ela entra' : 'elas entram'} mesmo assim: sessões trabalhando nunca ficam de fora do período.` };
   }
   const base = d.period === 'all' ? `${plural(inPeriod, 'sessão', 'sessões')} no histórico` : `${plural(inPeriod, 'sessão', 'sessões')} em ${p.label}`;
-  const tail = outside > 0 ? ` ${plural(outside, 'ativa mais velha entra', 'ativas mais velhas entram')} assim mesmo.` : ' Nenhuma sessão ativa fica de fora.';
+  const tail = outside > 0 ? ` ${plural(outside, 'sessão trabalhando mais velha entra', 'sessões trabalhando mais velhas entram')} assim mesmo.` : ' Nenhuma sessão trabalhando fica de fora.';
   return { title: base, text: `Os números e o grafo contam todas, não só as da lista.${tail}` };
 }
 
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas as sessões', resumo: 'todas as sessões' },
-  { id: 'active', rotulo: 'Só ativas', resumo: 'só as ativas' },
-  { id: 'completed', rotulo: 'Concluídas', resumo: 'só as concluídas' },
+  { id: 'active', rotulo: 'Só trabalhando', resumo: 'só as que trabalham' },
+  { id: 'completed', get rotulo() { return stateLabel('completed', { plural: true }); }, resumo: 'só as concluídas' },
 ];
 
 // ---------- Partes puras (testadas no node) ----------
@@ -94,13 +95,18 @@ export function runMeta(run, now = new Date()) {
   return parts.filter(Boolean).join(' · ');
 }
 
-const RUN_STATE = { active: ['Ativa', 'active'], completed: ['Concluída', 'completed'], error: ['Erro', 'error'] };
+// `[state, tone]`; the label is the state's in state-labels.js (ADR-0028), read when the run is drawn.
+const RUN_STATE = { active: ['active', 'active'], completed: ['completed', 'completed'], error: ['failed', 'error'] };
+const runState = (state) => {
+  const [id, tone] = RUN_STATE[state] ?? RUN_STATE.completed;
+  return [stateLabel(id), tone];
+};
 
 /** O estado de um agente do run: `[texto, cor]`. */
 export function agentState(a) {
-  if (a.state === 'completed') return ['Concluído', 'completed'];
-  if (a.state === 'running') return ['Rodando', 'active'];
-  if (a.state === 'error') return ['Erro', 'error'];
+  if (a.state === 'completed') return [stateLabel('completed_item'), 'completed'];
+  if (a.state === 'running') return [stateLabel('running'), 'active'];
+  if (a.state === 'error') return [stateLabel('failed'), 'error'];
   if (a.changesRequested === null || a.changesRequested === undefined) return ['Ajustes', 'error'];
   return [`${num(a.changesRequested)} ${a.changesRequested === 1 ? 'ajuste' : 'ajustes'}`, 'error'];
 }
@@ -223,7 +229,7 @@ function chip(text, extra = '') {
 }
 
 function runRow(run, isOpen, toggleOne, ctx) {
-  const [label, color] = RUN_STATE[run.state] ?? RUN_STATE.completed;
+  const [label, color] = runState(run.state);
   const target = `/ui/sessions/${encodeURIComponent(run.sessionId)}`;
   const link = el('a', { class: 'wf-run-link', href: `${target}#workflow`, title: 'Abrir a sessão', 'aria-label': `Abrir a sessão de ${run.name}` }, icon('external'));
   // A moldura troca de tela pelo caminho e deixaria o `#workflow` para trás: o hash vai antes.
@@ -377,9 +383,9 @@ export async function mount(area, ctx) {
   );
   const periodSeg = el('div', { class: 'wf-seg', role: 'group', 'aria-label': 'Período' }, ...periodButtons);
   const viewSeg = el('div', { class: 'wf-seg', role: 'group', 'aria-label': 'Como ver' }, ...viewButtons);
-  const head = header({ icon: 'workflows', title: 'Workflows', sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado', actions: [viewSeg, seg, periodSeg] });
+  const head = header({ icon: 'workflows', title: 'Workflows', sub: null, actions: [viewSeg, seg, periodSeg] });
 
-  area.replaceChildren(head, loading({ label: 'Carregando os workflows' }));
+  area.replaceChildren(head, loading({ label: 'Carregando os workflows', pending: true }));
 
   function chooseNode(id) {
     node = node === id ? null : id;
@@ -414,7 +420,7 @@ export async function mount(area, ctx) {
         empty(
           d.period === 'all'
             ? { icon: 'workflows', title: 'Nenhuma sessão ainda', text: 'Quando houver sessões do Claude Code nesta máquina, a orquestração dos agentes aparece aqui.' }
-            : { icon: 'workflows', title: `Nada em ${PERIODS.find((x) => x.id === d.period)?.label ?? d.period}`, text: 'Nenhuma sessão se mexeu neste período e nenhuma está ativa. Escolha um período maior para ver mais.' },
+            : { icon: 'workflows', title: `Nada em ${PERIODS.find((x) => x.id === d.period)?.label ?? d.period}`, text: 'Nenhuma sessão se mexeu neste período e nenhuma está trabalhando. Escolha um período maior para ver mais.' },
         ),
       );
       return;

@@ -36,7 +36,7 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'decision',
     title: 'Decisões',
-    sub: 'O que você e os agentes decidiram, em todas as sessões',
+    sub: null,
     actions: [
       toggle({ label: 'Agrupar por', options: [['session', 'Sessão'], ['family', 'Família'], ['branch', 'Branch']], current: filters.groupBy, onSwitch: (v) => ((filters.groupBy = v), (filters.group = null), draw()) }),
       refresh,
@@ -113,7 +113,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(draw);
 
-  area.replaceChildren(head, loading({ label: 'Carregando as decisões' }));
+  area.replaceChildren(head, loading({ label: 'Carregando as decisões', pending: true }));
   await draw();
   return () => clearTimeout(wait);
 }

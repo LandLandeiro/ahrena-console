@@ -183,7 +183,7 @@ export async function mountRepoDecisions(area, ctx, { owner, name, onCount = () 
   });
   ctx.onRestart(() => read());
 
-  body.replaceChildren(loading());
+  body.replaceChildren(loading({ pending: true }));
   await read();
   return () => {
     clearTimeout(timer);

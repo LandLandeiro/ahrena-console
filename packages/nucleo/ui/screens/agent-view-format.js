@@ -3,6 +3,7 @@
 
 import { LOCAL, machineFromQuery } from '../machine-filter.js';
 import { duration } from './workflow-format.js';
+import { stateLabels } from '../state-labels.js';
 
 const NUM = new Intl.NumberFormat('pt-BR');
 const USD = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -90,7 +91,8 @@ export function elide(steps) {
   return parts;
 }
 
-const STATE = { working: 'Ativa', waiting: 'Esperando', completed: 'Concluída', error: 'Com erro' };
+// The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
+const STATE = stateLabels({ working: 'active', waiting: 'agent_waiting', completed: 'completed', error: 'error' });
 export const stateLabel = (state) => STATE[state] ?? '—';
 
 /** The duration of an agent; a running one is partial: "até agora". (issue 521) */

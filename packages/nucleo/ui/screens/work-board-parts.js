@@ -1,15 +1,18 @@
 import { el, header, icon } from '../dom.js';
+import { workBoardSub } from '../subtitles.js';
 import { errorBand } from '../states.js';
 import { queueLimit } from './work-board-queue.js';
+import { boardColumnLabel } from '../state-labels.js';
 
-/** The six columns of the work board (issue 465), the same copy as WORK_BOARD_COLUMNS, for the states with no payload. */
+/** The six columns of the work board (issue 465), for the states with no payload. The names are state-labels.js's (ADR-0028), read when drawn; the payload `label` is ignored. */
+const column = (id, criterion) => ({ id, get label() { return boardColumnLabel(id); }, criterion });
 export const COLUMNS = [
-  { id: 'planning', label: 'Planejamento', criterion: 'Aberta, sem sessão de execução e fora da fila' },
-  { id: 'queued', label: 'Na fila', criterion: 'Planejada e posta na fila; espera vaga' },
-  { id: 'running', label: 'Em execução', criterion: 'Sessão da Athena trabalhando' },
-  { id: 'review', label: 'Em review', criterion: 'PR aberto esperando o Argos' },
-  { id: 'blocked', label: 'Bloqueado', criterion: 'Precisa de você, 3 rodadas ou CI falhou' },
-  { id: 'done', label: 'Concluído', criterion: 'PR mergeado ou issue fechada' },
+  column('planning', 'Aberta, sem sessão de execução e fora da fila'),
+  column('queued', 'Planejada e posta na fila; espera vaga'),
+  column('running', 'Sessão da Athena trabalhando'),
+  column('review', 'PR aberto esperando o Argos'),
+  column('blocked', 'Precisa de você, 3 rodadas ou CI falhou'),
+  column('done', 'PR mergeado ou issue fechada'),
 ];
 
 /** The reasons of Bloqueado in lower case, as the parent card lists them (issue 465). */
@@ -51,7 +54,7 @@ const PATH_LABELS = { initiative: 'Iniciativa', epic: 'Épico' };
 const REASON_ICONS = { 'needs-you': 'hand', 'review-rounds': 'repeat', 'ci-failed': 'error' };
 const CI = { ok: ['CI ✓', 'completed'], failed: ['CI ✕', 'error'], running: ['CI …', 'waiting'] };
 const REVIEW = { approved: ['aprovado', 'completed'], 'changes-requested': ['ajustes', 'error'], pending: ['review', 'waiting'] };
-const SESSIONS = { working: 'trabalhando', 'needs-you': 'precisa de você', idle: 'ociosa' };
+const SESSIONS = { working: 'trabalhando', 'needs-you': 'precisa de você', idle: 'em pausa' };
 const TYPE_CLASSES = new Set(Object.keys(TYPE_LABELS));
 /** issue 477: the columns that are facts of the session and of GitHub and refuse a dragged card (a lock shows while one is dragged). */
 const FACT_COLUMNS = new Set(['running', 'review', 'blocked', 'done']);
@@ -256,7 +259,7 @@ const joinNames = (names) => (names.length < 2 ? names.join('') : `${names.slice
 
 // issue 610: the line under the title when the board spans organizations: the count, the names, "N com aviso".
 // `null` when exactly one organization and one Project were read, none with a warning: the header names them as before.
-function originSub({ organizations, githubDown, loading }) {
+function originSub({ organizations, githubDown, loading, waiting }) {
   if (loading) return [el('span', { class: 'wb-orgs-count' }, '… organizações · … Projects'), ' · lendo cada organização no GitHub'];
   const { read, warned, projects, orgs } = originSummary(organizations, { githubDown });
   if (read.length === 1 && projects === 1 && !warned.length) return null;
@@ -264,7 +267,7 @@ function originSub({ organizations, githubDown, loading }) {
   const counter = el('span', { class: 'wb-orgs-count' }, noneRead ? 'Nenhuma organização lida' : `${plural(orgs, 'organização', 'organizações')} · ${plural(projects, 'Project', 'Projects')}`);
   const names = orgs ? joinNames(read.map(orgLabel)) : '';
   const warnMark = warned.length ? el('span', { class: 'wb-warn-count' }, icon('alert'), `${warned.length} com aviso`) : null;
-  return [counter, names ? ' · ' : null, names ? el('span', { class: 'mono' }, names) : null, warnMark ? ' · ' : null, warnMark, ' · a coluna vem dos sinais; só a fila é sua'];
+  return [counter, names ? ' · ' : null, names ? el('span', { class: 'mono' }, names) : null, warnMark ? ' · ' : null, warnMark, waiting ? ` · ${waiting}` : null];
 }
 
 /**
@@ -272,7 +275,8 @@ function originSub({ organizations, githubDown, loading }) {
  * organizations (issue 610, `organizations`) it counts them instead; with one organization and one Project it names
  * them as before; `loading` shows the counters in "…".
  */
-export function workBoardHeader({ project = null, organizations = null, githubDown = false, loading = false, fetchedAt = null, now = Date.now(), stale = false, reading = false, busy = false, onRefresh = null } = {}) {
+export function workBoardHeader({ project = null, organizations = null, columns = null, githubDown = false, loading = false, fetchedAt = null, now = Date.now(), stale = false, reading = false, busy = false, onRefresh = null } = {}) {
+  const waiting = workBoardSub(columns);
   const old = stale || (!reading && !isSet(fetchedAt));
   const read = el('span', { class: `wb-read${old ? ' wb-read-old' : ''}` }, icon('github'), el('span', {}, readLabel({ fetchedAt, now, reading })));
   const refresh = el(
@@ -283,13 +287,13 @@ export function workBoardHeader({ project = null, organizations = null, githubDo
   );
   const actions = [read, refresh];
   if (loading || organizations) {
-    const sub = originSub({ organizations: organizations ?? [], githubDown, loading });
+    const sub = originSub({ organizations: organizations ?? [], githubDown, loading, waiting });
     if (sub) return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub, actions });
     const named = originSummary(organizations, { githubDown }).read[0].projects[0];
-    return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: `${project?.primaryRepo ?? named.owner} · GitHub Project “${named.title}” · a coluna vem dos sinais`, actions });
+    return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: [`${project?.primaryRepo ?? named.owner} · GitHub Project “${named.title}”`, waiting].filter(Boolean).join(' · '), actions });
   }
   const where = project ? [project.primaryRepo, `GitHub Project “${project.title}”`].filter(Boolean).join(' · ') : null;
-  return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: where ? `${where} · a coluna vem dos sinais` : null, actions });
+  return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: [where, waiting].filter(Boolean).join(' · ') || null, actions });
 }
 
 /** The level switch above the filters and the path on the right (issue 466). */
@@ -568,7 +572,7 @@ export function parentCard(card, { primaryRepo = null, now = Date.now(), onDrill
       'ul',
       { class: 'wb-dist', 'aria-label': 'Filhas por coluna' },
       ...COLUMNS.filter((c) => byColumn[c.id]).map((c) =>
-        el('li', { 'data-column': c.id, title: c.label, 'aria-label': `${c.label}: ${byColumn[c.id]}` }, el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }), String(byColumn[c.id])),
+        el('li', { 'data-column': c.id, title: boardColumnLabel(c.id) ?? c.label, 'aria-label': `${boardColumnLabel(c.id) ?? c.label}: ${byColumn[c.id]}` }, el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }), String(byColumn[c.id])),
       ),
     ),
     el('button', { type: 'button', class: 'wb-drill', 'data-action': 'drill', 'data-key': card.key, 'aria-label': `Ver filhos (${kids.total}) de ${ref(card.number)}`, onClick: () => onDrill?.(card) }, `Ver filhos (${kids.total})`, icon('chevron-right')),
@@ -647,7 +651,7 @@ export function boardColumns({
         'h2',
         { class: 'wb-col-head', id: headingId },
         el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }),
-        el('span', { class: 'wb-col-name' }, c.label),
+        el('span', { class: 'wb-col-name' }, boardColumnLabel(c.id) ?? c.label),
         FACT_COLUMNS.has(c.id) ? el('span', { class: 'wb-lock', title: 'Não recebe card arrastado', 'aria-hidden': 'true' }, icon('lock')) : null,
         el('span', { class: 'wb-count', 'aria-hidden': 'true' }, count),
         srOnly(`: ${countLabel(count)}`),
@@ -661,7 +665,7 @@ export function boardColumns({
   };
   return el(
     'div',
-    { class: `wb-board${stale ? ' wb-board-stale' : ''}`, role: 'region', 'aria-label': 'Quadro por ciclo do agente', 'aria-busy': mode === 'skeleton' ? 'true' : null, 'data-mode': mode },
+    { class: `wb-board${stale ? ' wb-board-stale' : ''}`, role: 'region', 'aria-label': 'Quadro por ciclo do agente', 'aria-busy': mode === 'skeleton' ? 'true' : null, ...(mode === 'skeleton' ? { 'data-swap-pending': '' } : {}), 'data-mode': mode },
     ...source.map(column),
   );
 }

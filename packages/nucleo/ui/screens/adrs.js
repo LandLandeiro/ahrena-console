@@ -58,7 +58,7 @@ export async function mount(area, ctx) {
   const accountChip = el('span', { class: 'adr-chip mono', hidden: true });
   const refresh = el('button', { type: 'button', class: 'btn outline' }, icon('refresh'), 'Atualizar');
   refresh.addEventListener('click', () => read({ refresh: true }));
-  const head = header({ icon: K.icon, title: K.label, sub: K.kind === 'pdr' ? 'Decisões de produto dos repositórios da sua conta: o que o produto faz, para quem e por quê' : 'Decisões de arquitetura dos repositórios da sua conta, lidas das pastas de cada um', actions: [accountChip, refresh] });
+  const head = header({ icon: K.icon, title: K.label, sub: null, actions: [accountChip, refresh] });
   const band = el('div', { class: 'adr-bands' });
   const stats = el('div', { class: 'adr-stats' });
   const input = el('input', { type: 'search', value: filters.q, placeholder: K.kind === 'pdr' ? 'Buscar no título e no texto: "gratuito", "preço", "onboarding"…' : 'Buscar no título e no texto: "fila", "cache", "SQLite"…', 'aria-label': `Buscar nas ${K.plural}` });
@@ -236,7 +236,7 @@ export async function mount(area, ctx) {
   });
   ctx.onRestart(() => read());
 
-  body.replaceChildren(loading());
+  body.replaceChildren(loading({ pending: true }));
   await read();
   return () => {
     clearTimeout(timer);

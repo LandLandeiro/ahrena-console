@@ -540,7 +540,7 @@ export async function mount(area, ctx) {
     };
   }
 
-  content.replaceChildren(loading());
+  content.replaceChildren(loading({ pending: true }));
   await read();
   return () => {
     clearTimeout(timer);
