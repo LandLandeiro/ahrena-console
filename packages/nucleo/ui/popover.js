@@ -183,7 +183,7 @@ export function anchorPopover(shell, { trigger, onDismiss = null }) {
   // the new nodes before it replaces the old ones, whereas a footer button or a dismissal takes the node away first,
   // and the next opening plays the entrance (#762).
   const identity = `${shell.getAttribute('data-kind')}|${shell.getAttribute('aria-label')}`;
-  if (identity === drawnIdentity && drawnShell?.parentNode) shell.setAttribute('data-settled', 'true');
+  if (identity === drawnIdentity && drawnShell?.isConnected) shell.setAttribute('data-settled', 'true');
   drawnIdentity = identity;
   drawnShell = shell;
   const forgetAndDismiss = (how) => {
