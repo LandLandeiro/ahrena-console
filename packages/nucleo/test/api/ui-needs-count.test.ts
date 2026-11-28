@@ -70,7 +70,7 @@ describe('#761 contract: one number for "precisa de você" in the /ui, over the 
     await demo.close();
   });
 
-  /** Mounts the real Mural on the fake DOM, fed by `/api/wall` of the demo. */
+  /** #761: mounts the real Mural on the fake DOM, fed by `/api/wall` of the demo. */
   async function mountWall() {
     resetOpenStates();
     resetMachineChoice();
@@ -103,14 +103,14 @@ describe('#761 contract: one number for "precisa de você" in the /ui, over the 
       read<{ numbers: { sessions: { blocked: number } } }>(dashboardScreen.DASHBOARD_ROUTE),
     ]);
 
-    // The bar: the number of the real `createCounts` tag, and the blocked items of the attention answer it counts.
+    // #761 the bar: the number of the real `createCounts` tag, and the blocked items of the attention answer it counts.
     const tags: Record<string, { text: string } | null> = {};
     await createCounts({ read: (route: string) => read(route), nav: { tag: (id: string, tag: { text: string } | null) => void (tags[id] = tag) } }).refresh();
     const barNumber = waitingCount(attention);
     const barIds = attention.items.filter((i) => isBlocked(attentionOfItem(i))).map((i) => i.session as string);
     assert.equal(tags.wall?.text, '4 esperam', 'the tag the bar draws');
 
-    // The Mural: the section of the blocked, by the real `sectionsOf`/`countsOf`, and the same section mounted in the DOM.
+    // #761 the Mural: the section of the blocked, by the real `sectionsOf`/`countsOf`, and the same section mounted in the DOM.
     const wallNumber = countsOf(wall.cards).blocked;
     const wallIds = sectionsOf(wall.cards).blocked.map((c: { id: string }) => c.id);
     const mounted = await mountWall();
@@ -120,11 +120,11 @@ describe('#761 contract: one number for "precisa de você" in the /ui, over the 
       assert.equal(section.querySelector('.wall-h-n')!.textContent, String(wallNumber), 'the number of the section heading');
       assert.deepEqual(sorted(drawn), sorted(wallIds), 'the DOM section holds the sessions of the model');
 
-      // The Sessions filter: the route the screen sends for the Precisam de você pill, and its pill count.
+      // #761 the Sessions filter: the route the screen sends for the Precisam de você pill, and its pill count.
       const filterIds = sessions.items.map((s) => s.id);
       const filterNumber = Number(sessionsScreen.pillCount(sessions.counts, 'blocked'));
 
-      // The Início: the blocked items and count the screen reads, the cards of its inbox, and the dashboard number.
+      // #761 the Início: the blocked items and count the screen reads, the cards of its inbox, and the dashboard number.
       const homeItems = dashboardScreen.blockedItems(attention);
       const homeIds = homeItems.map((i: { session: string }) => i.session);
       const inboxIds = dashboardScreen.inboxCards(attention, []).map((c: { session: string }) => c.session);
@@ -159,7 +159,7 @@ describe('#761 contract: one number for "precisa de você" in the /ui, over the 
       assert.equal(blocked.querySelectorAll('.wall-card').some((c) => c.getAttribute('data-session') === YOUR_TURN), false, 'it is not a card');
       assert.ok(!idle || !idle.querySelectorAll('.wall-row, .wall-card').some((n) => n.getAttribute('data-session') === YOUR_TURN), 'not in "Ociosas"');
 
-      // After the cards: in the order of the section's nodes, every card comes before the row.
+      // #761 after the cards: in the order of the section's nodes, every card comes before the row.
       const order = idsOfNodes(blocked.querySelectorAll('.wall-card, .wall-row'));
       const cards = idsOfNodes(blocked.querySelectorAll('.wall-card'));
       assert.deepEqual(order.slice(0, cards.length), cards, 'the cards first');

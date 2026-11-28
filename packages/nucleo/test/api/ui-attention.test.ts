@@ -121,7 +121,7 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
   test('the status cell: the attention pill and its reason; an error keeps only "Com erro"; no raw status', () => {
     const cell = (status: string, a: unknown) => (badgeEl(status, a) as ElementoFalso[]).map((n) => texto(n));
     assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'permission' }), ['Precisa de você', 'Pede permissão']);
-    assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'turn_ended' }), ['Precisa de você', 'Sua vez'], 'issue 761: the real form of Sua vez');
+    assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'turn_ended' }), ['Precisa de você', 'Sua vez'], '#761: the real form of Sua vez');
     assert.deepEqual(cell('waiting', { level: 'idle', reason: 'interrupted' }), ['Ociosa', 'Interrompida']);
     assert.deepEqual(cell('error', { level: 'blocked', reason: 'error' }), ['Com erro']);
     assert.deepEqual(cell('active', null), ['Ativa']);
@@ -130,7 +130,7 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
   });
 });
 
-describe('the status dot (issue 761)', () => {
+describe('the status dot (#761)', () => {
   test('Sua vez has the dot of low urgency: yellow ring, not the filled yellow of a card; idle stays hollow neutral', () => {
     const cls = (n: ElementoFalso) => classes(n);
     assert.ok(cls(attention.attentionDot('blocked')).includes('attention-dot-blocked'));
@@ -156,7 +156,7 @@ describe('Detalhe: the band only when blocked, a muted line when idle (issue 245
 
   test('the idle line says what happened and since when, and that nothing blocks', () => {
     const now = Date.parse('2026-10-20T12:00:00Z');
-    assert.equal(idleNote({ level: 'blocked', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Sua vez · o turno terminou há 1 min e a vez é sua.', 'issue 761: Sua vez is blocked, so the line does not say Ociosa nor that nothing blocks');
+    assert.equal(idleNote({ level: 'blocked', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Sua vez · o turno terminou há 1 min e a vez é sua.', '#761: Sua vez is blocked, so the line does not say Ociosa nor that nothing blocks');
     assert.equal(idleNote({ level: 'blocked', reason: 'turn_ended' }, null, now), 'Sua vez · o turno terminou e a vez é sua.');
     assert.match(idleNote({ level: 'idle', reason: 'interrupted' }, '2026-10-20T11:54:00Z', now), /^Ociosa · interrompida há 6 min/);
     assert.match(idleNote({ level: 'idle', reason: 'first_prompt' }, null, now), /^Ociosa · aberta no prompt, sem o primeiro pedido\. Nada trava a sessão\.$/);

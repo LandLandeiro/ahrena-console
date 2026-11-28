@@ -784,9 +784,9 @@ describe('#751: "Ver sessão" keeps the focus through a redraw', () => {
   });
 });
 
-// ---------- issue 761: the Sua vez row and its "Responder" keep the focus through the redraw ----------
+// ---------- #761: the Sua vez row and its "Responder" keep the focus through the redraw ----------
 
-describe('issue 761: the Sua vez row keeps the focus', () => {
+describe('#761: the Sua vez row keeps the focus', () => {
   const turn = (id: string, extra: Card = {}) => session(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' }, activity: { type: 'your-turn', text: 'Rodo os testes?' }, plan: null, context: null, ...extra });
   const answer = (s: { area: ElementoFalso }, id: string) => one(s.area, `[data-key="local:${id}"] a[data-answer]`);
 

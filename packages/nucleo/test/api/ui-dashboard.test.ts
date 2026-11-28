@@ -142,7 +142,7 @@ describe('Dashboard: formatação', () => {
     assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 ociosa');
     assert.equal(sessionsDetail({ blocked: 0, idle: 0 }), 'ninguém precisa de você');
   });
-  test('issue 761: Sua vez is one of the ones that need you at the Início: in the blocked items and the cards, never in the idle ones', () => {
+  test('#761: Sua vez is one of the ones that need you at the Início: in the blocked items and the cards, never in the idle ones', () => {
     const turn = { level: 'blocked', reason: 'turn_ended' };
     const mk = (session: string, attention: { level: string; reason: string }) => ({ session, title: session, project: `p-${session}`, account: null, level: 'needs', reason: attention.reason, attention, shortReason: 'Sua vez', longReason: 'o turno terminou', since: '', minutes: 3, local: null });
     const atencao = { total: 2, blocked: 2, idle: 0, items: [mk('t', turn), mk('i', { level: 'idle', reason: 'interrupted' })] };
@@ -183,11 +183,11 @@ describe('Dashboard: formatação', () => {
     assert.equal(pill.textContent, 'Ativa');
     assert.ok(pill.classes.includes('b-active'));
     assert.equal(statusPill('waiting', { level: 'idle', reason: 'interrupted' }).textContent, 'Ociosa');
-    assert.equal(statusPill('waiting', { level: 'blocked', reason: 'turn_ended' }).textContent, 'Precisa de você', 'issue 761');
+    assert.equal(statusPill('waiting', { level: 'blocked', reason: 'turn_ended' }).textContent, 'Precisa de você', '#761');
     assert.equal(cardToneClass('waiting', null), 'st-active');
     assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'permission' }), 'dash-st-blocked');
     assert.equal(cardToneClass('waiting', { level: 'idle', reason: 'interrupted' }), 'dash-st-idle');
-    assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'turn_ended' }), 'dash-st-blocked', 'issue 761: Sua vez is a card of Precisam de você at the Início');
+    assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'turn_ended' }), 'dash-st-blocked', '#761: Sua vez is a card of Precisam de você at the Início');
     assert.equal(cardToneClass('error', { level: 'blocked', reason: 'error' }), 'st-error');
   });
 });

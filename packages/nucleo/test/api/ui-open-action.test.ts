@@ -567,7 +567,7 @@ describe('Detail: the open action in the header (C70)', () => {
     }
   });
 
-  test('issue 761: Sua vez without a band keeps the notice: a quiet line, role status, the text of the turn, no yellow band; with a band the title says Sua vez', async () => {
+  test('#761: Sua vez without a band keeps the notice: a quiet line, role status, the text of the turn, no yellow band; with a band the title says Sua vez', async () => {
     const turn = head({ session: { ...head().session, attention: { level: 'blocked', reason: 'turn_ended' }, banner: null } });
     const { area, leave } = await mountDetail(turn, stubWriter({}).write);
     try {
@@ -594,7 +594,7 @@ describe('Detail: the open action in the header (C70)', () => {
     }
   });
 
-  test('issue 761: an idle session keeps its idle line, with the hollow dot', async () => {
+  test('#761: an idle session keeps its idle line, with the hollow dot', async () => {
     const idle = head({ session: { ...head().session, attention: { level: 'idle', reason: 'interrupted' }, banner: null } });
     const { area, leave } = await mountDetail(idle, stubWriter({}).write);
     try {

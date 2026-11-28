@@ -1908,7 +1908,7 @@ describe('Wall: the agent monogram only where it tells agents apart (#751)', () 
 describe('#761: "Sua vez" in "Precisam de você" as a row, below the cards', () => {
   const WS = { id: 'ws', label: 'Workstation', state: 'connected' };
   const vez = (id: string, extra: Card = {}) => cardDeExemplo(id, { status: 'waiting', state: 'waiting', reason: 'stop', attention: { level: 'blocked', reason: 'turn_ended' }, activity: { type: 'your-turn', text: 'Rodo os testes?' }, context: null, plan: null, ...extra });
-  // The cards and the rows arrive mixed: the screen puts the cards first and keeps the order of each kind.
+  // #761: the cards and the rows arrive mixed: the screen puts the cards first and keeps the order of each kind.
   const MIXED = () => ({
     ...MURAL,
     cards: [

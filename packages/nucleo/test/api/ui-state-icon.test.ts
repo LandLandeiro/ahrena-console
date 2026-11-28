@@ -184,7 +184,7 @@ describe('#751: stateOfSession: the kind and the label of today for an attention
   });
   test('idle is paused and says Ociosa', () => {
     assert.deepEqual(stateOfSession({ attention: { level: 'idle', reason: 'interrupted' }, status: 'waiting' }), { kind: 'paused', label: 'Ociosa' });
-    assert.deepEqual(stateOfSession({ attention: { level: 'blocked', reason: 'turn_ended' }, status: 'waiting' }), { kind: 'needs', label: 'Sua vez' }, 'issue 761: Sua vez is blocked');
+    assert.deepEqual(stateOfSession({ attention: { level: 'blocked', reason: 'turn_ended' }, status: 'waiting' }), { kind: 'needs', label: 'Sua vez' }, '#761: Sua vez is blocked');
   });
   test('without attention: completed, error, abandoned and the rest as working', () => {
     assert.deepEqual(stateOfSession({ attention: null, status: 'completed' }), { kind: 'completed', label: 'Concluída' });
