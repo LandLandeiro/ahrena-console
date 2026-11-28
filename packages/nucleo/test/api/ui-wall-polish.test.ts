@@ -1,4 +1,4 @@
-// Issue 758 (ADR-0028): the finish of the wall. The "há N min" that walks by itself, the skeleton and the error band, what a live
+// #758 (ADR-0028): the finish of the wall. The "há N min" that walks by itself, the skeleton and the error band, what a live
 // change shows (a short highlight, a notice in the corner), the keys J, K and ?, and the quiet hover row.
 // Timers are the mock ones of node:test; the promises of the reads are settled with `setImmediate`, which stays real.
 import assert from 'node:assert/strict';
@@ -108,7 +108,7 @@ async function mountWith(initial: Card) {
   return { ...s, unmount };
 }
 
-describe('issue 758: "há N min" walks by itself every 30 s, without reading the route again', () => {
+describe('#758: "há N min" walks by itself every 30 s, without reading the route again', () => {
   test('two ticks of 30 s turn "há 6 min" into "há 7 min" with no new read, and the idle row follows', async () => {
     const s = await mountWith(wallOf([blocked('c1', { since: minutesAgo(6) }), paused('p1', { since: minutesAgo(6) })]));
     assert.equal(text(one(s.area, '.wall-age')), 'há 6 min');
@@ -157,7 +157,7 @@ describe('issue 758: "há N min" walks by itself every 30 s, without reading the
   });
 });
 
-describe('issue 758: loading and read error', () => {
+describe('#758: loading and read error', () => {
   test('before the first read the wall shows the shape of one card and three rows, busy and named', async () => {
     mock.timers.enable({ apis: ['setInterval', 'setTimeout', 'Date'], now: NOW });
     let release: () => void = () => {};
@@ -190,7 +190,7 @@ describe('issue 758: loading and read error', () => {
   });
 });
 
-describe('issue 758: a session that changes section enters with a short highlight', () => {
+describe('#758: a session that changes section enters with a short highlight', () => {
   test('the moved session carries wall-moved for a moment, the others do not; the first read marks nothing', async () => {
     const s = await mountWith(wallOf([working('w1'), working('w2')]));
     assert.equal(all(s.area, '.wall-moved').length, 0, 'the first read moves nothing');
@@ -204,7 +204,7 @@ describe('issue 758: a session that changes section enters with a short highligh
   });
 });
 
-describe('issue 758: the notice in the corner', () => {
+describe('#758: the notice in the corner', () => {
   const notices = (s: { area: ElementoFalso }) => all(s.area, '.wall-notice');
 
   test('the first read says nothing; a new request and a finished session each say one thing, in a polite status region', async () => {
@@ -264,7 +264,7 @@ describe('issue 758: the notice in the corner', () => {
   });
 });
 
-describe('issue 758: the keys J, K and ?', () => {
+describe('#758: the keys J, K and ?', () => {
   const press = (key: string, target: ElementoFalso | null, extra: Record<string, unknown> = {}) => {
     const ev = { type: 'keydown', key, target: target ?? undefined, ...extra } as Parameters<typeof documentoFalso.dispatchEvent>[0] & { defaultPrevented?: boolean };
     ev.preventDefault = () => void (ev.defaultPrevented = true);
@@ -355,7 +355,7 @@ describe('issue 758: the keys J, K and ?', () => {
   });
 });
 
-describe('issue 758: the style', () => {
+describe('#758: the style', () => {
   const sheet = readFileSync(`${UI_FOLDER}wall.css`, 'utf8');
   const plain = sheet.replace(/\/\*[\s\S]*?\*\//g, '');
   const rule = (selector: string) => [...plain.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].filter((m) => m[1]!.trim() === selector).map((m) => m[2]!).join(';');

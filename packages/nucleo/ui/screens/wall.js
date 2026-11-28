@@ -24,9 +24,9 @@ const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Wait before re-reading after a burst of changes that need no attention. */
 export const THROTTLE_MS = 120;
-// ADR-0028, issue 758: "há N min" is written again this often, with no read of the route (the issue 750 measured 0 recalculations on a still screen).
+// ADR-0028, #758-wall-polish: "há N min" is written again this often, with no read of the route (the issue 750 measured 0 recalculations on a still screen).
 export const SINCE_TICK_MS = 30_000;
-// ADR-0028, issue 758: how long a session that changed section keeps its highlight.
+// ADR-0028, #758-wall-polish: how long a session that changed section keeps its highlight.
 export const MOVED_MS = 2400;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
@@ -375,7 +375,7 @@ function foot(v, machine, show) {
   return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;
 }
 
-/** ADR-0028, issue 758: while the first read has not come back, the shape of one card and three rows; it does not move. */
+/** ADR-0028, #758-wall-polish: while the first read has not come back, the shape of one card and three rows; it does not move. */
 function skeleton() {
   const bones = (...kinds) => kinds.map((k) => el('div', { class: `wall-skel-bone${k ? ` ${k}` : ''}` }));
   return el(
@@ -401,7 +401,7 @@ export async function mount(area, ctx) {
   let parkedLimit = PARKED_PAGE;
   // ADR-0028: the parked keys on screen when "Mostrar mais" was pressed; the first row beyond them gets the focus.
   let moreFrom = null;
-  // ADR-0028, issue 758: what the last read looked like, the keys that changed section (highlighted for MOVED_MS) and the notices in the corner.
+  // ADR-0028, #758-wall-polish: what the last read looked like, the keys that changed section (highlighted for MOVED_MS) and the notices in the corner.
   let seen = null;
   const moved = new Set();
   let movedTimer = null;
@@ -607,7 +607,7 @@ export async function mount(area, ctx) {
     return [head, segs, ...machines.parts(), band, body, parked].filter(Boolean);
   }
 
-  // ADR-0028, issue 758: what this read changed against the last one: highlight the sessions that moved, say the two things that matter.
+  // ADR-0028, #758-wall-polish: what this read changed against the last one: highlight the sessions that moved, say the two things that matter.
   function follow(cards) {
     const { moved: now, notices: news } = liveChanges(seen, cards);
     seen = snapshotOf(cards);
@@ -667,7 +667,7 @@ export async function mount(area, ctx) {
     }, THROTTLE_MS);
   });
 
-  // ADR-0028, issue 758: "há N min" is written again every SINCE_TICK_MS, only its text; no timer runs on a hidden tab.
+  // ADR-0028, #758-wall-polish: "há N min" is written again every SINCE_TICK_MS, only its text; no timer runs on a hidden tab.
   const doc = globalThis.document;
   function tick() {
     for (const node of area.querySelectorAll('[data-since]')) {
@@ -679,7 +679,7 @@ export async function mount(area, ctx) {
   const startTicker = () => {
     if (ticker || doc?.hidden) return;
     ticker = setInterval(tick, SINCE_TICK_MS);
-    // Issue 758: in node (the tests mount the screen and leave it mounted) the timer must not keep the process alive; in the browser the id is a number.
+    // #758-wall-polish: in node (the tests mount the screen and leave it mounted) the timer must not keep the process alive; in the browser the id is a number.
     ticker?.unref?.();
   };
   const stopTicker = () => {
@@ -693,7 +693,7 @@ export async function mount(area, ctx) {
   };
   doc?.addEventListener?.('visibilitychange', onVisibility);
 
-  // ADR-0028, issue 758: J and K move the focus between the cards and the rows, ? shows the list; typing and the modifiers are left alone.
+  // ADR-0028, #758-wall-polish: J and K move the focus between the cards and the rows, ? shows the list; typing and the modifiers are left alone.
   const onKey = (ev) => {
     const act = shortcutOf(ev);
     if (!act) return;

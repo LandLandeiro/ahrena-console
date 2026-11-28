@@ -684,7 +684,7 @@ describe('Mural: a tela montada', () => {
     let soltar: (v: unknown) => void = () => {};
     const { area, pronta, sair } = await montarTela(() => new Promise((r) => (soltar = r)));
     try {
-      // Issue 758: the loading is the skeleton with the shape of one card and three rows (ADR-0028), still busy and named.
+      // #758: the loading is the skeleton with the shape of one card and three rows (ADR-0028), still busy and named.
       assert.equal(comClasse(area, 'wall-skel').length, 1);
       assert.equal(comClasse(area, 'wall-skel')[0]!.getAttribute('aria-busy'), 'true');
       soltar({ ...MURAL, count: { all: 0, waiting: 0, active: 0, blocked: 0, idle: 0 }, cards: [] });
@@ -983,7 +983,7 @@ describe('#751: the sheet of the wall', () => {
       assert.match(ruleOf(selector), /var\(--radius-card\)/, selector);
     }
     assert.match(ruleOf('.wall-list'), /border:\s*1px solid var\(--border\)/);
-    // Issue 758: the only shadow is the one of what floats (the notice in the corner), and it is the token's.
+    // #758: the only shadow is the one of what floats (the notice in the corner), and it is the token's.
     assert.doesNotMatch(sheet.replace(/box-shadow:\s*var\(--shadow-float\)/g, ''), /box-shadow|drop-shadow|backdrop-filter|gradient/);
   });
 
@@ -1362,13 +1362,13 @@ describe('#752: the sentence of the header is one live region, written only when
     }
   });
 
-  test('nothing else on the screen is a live region: the calm block, the band and the loading do not repeat the sentence (the notice region apart, issue 758)', async () => {
+  test('nothing else on the screen is a live region: the calm block, the band and the loading do not repeat the sentence (the notice region apart, #758)', async () => {
     const onlyActive = { ...MURAL, count: { all: 1, waiting: 0, active: 1, blocked: 0, idle: 0 }, cards: [MURAL.cards[0]] };
     const { area, sair } = await montarTela(async () => onlyActive);
     try {
       await ate(() => sessionsOf(area).length === 1);
       assert.equal(comClasse(area, 'wall-calm').length, 1);
-      assert.deepEqual(area.todos((e) => e.getAttribute('aria-live') !== null).map((e) => e.classes.join(' ')), ['wall-summary', 'wall-notices']); // issue 758: the notice's region is its own, empty until a request or a finish
+      assert.deepEqual(area.todos((e) => e.getAttribute('aria-live') !== null).map((e) => e.classes.join(' ')), ['wall-summary', 'wall-notices']); // #758: the notice's region is its own, empty until a request or a finish
       assert.equal(area.todos((e) => ['status', 'alert'].includes(e.getAttribute('role') ?? '') && e.classes.includes('wall-calm')).length, 0);
     } finally {
       await sair();

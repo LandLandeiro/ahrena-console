@@ -82,7 +82,7 @@
 .wall-list > .wall-row:first-child { border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0; }
 .wall-list > .wall-row:last-child { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
 .wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
-/* ADR-0028, issue 758: the hover is the light line in --bg; no shadow. */
+/* ADR-0028: the hover is the light line in --bg; no shadow. */
 .wall-row:hover { background: var(--bg); }
 .wall-row:has(.wall-act [role="status"]:not(:empty)) { z-index: 3; }
 .wall-filler { display: none; }
@@ -177,7 +177,7 @@
 button.wall-kid-toggle { position: relative; }
 button.wall-kid-toggle::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
 
-/* ---------- ADR-0028, issue 758: loading, error, live change, the notice and the keys ---------- */
+/* ---------- ADR-0028: loading, error, live change, the notice and the keys ---------- */
 /* The skeleton: the shape of one card and three rows, still. Nothing in it moves, so there is nothing to turn off. */
 .wall-skel { display: flex; flex-direction: column; gap: 16px; }
 .wall-skel-card { display: flex; flex-direction: column; gap: 10px; min-height: 140px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }

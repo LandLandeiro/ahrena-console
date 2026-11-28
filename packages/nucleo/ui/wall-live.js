@@ -1,4 +1,4 @@
-// ADR-0028, issue 758: what a read of the wall changed since the one before it, without DOM. A session that changed section is
+// ADR-0028, #758-wall-polish: what a read of the wall changed since the one before it, without DOM. A session that changed section is
 // highlighted for a moment; a new request and a finished session also say so in the corner. Nothing else does.
 
 import { itemKey } from './machine-filter.js';

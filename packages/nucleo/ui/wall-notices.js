@@ -1,4 +1,4 @@
-// ADR-0028, issue 758: the notice in the corner of the Mural. A polite status region, built once; each notice stays NOTICE_MS,
+// ADR-0028, #758-wall-polish: the notice in the corner of the Mural. A polite status region, built once; each notice stays NOTICE_MS,
 // at most NOTICE_MAX are stacked (the oldest leaves first) and none of them takes the focus. The entrance is in wall.css and
 // only runs without `prefers-reduced-motion`.
 
