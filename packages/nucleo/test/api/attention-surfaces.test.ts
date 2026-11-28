@@ -32,7 +32,7 @@ const EXPECTED: Record<string, unknown> = {
   permissao: { level: 'blocked', reason: 'permission' },
   pergunta: { level: 'blocked', reason: 'question' },
   erro: { level: 'blocked', reason: 'error' },
-  'sua-vez': { level: 'idle', reason: 'turn_ended' },
+  'sua-vez': { level: 'blocked', reason: 'turn_ended' }, // #761: the turn that ended awaits the person
   interrompida: { level: 'idle', reason: 'interrupted' },
   abriu: { level: 'idle', reason: 'first_prompt' },
   trabalhando: null,

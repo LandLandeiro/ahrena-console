@@ -113,18 +113,19 @@ describe('sessions_needing_attention', () => {
     const d = r.structuredContent;
     assert.equal(r.isError, false);
     assert.equal(d.total, 7);
-    assert.equal(d.blocking, 4);
-    assert.equal(d.yourTurn, 3);
+    assert.equal(d.blocking, 5);
+    assert.equal(d.yourTurn, 2);
     // Blocking first; in each group, whoever has waited longest first.
     assert.deepEqual(
       d.items.map((i: any) => [i.sessionId, i.group, i.reason]),
       [
+        // The turn that ended ("Sua vez") needs you too (#761): it is in `blocking`, ordered by the wait.
+        ['sua-vez', 'blocking', 'turn_ended'],
         ['plano', 'blocking', 'plan'],
         ['permissao', 'blocking', 'permission'],
         ['erro', 'blocking', 'error'],
         ['pergunta', 'blocking', 'question'],
-        // Esc is your turn, as on the panel (atencaoDe, #140).
-        ['sua-vez', 'your_turn', 'turn_ended'],
+        // Esc awaits nobody: idle (`your_turn`), as on the panel (atencaoDe, #140 and #761).
         ['interrompida', 'your_turn', 'interrupted'],
         ['abriu', 'your_turn', 'first_prompt'],
       ],
@@ -139,8 +140,8 @@ describe('sessions_needing_attention', () => {
     assert.equal(d.items.find((i: any) => i.sessionId === 'pergunta').questionOptions, 3);
     assert.equal(d.items.find((i: any) => i.sessionId === 'erro').errorCode, '529 overloaded_error');
     assert.equal(d.items.find((i: any) => i.sessionId === 'erro').account, null);
-    // #245: "precisa de você" is only what blocks; the turn that ended is "ociosa".
-    assert.match(r.content[0].text, /^4 sessões precisam de você e 3 estão ociosas\./);
+    // #761: "precisa de você" is `needsYou`: what blocks and the turn that ended; only Esc and the prompt are "ociosa".
+    assert.match(r.content[0].text, /^5 sessões precisam de você e 2 estão ociosas\./);
     assert.match(r.content[0].text, /\nPrecisam de você:[\s\S]*\nOciosas:/);
     assert.doesNotMatch(r.content[0].text, /esperando você|na sua vez|travando/i);
   });
@@ -180,7 +181,7 @@ describe('sessions_needing_attention', () => {
     const d = (await callTool('sessions_needing_attention')).structuredContent;
     assert.deepEqual(
       d.byAccount.map((c: any) => [c.account?.label ?? null, c.total, c.blocking, c.yourTurn]),
-      [['equipe', 4, 2, 2], ['cliente', 2, 1, 1], [null, 1, 1, 0]],
+      [['equipe', 4, 3, 1], ['cliente', 2, 1, 1], [null, 1, 1, 0]],
     );
     const ids = async (account: unknown) => (await callTool('sessions_needing_attention', { account })).structuredContent.items.map((i: any) => i.sessionId);
     assert.deepEqual(await ids('CLIENTE'), ['pergunta', 'interrompida']);
@@ -192,7 +193,7 @@ describe('sessions_needing_attention', () => {
 
   test('filter by group and pagination by cursor', async () => {
     const yourTurn = (await callTool('sessions_needing_attention', { group: 'your_turn' })).structuredContent;
-    assert.deepEqual(yourTurn.items.map((i: any) => i.sessionId), ['sua-vez', 'interrompida', 'abriu']);
+    assert.deepEqual(yourTurn.items.map((i: any) => i.sessionId), ['interrompida', 'abriu']);
     assert.equal(yourTurn.total, 7, 'the totals cover every group');
 
     const p1 = (await callTool('sessions_needing_attention', { limit: 3 })).structuredContent;
@@ -224,13 +225,13 @@ describe('fleet_overview', () => {
     assert.deepEqual(t.byState, { active: 1, waiting: 6, delegating: 1, background: 0, error: 1 });
     assert.equal(t.completedToday, 1);
     assert.equal(t.abandonedToday, 0, 'the one abandoned yesterday does not count');
-    assert.deepEqual(t.needingAttention, { total: 7, blocking: 4, yourTurn: 3 });
+    assert.deepEqual(t.needingAttention, { total: 7, blocking: 5, yourTurn: 2 });
     assert.ok(t.costTodayUsd > 0);
     assert.equal(t.costEstimate, true);
     assert.equal(r.structuredContent.day, '2026-11-02');
     assert.match(r.content[0].text, /Custo de hoje \(estimativa\): US\$ \d+\.\d\d/);
-    // #245: the blocked ones need you; the idle ones are counted apart.
-    assert.match(r.content[0].text, /\nPrecisam de você: 4; ociosas: 3\./);
+    // #761: the ones `needsYou` names (the turn that ended included) need you; the idle ones are counted apart.
+    assert.match(r.content[0].text, /\nPrecisam de você: 5; ociosas: 2\./);
     assert.doesNotMatch(r.content[0].text, /esperando você|na sua vez|travando/i);
   });
 
