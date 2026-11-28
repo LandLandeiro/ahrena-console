@@ -246,7 +246,7 @@ describe('#465/AC-2 the six columns over GET /api/work', () => {
     assert.deepEqual(s.columns(), WORK_BOARD_COLUMNS.map((c) => c.id));
     assert.deepEqual(
       s.area.querySelectorAll('section.wb-col').map((c) => texto(c.querySelector('.wb-col-name'))),
-      ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído'],
+      ['Planejamento', 'Na fila', 'Em execução', 'Em revisão', 'Precisa de você', 'Concluído'],
     );
     const expected = await apiNumbers(core, '?level=item');
     assert.ok(expected.length >= 5, 'the demo board has cards');

@@ -14,7 +14,7 @@ const ref = (n) => `#${n}`;
 const WHERE = { desktop: 'abrindo no Claude Desktop', terminal: 'abrindo no Terminal', focused: 'Terminal à frente' };
 /** The note of a failed run when the core gave no reason (the words of 477-1; issue 532). */
 const RUN_FAILED_FALLBACK = 'A sessão não subiu';
-/** The columns a live session still gets "Abrir sessão" in: Em review and Concluído have no action (465-2, issue 532). */
+/** The columns a live session still gets "Abrir sessão" in: Em revisão and Concluído have no action (465-2, issue 532, ADR-0028). */
 const LIVE_COLUMNS = new Set(['running', 'blocked']);
 
 /**

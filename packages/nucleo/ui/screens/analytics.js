@@ -370,7 +370,7 @@ export function overviewScreen(d) {
     el(
       'div',
       { class: 'an-stats an-five' },
-      stat({ id: 'sessions', rotulo: 'Sessões', valor: quantity(n.sessions.total), sub: plural(n.sessions.active, 'ativa', 'ativas'), icone: 'sessions', cor: 'accent' }),
+      stat({ id: 'sessions', rotulo: 'Sessões', valor: quantity(n.sessions.total), sub: `${quantity(n.sessions.active)} trabalhando`, icone: 'sessions', cor: 'accent' }),
       stat({ id: 'agents', rotulo: 'Agentes', valor: quantity(n.agents.total), sub: plural(n.agents.active, 'ativo', 'ativos'), icone: 'an-bot', cor: 'active' }),
       stat({ id: 'tokens', rotulo: 'Tokens', valor: quantity(n.tokens.total), sub: n.tokens.cachePct === null ? 'cache sem dado' : `${percent(n.tokens.cachePct)} de cache`, icone: 'port', cor: 'accent' }),
       stat({
