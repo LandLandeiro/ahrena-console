@@ -118,6 +118,20 @@ function parse(file: string, source: string): Parsed {
     return found;
   }
 
+  /** #750: the declarations of every frame (`from`, `50%`, `to`) between the braces of one @keyframes block. */
+  function framesOf(open: number, end: number, rule: number): Declaration[] {
+    const frames: Declaration[] = [];
+    let cursor = open + 1;
+    while (cursor < end) {
+      const frameOpen = css.indexOf('{', cursor);
+      if (frameOpen === -1 || frameOpen >= end) break;
+      const frameEnd = closing(frameOpen + 1);
+      frames.push(...declarationsOf(css.slice(frameOpen + 1, frameEnd), frameOpen + 1, rule));
+      cursor = frameEnd + 1;
+    }
+    return frames;
+  }
+
   function walk(from: number, to: number, rule: number) {
     at = from;
     while (at < to) {
@@ -135,16 +149,7 @@ function parse(file: string, source: string): Parsed {
       const end = closing(open + 1);
       const keyframes = /^@(?:-\w+-)?keyframes\s+([\w-]+)$/i.exec(prelude);
       if (keyframes) {
-        const frames: Declaration[] = [];
-        let cursor = open + 1;
-        while (cursor < end) {
-          const frameOpen = css.indexOf('{', cursor);
-          if (frameOpen === -1 || frameOpen >= end) break;
-          const frameEnd = closing(frameOpen + 1);
-          frames.push(...declarationsOf(css.slice(frameOpen + 1, frameEnd), frameOpen + 1, rule));
-          cursor = frameEnd + 1;
-        }
-        out.keyframes.push({ file, line: lineOf(preludeStart), name: keyframes[1], declarations: frames });
+        out.keyframes.push({ file, line: lineOf(preludeStart), name: keyframes[1], declarations: framesOf(open, end, rule) });
       } else if (prelude.startsWith('@') && !/^@(font-face|page|property|counter-style)/i.test(prelude)) {
         walk(open + 1, end, rule);
       } else {
@@ -182,46 +187,63 @@ function animationNames(item: string): string[] {
 const INFINITE = /(^|\s)infinite(\s|$)/i;
 const isRotateOnly = (frame: Declaration) => frame.property === 'transform' && /^rotate[xyz3d]*\([^)]*\)$/i.test(frame.value.trim());
 
+const where = (d: Declaration) => `${d.file}:${d.line}: \`${d.property}: ${d.value}\``;
+
+/** #750: a frame of this @keyframes that animates a property the rule forbids. */
+function keyframeProblems(k: Keyframes): string[] {
+  return k.declarations.filter((frame) => FORBIDDEN.has(frame.property)).map((frame) => `${where(frame)}: @keyframes ${k.name} animates ${frame.property}`);
+}
+
+/** #750: every definition of the keyframes `name` that an infinite animation runs must be only a rotation. */
+function targetProblems(name: string, targets: Keyframes[], d: Declaration): string[] {
+  const problems: string[] = [];
+  for (const target of targets) {
+    if (target.declarations.length > 0 && target.declarations.every(isRotateOnly)) continue;
+    const offender = target.declarations.find((f) => !isRotateOnly(f));
+    problems.push(`${where(d)}: \`${name}\` runs forever but is not only \`transform: rotate(...)\`${offender ? ` (${where(offender)})` : ''}`);
+  }
+  return problems;
+}
+
+/** #750: `infinite` is read per item of the comma list, and a name of `animation-name` comes from the same rule only. */
+function infiniteProblems(p: Parsed, d: Declaration, keyframes: Map<string, Keyframes[]>): string[] {
+  const items = splitTop(d.value, ',');
+  if (!items.some((item) => INFINITE.test(item))) return [];
+  const names = d.property === 'animation-iteration-count' ? sameRuleNames(p, d) : items.filter((item) => INFINITE.test(item)).flatMap(animationNames);
+  const problems: string[] = [];
+  if (names.length === 0) problems.push(`${where(d)}: infinite animation with no keyframes this file or any other defines`);
+  for (const name of names) {
+    const targets = keyframes.get(name);
+    if (!targets) problems.push(`${where(d)}: infinite animation \`${name}\` names no @keyframes in the UI folder`);
+    problems.push(...targetProblems(name, targets ?? [], d));
+  }
+  return problems;
+}
+
+/** #750: a transition of a listed property, of `all`, or of no property at all (which is `all`). */
+function transitionProblems(d: Declaration): string[] {
+  const problems: string[] = [];
+  for (const item of splitTop(d.value, ',')) {
+    if (/^\s*none\s*$/i.test(item)) continue;
+    const property = d.property === 'transition-property' ? unprefix(item.trim()) : transitionProperty(item);
+    if (property === null) problems.push(`${where(d)}: a transition that names no property is \`all\``);
+    else if (property === 'all') problems.push(`${where(d)}: a transition of \`all\` includes ${[...FORBIDDEN].join(', ')}`);
+    else if (FORBIDDEN.has(property)) problems.push(`${where(d)}: transitions ${property}`);
+  }
+  return problems;
+}
+
 /** #750: every refusal, each naming the file, the line and the offending declaration. */
 export function motionProblems(files: { file: string; css: string }[]): string[] {
   const parsed = files.map(({ file, css }) => parse(file, css));
   const keyframes = new Map<string, Keyframes[]>();
   for (const p of parsed) for (const k of p.keyframes) keyframes.set(k.name, [...(keyframes.get(k.name) ?? []), k]);
   const problems: string[] = [];
-  const where = (d: Declaration) => `${d.file}:${d.line}: \`${d.property}: ${d.value}\``;
-
   for (const p of parsed) {
-    for (const k of p.keyframes) {
-      for (const frame of k.declarations) {
-        if (FORBIDDEN.has(frame.property)) problems.push(`${where(frame)}: @keyframes ${k.name} animates ${frame.property}`);
-      }
-    }
-    // #750: `infinite` is read per item of the comma list, and a name of `animation-name` comes from the same rule only.
+    for (const k of p.keyframes) problems.push(...keyframeProblems(k));
     for (const d of p.declarations) {
-      if (d.property === 'animation' || d.property === 'animation-iteration-count' || d.property === 'animation-name') {
-        const items = splitTop(d.value, ',');
-        if (!items.some((item) => INFINITE.test(item))) continue;
-        const names = d.property === 'animation-iteration-count' ? sameRuleNames(p, d) : items.filter((item) => INFINITE.test(item)).flatMap(animationNames);
-        if (names.length === 0) problems.push(`${where(d)}: infinite animation with no keyframes this file or any other defines`);
-        for (const name of names) {
-          const targets = keyframes.get(name);
-          if (!targets) problems.push(`${where(d)}: infinite animation \`${name}\` names no @keyframes in the UI folder`);
-          for (const target of targets ?? []) {
-            if (target.declarations.length > 0 && target.declarations.every(isRotateOnly)) continue;
-            const offender = target.declarations.find((f) => !isRotateOnly(f));
-            problems.push(`${where(d)}: \`${name}\` runs forever but is not only \`transform: rotate(...)\`${offender ? ` (${where(offender)})` : ''}`);
-          }
-        }
-      }
-      if (d.property === 'transition' || d.property === 'transition-property') {
-        for (const item of splitTop(d.value, ',')) {
-          if (/^\s*none\s*$/i.test(item)) continue;
-          const property = d.property === 'transition-property' ? unprefix(item.trim()) : transitionProperty(item);
-          if (property === null) problems.push(`${where(d)}: a transition that names no property is \`all\``);
-          else if (property === 'all') problems.push(`${where(d)}: a transition of \`all\` includes ${[...FORBIDDEN].join(', ')}`);
-          else if (FORBIDDEN.has(property)) problems.push(`${where(d)}: transitions ${property}`);
-        }
-      }
+      if (d.property === 'animation' || d.property === 'animation-iteration-count' || d.property === 'animation-name') problems.push(...infiniteProblems(p, d, keyframes));
+      if (d.property === 'transition' || d.property === 'transition-property') problems.push(...transitionProblems(d));
     }
   }
   return problems;
