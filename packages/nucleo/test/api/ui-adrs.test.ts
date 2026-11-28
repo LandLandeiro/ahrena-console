@@ -240,7 +240,8 @@ describe('ADR (C28): the list of every repository', () => {
     const pdrs = list({ kind: 'pdr', groups: [{ repo: 'exemplo-labs/vitrine-demo', folders: ['docs/decisoes'], format: 'free', total: 1, byTypeField: true, records: [row(7, 'Kanban só do usuário', { kind: 'pdr', kindReason: 'type-field', repo: 'exemplo-labs/vitrine-demo' })] }] });
     const { area, reads } = await mountWith(mountList, '/ui/pdrs', () => pdrs);
     assert.deepEqual(reads, ['/api/pdrs']);
-    assert.match(texto(area.querySelector('header')), /^PDR Ao vivo Decisões de produto/);
+    assert.match(texto(area.querySelector('header')), /^PDR Ao vivo conta: dev-sintetico/);
+    assert.equal(area.querySelector('header .sub'), null, '#766: no line explains what a PDR is');
     assert.match(texto(area.querySelector('.adr-group-head')), /docs\/decisoes · livre · 1 PDR · separadas das ADRs pelo campo Tipo: produto/);
     assert.equal(area.querySelector('.adr-row')!.getAttribute('href'), '/ui/pdrs/exemplo-labs/vitrine-demo/0007-kanban-s-do-usu-rio');
     assert.match(lido(area.querySelector('.adr-without')), /Sem PDR em 1 repositório/);

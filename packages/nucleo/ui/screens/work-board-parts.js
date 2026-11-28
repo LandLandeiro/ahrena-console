@@ -1,4 +1,5 @@
 import { el, header, icon } from '../dom.js';
+import { workBoardSub } from '../subtitles.js';
 import { errorBand } from '../states.js';
 import { queueLimit } from './work-board-queue.js';
 import { boardColumnLabel } from '../state-labels.js';
@@ -258,7 +259,7 @@ const joinNames = (names) => (names.length < 2 ? names.join('') : `${names.slice
 
 // issue 610: the line under the title when the board spans organizations: the count, the names, "N com aviso".
 // `null` when exactly one organization and one Project were read, none with a warning: the header names them as before.
-function originSub({ organizations, githubDown, loading }) {
+function originSub({ organizations, githubDown, loading, waiting }) {
   if (loading) return [el('span', { class: 'wb-orgs-count' }, '… organizações · … Projects'), ' · lendo cada organização no GitHub'];
   const { read, warned, projects, orgs } = originSummary(organizations, { githubDown });
   if (read.length === 1 && projects === 1 && !warned.length) return null;
@@ -266,7 +267,7 @@ function originSub({ organizations, githubDown, loading }) {
   const counter = el('span', { class: 'wb-orgs-count' }, noneRead ? 'Nenhuma organização lida' : `${plural(orgs, 'organização', 'organizações')} · ${plural(projects, 'Project', 'Projects')}`);
   const names = orgs ? joinNames(read.map(orgLabel)) : '';
   const warnMark = warned.length ? el('span', { class: 'wb-warn-count' }, icon('alert'), `${warned.length} com aviso`) : null;
-  return [counter, names ? ' · ' : null, names ? el('span', { class: 'mono' }, names) : null, warnMark ? ' · ' : null, warnMark, ' · a coluna vem dos sinais; só a fila é sua'];
+  return [counter, names ? ' · ' : null, names ? el('span', { class: 'mono' }, names) : null, warnMark ? ' · ' : null, warnMark, waiting ? ` · ${waiting}` : null];
 }
 
 /**
@@ -274,7 +275,8 @@ function originSub({ organizations, githubDown, loading }) {
  * organizations (issue 610, `organizations`) it counts them instead; with one organization and one Project it names
  * them as before; `loading` shows the counters in "…".
  */
-export function workBoardHeader({ project = null, organizations = null, githubDown = false, loading = false, fetchedAt = null, now = Date.now(), stale = false, reading = false, busy = false, onRefresh = null } = {}) {
+export function workBoardHeader({ project = null, organizations = null, columns = null, githubDown = false, loading = false, fetchedAt = null, now = Date.now(), stale = false, reading = false, busy = false, onRefresh = null } = {}) {
+  const waiting = workBoardSub(columns);
   const old = stale || (!reading && !isSet(fetchedAt));
   const read = el('span', { class: `wb-read${old ? ' wb-read-old' : ''}` }, icon('github'), el('span', {}, readLabel({ fetchedAt, now, reading })));
   const refresh = el(
@@ -285,13 +287,13 @@ export function workBoardHeader({ project = null, organizations = null, githubDo
   );
   const actions = [read, refresh];
   if (loading || organizations) {
-    const sub = originSub({ organizations: organizations ?? [], githubDown, loading });
+    const sub = originSub({ organizations: organizations ?? [], githubDown, loading, waiting });
     if (sub) return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub, actions });
     const named = originSummary(organizations, { githubDown }).read[0].projects[0];
-    return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: `${project?.primaryRepo ?? named.owner} · GitHub Project “${named.title}” · a coluna vem dos sinais`, actions });
+    return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: [`${project?.primaryRepo ?? named.owner} · GitHub Project “${named.title}”`, waiting].filter(Boolean).join(' · '), actions });
   }
   const where = project ? [project.primaryRepo, `GitHub Project “${project.title}”`].filter(Boolean).join(' · ') : null;
-  return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: where ? `${where} · a coluna vem dos sinais` : null, actions });
+  return header({ icon: 'columns-3', title: 'Quadro do trabalho', sub: [where, waiting].filter(Boolean).join(' · ') || null, actions });
 }
 
 /** The level switch above the filters and the path on the right (issue 466). */

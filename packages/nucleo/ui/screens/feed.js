@@ -34,7 +34,7 @@ import {
   agentName,
   eventKey,
 } from './feed-state.js';
-import { createMachineFilter, machineIdOf, machineTag, whereText } from '../machine-filter.js';
+import { createMachineFilter, machineIdOf, machineTag } from '../machine-filter.js';
 
 const CSS = '/ui/feed.css';
 const CLOCK_MS = 5000;
@@ -66,8 +66,7 @@ export async function mount(area, ctx) {
 
   const pauseButton = el('button', { type: 'button', class: 'btn', 'aria-pressed': 'false', onClick: () => (state.pausado ? drop() : freeze()) });
   const refreshButton = el('button', { type: 'button', class: 'btn', onClick: () => reload() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'activity', title: 'Feed de atividade', sub: 'Todos os eventos das sessões, ao vivo', actions: [pauseButton, refreshButton] });
-  const sub = head.querySelector?.('.sub') ?? null;
+  const head = header({ icon: 'activity', title: 'Feed de atividade', sub: null, actions: [pauseButton, refreshButton] });
   // Issue 243 (C47): the machine filter on its own row under the header. The feed's own clock already asks
   // for new events every few seconds (which reads the remotes and their state too), and every change asks
   // again: the filter adds no timer and no debounce of its own.
@@ -78,7 +77,6 @@ export async function mount(area, ctx) {
     const parts = machines.parts();
     machineSlot.replaceChildren(...parts);
     machineSlot.hidden = parts.length === 0;
-    if (sub) sub.textContent = machines.hasRemotes() ? `Todos os eventos das sessões ${whereText(machines.choice, machines.machines(), { form: 'of' })}, ao vivo` : 'Todos os eventos das sessões, ao vivo';
   }
 
   // ---------- sobre ----------

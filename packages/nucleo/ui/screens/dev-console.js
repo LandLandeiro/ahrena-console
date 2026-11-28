@@ -12,7 +12,7 @@
 //
 // Everything from the núcleo goes in through `textContent` (`el()`), never as HTML.
 
-import { el, header as screenHeader, icon } from '../dom.js';
+import { el, header as screenHeader, icon, setHeaderSub } from '../dom.js';
 import { empty, error, errorBand, loading as loadingState } from '../states.js';
 import { attentionOf, isBlocked, isIdle, reasonChip } from '../attention.js';
 import { boardColumnLabel, stateLabel } from '../state-labels.js';
@@ -452,8 +452,7 @@ export async function mount(area, ctx) {
   ctx.signal.addEventListener('abort', () => (stop(), sheet?.remove()));
 
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar');
-  const header = screenHeader({ icon: 'gauge', title: 'Dev Console', sub: 'PRs, issues e sessões dos repositórios do contexto', actions: [refresh] });
-  const sub = header.querySelector('.sub');
+  const header = screenHeader({ icon: 'gauge', title: 'Dev Console', sub: null, actions: [refresh] });
 
   area.replaceChildren(header, loadingState({ label: 'Lendo o Dev Console' }));
 
@@ -516,7 +515,7 @@ export async function mount(area, ctx) {
     const focusedIndex = focused ? focusables(area).filter((n) => focusKey(n) === focused).indexOf(active) : -1;
 
     const shown = state.tab === MERGE_QUEUE_TAB ? overview : view;
-    if (sub) sub.textContent = `PRs, issues e sessões dos repositórios do contexto${shown?.readAt ? ` · GitHub lido ${ago(shown.readAt, now)}` : ''}`;
+    setHeaderSub(header, shown?.readAt ? `GitHub lido ${ago(shown.readAt, now)}` : null);
     const failureBand = band('failure', failure, (t) => errorBand({ title: 'Não deu para atualizar.', text: t, action: { label: 'Tentar de novo', onClick: () => read() } }));
     const stale = band('stale', staleText(shown), (t) => {
       const node = errorBand({ title: 'Sem conexão com o GitHub.', text: t });

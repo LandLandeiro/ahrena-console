@@ -8,7 +8,8 @@
 //   reset relê. A releitura volta cada coluna à página 1.
 // - O estilo está em `ui/kanban.css`, que a tela põe no <head> ao montar e tira ao sair.
 
-import { header, el, icon } from '../dom.js';
+import { header, el, icon, setHeaderSub } from '../dom.js';
+import { sessionBoardSub } from '../subtitles.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionBadges, attentionOf, attentionTone, statusWithoutAttention } from '../attention.js';
 import { stateLabel } from '../state-labels.js';
@@ -125,21 +126,11 @@ export function touchesBoard(changes) {
 
 // ---------- Peças ----------
 
-const SUB = {
-  sessions: 'As sessões por status, só leitura',
-  agents: 'Os agentes por status, só leitura',
-};
-
 /** The empty board; `where` is where its sessions would start (issue 243: "em uma das máquinas" with Todas). */
 const emptyFor = (view, where = 'nesta máquina') =>
   view === 'agents'
     ? { title: 'Nenhum agente ainda', text: `Quando uma sessão do Claude Code começar ${where}, os agentes dela aparecem aqui.` }
     : { title: 'Nenhuma sessão ainda', text: `Quando uma sessão do Claude Code começar ${where}, ela aparece aqui.` };
-
-/** Where each view's items come from, with a remote known (issue 243): "As sessões das duas máquinas…". */
-function subWith(view, of) {
-  return `${view === 'agents' ? 'Os agentes' : 'As sessões'} ${of} por status, só leitura`;
-}
 
 function badges(item) {
   if (attentionOf(item.attention)) return el('div', { class: 'kb-badges' }, ...attentionBadges(item.attention));
@@ -202,17 +193,15 @@ export async function mount(area, ctx) {
   );
   const toggle = el('div', { class: 'kb-seg', role: 'group', 'aria-label': 'Visão do Kanban' }, buttons.agents, buttons.sessions);
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'kanban', title: 'Kanban', sub: SUB[view], actions: [toggle, refresh] });
-  const sub = head.querySelector('.sub');
+  const head = header({ icon: 'kanban', title: 'Kanban', sub: null, actions: [toggle, refresh] });
   // Issue 243 (C46): the machine filter on its own row under the header; both views follow it.
   const machines = createMachineFilter(ctx, { onChange: () => ((boardInFlight = false), draw()), reread: () => draw(), onLayout: () => draw() });
-  const subText = () => (machines.hasRemotes() ? subWith(view, whereText(machines.choice, machines.machines(), { form: 'of' })) : SUB[view]);
 
   function switchTo(v) {
     if (v === view) return;
     view = v;
     for (const [k, b] of Object.entries(buttons)) b.setAttribute('aria-pressed', String(k === view));
-    sub.textContent = subText();
+    setHeaderSub(head, null);
     history.replaceState(history.state, '', `${location.pathname}${queryWithMachine(viewQuery(view), machines.choice)}`);
     boardInFlight = false;
     draw();
@@ -227,8 +216,9 @@ export async function mount(area, ctx) {
       const data = await ctx.read(machines.route(kanbanRoute(v)));
       if (mine !== reading) return;
       machines.update(data);
-      sub.textContent = subText();
       const columns = Array.isArray(data?.columns) ? data.columns : [];
+      // issue 766: the sentence of the sessions board; the agents board says nothing (its columns are not the sessions').
+      setHeaderSub(head, v === 'sessions' ? sessionBoardSub(columns) : null);
       if (!columns.some((c) => c.total > 0)) {
         boardInFlight = false;
         // C48: the chosen remote is down; the notice says why the board is empty.

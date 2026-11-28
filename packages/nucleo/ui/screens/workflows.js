@@ -383,7 +383,7 @@ export async function mount(area, ctx) {
   );
   const periodSeg = el('div', { class: 'wf-seg', role: 'group', 'aria-label': 'Período' }, ...periodButtons);
   const viewSeg = el('div', { class: 'wf-seg', role: 'group', 'aria-label': 'Como ver' }, ...viewButtons);
-  const head = header({ icon: 'workflows', title: 'Workflows', sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado', actions: [viewSeg, seg, periodSeg] });
+  const head = header({ icon: 'workflows', title: 'Workflows', sub: null, actions: [viewSeg, seg, periodSeg] });
 
   area.replaceChildren(head, loading({ label: 'Carregando os workflows' }));
 

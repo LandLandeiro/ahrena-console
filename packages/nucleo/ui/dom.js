@@ -222,6 +222,23 @@ export function livePill() {
   return el('span', { class: 'live', 'data-live': '' }, 'Ao vivo');
 }
 
+/**
+ * #766: writes the line under the title once the screen has read (a subtitle says the state now, or there is none): replaces
+ * it, creates it when the header started without one, removes it for an empty text. A header holds one at most.
+ */
+export function setHeaderSub(head, text) {
+  const current = head.querySelector('.sub');
+  if (!text) {
+    current?.remove();
+    return;
+  }
+  if (current) {
+    current.textContent = text;
+    return;
+  }
+  head.querySelector('h1')?.parentNode?.append(el('div', { class: 'sub' }, text));
+}
+
 /** The header of a screen (C1): icon, title with "Ao vivo", subtitle and actions on the right. */
 export function header({ icon: name, title, sub, actions = [] }) {
   return el(

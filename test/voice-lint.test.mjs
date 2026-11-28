@@ -310,7 +310,7 @@ test('#766: a subtitle of the registry that starts with a descriptive article ge
   ].join('\n')
   const warnings = subtitleWarnings(source)
   assert.deepEqual(warnings.map((w) => [w.line, w.article]), [[1, 'O'], [2, 'As'], [3, 'Os'], [4, 'Todos os'], [5, 'Um'], [6, 'A']])
-  assert.match(warnings[0].message, /estado/)
+  assert.match(warnings[0].message, /state now/)
 })
 
 test('#766: a subtitle that says the state, a null one and a word that only starts like an article give no warning', () => {

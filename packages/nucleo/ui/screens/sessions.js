@@ -253,10 +253,9 @@ export async function mount(area, ctx) {
   const head = header({
     icon: 'sessions',
     title: 'Sessões',
-    sub: '…',
+    sub: null,
     actions: [el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar'), newSessionButton({ read: ctx.read, write: ctx.write })],
   });
-  const sub = head.querySelector('.sub');
 
   // ---------- filtros ----------
   const search = el('input', { type: 'search', placeholder: 'Buscar sessões…', 'aria-label': 'Buscar sessões', value: state.search, maxlength: 200 });
@@ -426,7 +425,6 @@ export async function mount(area, ctx) {
   function draw(list) {
     machines.update(list);
     placeMachineFilter();
-    sub.textContent = registeredText(list, { choice: machines.choice, machines: machines.machines() });
     // A página pedida pode ter sumido (a lista encolheu): fica a que o núcleo devolveu.
     if (list.page !== state.page) {
       state = { ...state, page: list.page };

@@ -156,7 +156,7 @@ export async function mount(area, ctx) {
     // issue 610: over several origins the header counts the organizations; a core with no list, or an empty one, names the one Project.
     const organizations = data?.organizations?.length ? data.organizations : null;
     const loading = state.multiOrigin && !data && state.phase === 'loading';
-    return workBoardHeader({ project: data?.project ?? null, organizations, githubDown: state.githubDown, loading, fetchedAt: data?.fetchedAt ?? null, now, stale: state.stale, reading: state.phase === 'loading', busy: state.busy, onRefresh: refresh });
+    return workBoardHeader({ project: data?.project ?? null, organizations, columns: data?.columns ?? null, githubDown: state.githubDown, loading, fetchedAt: data?.fetchedAt ?? null, now, stale: state.stale, reading: state.phase === 'loading', busy: state.busy, onRefresh: refresh });
   }
 
   // issue 610: what the actions of the warning bands and of the empty states do; a link opens GitHub outside the Console.

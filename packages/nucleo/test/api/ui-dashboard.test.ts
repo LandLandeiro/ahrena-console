@@ -218,7 +218,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       const texto = area.textContent;
       assert.match(texto, /Dashboard/);
       assert.doesNotMatch(texto, /O agora das suas sessões/);
-      assert.equal(area.querySelector('.cc-head .sub'), null, '#766: the cards under the header already say how many; no line explains the screen');
+      assert.equal(comClasse(area, 'sub').length, 0, '#766: the cards under the header already say how many; no line explains the screen');
       assert.deepEqual(
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
         ['sessions', 'agents', 'subagents', 'events-today', 'events-total', 'cost'],

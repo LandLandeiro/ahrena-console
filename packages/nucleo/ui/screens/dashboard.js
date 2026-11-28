@@ -12,7 +12,7 @@ import { attentionOf, attentionOfItem, attentionPill, attentionTone, attentionDo
 import { openAction } from '../open-action.js';
 import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
-import { attentionForChoice, createMachineFilter, isRemote, itemHref, itemKey, machineTag, remoteParts, sessionHref, whereText } from '../machine-filter.js';
+import { attentionForChoice, createMachineFilter, isRemote, itemHref, itemKey, machineTag, remoteParts, sessionHref } from '../machine-filter.js';
 
 const STYLE = '/ui/dashboard.css';
 // As rotas do núcleo, num lugar só. A da atenção é a `ATTENTION_ROUTE` de src/api/attention-route.ts (#87):
@@ -352,8 +352,7 @@ export async function mount(area, ctx) {
   useStyle();
   useMessageStyle();
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'dashboard', title: 'Dashboard', sub: 'O agora das suas sessões', actions: [refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
-  const sub = head.querySelector?.('.sub') ?? null;
+  const head = header({ icon: 'dashboard', title: 'Dashboard', sub: null, actions: [refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
   // Issue 243 (C47): the machine filter on its own row under the header. The Dashboard's own background
   // re-read (BACKGROUND_MS) and its re-read on every change already cover the remotes: the filter adds no
   // timer and no debounce of its own (the slow /api/dashboard is never read twice for one tick).
@@ -377,7 +376,6 @@ export async function mount(area, ctx) {
 
   function paint({ dashboard, atencao: attention }) {
     const all = machines.choice === 'all';
-    if (sub) sub.textContent = machines.hasRemotes() ? `O agora das suas sessões, ${whereText(machines.choice, machines.machines())}` : 'O agora das suas sessões';
     const parts = [head, ...machines.parts(), el('div', { class: 'stats' }, ...cards(dashboard.numbers, all ? { byMachine: dashboard.byMachine, machines: machines.machines() } : {}).map(numberCard))];
     // `/api/attention` covers every machine: the inbox keeps the chosen one's.
     const chosen = attention.ok ? attentionForChoice(attention.valor, machines.choice) : null;

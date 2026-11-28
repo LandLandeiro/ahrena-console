@@ -6,7 +6,7 @@
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { attentionPill } from '../attention.js';
-import { createMachineFilter, itemKey, machineIdOf, machineTag, sessionHref, whereText } from '../machine-filter.js';
+import { createMachineFilter, itemKey, machineIdOf, machineTag, sessionHref } from '../machine-filter.js';
 import { stateLabels } from '../state-labels.js';
 
 /** Quantos dias cada página traz. */
@@ -165,7 +165,7 @@ export function mount(area, ctx) {
   }
   const input = el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar no histórico', maxlength: MAX_SEARCH, autocomplete: 'off', spellcheck: 'false' });
   const field = el('label', { class: 'hist-search' }, icon('search'), input);
-  const head = header({ icon: 'history', title: 'Histórico', sub: 'Sessões encerradas, por dia', actions: [field] });
+  const head = header({ icon: 'history', title: 'Histórico', sub: null, actions: [field] });
   // Três regiões: a faixa do ao vivo, a lista e o rodapé (faixa da página seguinte ou sentinela).
   // As faixas são nós estáveis: um redesenho da lista não as recria nem as anuncia de novo.
   const top = el('div', { class: 'hist-region', hidden: true });
@@ -173,7 +173,6 @@ export function mount(area, ctx) {
   const footer = el('div', { class: 'hist-region', hidden: true });
   const sentinel = el('div', { class: 'hist-sentinel', 'aria-hidden': 'true' });
   const body = el('div', { class: 'hist-body' }, top, list, footer);
-  const sub = head.querySelector?.('.sub') ?? null;
   // Issue 243 (C47): the machine filter on its own row under the header.
   const machines = createMachineFilter(ctx, { onChange: () => restart(), reread: () => (ready ? reread() : restart()), onLayout: () => placeMachineRow() });
   const machineSlot = el('div', { class: 'hist-machines' });
@@ -182,7 +181,6 @@ export function mount(area, ctx) {
     const parts = machines.parts();
     machineSlot.replaceChildren(...parts);
     machineSlot.hidden = parts.length === 0;
-    if (sub) sub.textContent = machines.hasRemotes() ? `Sessões encerradas ${whereText(machines.choice, machines.machines())}, por dia` : 'Sessões encerradas, por dia';
   }
   area.replaceChildren(head, machineSlot, body);
 

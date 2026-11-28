@@ -11,7 +11,8 @@
 //   ones when missing) and the place inside the block (`order`, ascending; the registry order when missing). The labels
 //   of the two modes are here and nowhere else.
 // - `file`: the screen module in `ui/screens/`. Without it, the shell shows the header and the empty state.
-// - `title`, `sub` and `icon`: the header of the empty state and the window title.
+// - `title`, `sub` and `icon`: the header of the empty state and the window title. `sub` is always null (#766): a subtitle
+//   says the state now, which only the screen knows once it has read; it writes it with `setHeaderSub` (dom.js) or keeps only its title.
 
 // The sidebar blocks (decision 0029): the everyday screens ("Agora", ADR-0028), Delivery, Machines and the foot, which
 // has Configuração and no title. A block without items does not show. The merged screens (Histórico, Kanban, Feed,
@@ -34,7 +35,7 @@ export const SCREENS = [
     route: '/ui',
     highlights: 'analytics',
     title: 'Dashboard',
-    sub: 'O agora das suas sessões',
+    sub: null,
     icon: 'dashboard',
     file: '/ui/screens/dashboard.js',
   },
@@ -43,7 +44,7 @@ export const SCREENS = [
     route: '/ui/wall',
     item: { label: 'Mural ao vivo', icon: 'wall', section: 'main', project: { label: 'Sua atenção', order: 1 } },
     title: 'Mural ao vivo',
-    sub: 'Um card por sessão aberta nesta máquina',
+    sub: null,
     icon: 'wall',
     file: '/ui/screens/wall.js', // #34
   },
@@ -52,7 +53,7 @@ export const SCREENS = [
     route: '/ui/sessions',
     item: { label: 'Sessões', icon: 'sessions', section: 'main', project: { label: 'Conversas', order: 2 } },
     title: 'Sessões',
-    sub: 'As sessões registradas nesta máquina',
+    sub: null,
     icon: 'sessions',
     file: '/ui/screens/sessions.js', // #28
   },
@@ -61,7 +62,7 @@ export const SCREENS = [
     route: '/ui/feed',
     highlights: 'sessions',
     title: 'Feed de atividade',
-    sub: 'Todos os eventos das sessões, ao vivo',
+    sub: null,
     icon: 'activity',
     file: '/ui/screens/feed.js', // #94
   },
@@ -70,7 +71,7 @@ export const SCREENS = [
     route: '/ui/kanban',
     highlights: 'sessions',
     title: 'Kanban',
-    sub: 'As sessões por status, só leitura',
+    sub: null,
     icon: 'kanban',
     file: '/ui/screens/kanban.js', // #31
   },
@@ -99,7 +100,7 @@ export const SCREENS = [
     route: '/ui/work',
     item: { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery', project: { order: 1 } },
     title: 'Quadro do trabalho',
-    sub: 'As issues de um GitHub Project pelo ciclo do agente',
+    sub: null,
     icon: 'columns-3',
     file: '/ui/screens/work-board.js',
   },
@@ -108,7 +109,7 @@ export const SCREENS = [
     route: '/ui/repos',
     item: { label: 'Repositórios', icon: 'repos', section: 'delivery' },
     title: 'Repositórios',
-    sub: 'Organizações e repositórios da sua conta do GitHub',
+    sub: null,
     icon: 'repos',
     file: '/ui/screens/repos.js', // C22
   },
@@ -137,7 +138,7 @@ export const SCREENS = [
     route: '/ui/project',
     highlights: 'work',
     title: 'Kanban do projeto',
-    sub: 'O GitHub Project por Status',
+    sub: null,
     icon: 'github',
     file: '/ui/screens/project.js', // #80 (C11)
   },
@@ -146,7 +147,7 @@ export const SCREENS = [
     route: '/ui/dev-console',
     highlights: 'repos',
     title: 'Dev Console',
-    sub: 'PRs, issues e sessões dos repositórios do contexto',
+    sub: null,
     icon: 'gauge',
     file: '/ui/screens/dev-console.js', // C27, issue 179
   },
@@ -155,7 +156,7 @@ export const SCREENS = [
     route: '/ui/analytics',
     item: { label: 'Uso e custo', icon: 'analytics', section: 'main', project: { label: 'Custo', section: 'delivery', order: 3 } },
     title: 'Analytics',
-    sub: 'Uso, custo e produtividade das sessões',
+    sub: null,
     icon: 'analytics',
     file: '/ui/screens/analytics.js', // #95 and #32
   },
@@ -174,7 +175,7 @@ export const SCREENS = [
     route: '/ui/workflows',
     highlights: 'analytics',
     title: 'Workflows',
-    sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado',
+    sub: null,
     icon: 'workflows',
     file: '/ui/screens/workflows.js', // #96
   },
@@ -183,7 +184,7 @@ export const SCREENS = [
     route: '/ui/history',
     highlights: 'sessions',
     title: 'Histórico',
-    sub: 'Sessões encerradas, por dia',
+    sub: null,
     icon: 'history',
     file: '/ui/screens/history.js', // #33
   },
@@ -192,7 +193,7 @@ export const SCREENS = [
     route: '/ui/decisions',
     item: { label: 'Decisões', icon: 'decision', section: 'delivery', project: { order: 2, route: '/ui/pdrs' } },
     title: 'Decisões',
-    sub: 'O que você e os agentes decidiram, em todas as sessões',
+    sub: null,
     icon: 'decision',
     file: '/ui/screens/decisions.js', // issue 103
   },
@@ -202,7 +203,7 @@ export const SCREENS = [
     route: '/ui/adrs',
     highlights: 'decisions',
     title: 'ADR',
-    sub: 'Decisões de arquitetura dos repositórios da sua conta',
+    sub: null,
     icon: 'scroll-text',
     file: '/ui/screens/adrs.js',
   },
@@ -212,7 +213,7 @@ export const SCREENS = [
     route: '/ui/pdrs',
     highlights: 'decisions',
     title: 'PDR',
-    sub: 'Decisões de produto dos repositórios da sua conta',
+    sub: null,
     icon: 'lightbulb',
     file: '/ui/screens/adrs.js',
   },
@@ -244,7 +245,7 @@ export const SCREENS = [
     route: '/ui/machines/local',
     item: { label: 'Esta máquina', icon: 'monitor', section: 'machines' },
     title: 'Esta máquina',
-    sub: 'A telemetria medida pelo núcleo daqui',
+    sub: null,
     icon: 'monitor',
     file: '/ui/screens/machine.js',
   },
@@ -259,14 +260,14 @@ export const SCREENS = [
     icon: 'server',
     file: '/ui/screens/machine.js',
   },
-  { id: 'agent-config', route: '/ui/agent-config', item: { label: 'Configuração', icon: 'bot', section: 'foot' }, title: 'Agent Config', sub: 'Seu Claude Code: skills, subagentes, comandos, MCP, hooks e memória', icon: 'bot', file: '/ui/screens/agent-config.js' }, // #63
+  { id: 'agent-config', route: '/ui/agent-config', item: { label: 'Configuração', icon: 'bot', section: 'foot' }, title: 'Agent Config', sub: null, icon: 'bot', file: '/ui/screens/agent-config.js' }, // #63
   {
     // The console's own connections (C39 to C44, issue 241): GitHub, by the device flow.
     id: 'connections',
     route: '/ui/connections',
     highlights: 'agent-config',
     title: 'Conexões',
-    sub: 'As contas de fora que o console usa',
+    sub: null,
     icon: 'plug',
     file: '/ui/screens/connections.js',
   },

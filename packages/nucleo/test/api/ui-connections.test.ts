@@ -144,7 +144,8 @@ describe('Conexões: every state (C39 to C41, C44)', () => {
   test('C39 disconnected: Conectar, the three scopes with why, the vault, the source and the screens waiting', async () => {
     const m = await mountWith({ read: answer(disconnected()) });
     assert.deepEqual(m.reads, ['/api/connections']);
-    assert.match(texto(m.area.querySelector('header.cc-head')), /Conexões Ao vivo .* nunca sai do Keychain\./);
+    assert.equal(texto(m.area.querySelector('header.cc-head')), 'Conexões Ao vivo', '#766: the header explains no mechanism; the vault card says where the credential is');
+    assert.equal(m.area.querySelector('header.cc-head .sub'), null);
     assert.equal(card(m).getAttribute('data-state'), 'disconnected');
     assert.match(texto(card(m).querySelector('.conn-title')), /GitHub não conectado/);
     assert.equal(texto(button(m, 'connect')), 'Conectar ao GitHub');
