@@ -753,12 +753,17 @@ describe('the filter adds no second clock to a screen that has its own', () => {
     }
   });
 
-  test('a screen without a clock of its own (Mural) gets the 30 s re-read while a remote is known', async () => {
+  test('a screen without a clock of its own (Mural) gets the 30 s re-read while a remote is known, beside its time timer (issue 758)', async () => {
     setUrl('/ui/wall');
     const f = context(() => ({ count: {}, cards: [], machines: machinesUp }));
     const delays = await intervalsOf(() => wall.mount(new ElementoFalso('main'), f.ctx));
     f.leave.abort();
-    assert.deepEqual(delays.filter((d) => d === mf.REMOTE_REREAD_MS), [30_000]);
+    // Issue 758: the Mural also writes "há N min" again every 30 s (its own timer, no read), so the re-read of a remote is the second one.
+    assert.deepEqual(delays.filter((d) => d === mf.REMOTE_REREAD_MS), [30_000, 30_000]);
+    const alone = context(() => ({ count: {}, cards: [], machines: [] }));
+    const without = await intervalsOf(() => wall.mount(new ElementoFalso('main'), alone.ctx));
+    alone.leave.abort();
+    assert.deepEqual(without.filter((d) => d === mf.REMOTE_REREAD_MS), [30_000], 'with no remote only the time timer runs');
   });
 });
 

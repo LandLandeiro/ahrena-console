@@ -169,7 +169,11 @@ describe('issue 758: loading and read error', () => {
     assert.equal(all(skeleton, '.wall-skel-card').length, 1);
     assert.equal(all(skeleton, '.wall-skel-row').length, 3);
     release();
-    stop = (await s.mounted, () => s.leave.abort());
+    const unmount = await s.mounted;
+    stop = () => {
+      unmount();
+      s.leave.abort();
+    };
     await flush();
     assert.equal(all(s.area, '.wall-skel').length, 0, 'the data replaces it');
   });
