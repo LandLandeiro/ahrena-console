@@ -505,7 +505,7 @@ describe('Detail: the open action in the header (C70)', () => {
       id: UUID,
       title: 'Retry com backoff na fila',
       status: 'waiting',
-      attention: { level: 'idle', reason: 'turn_ended' },
+      attention: { level: 'blocked', reason: 'turn_ended' },
       since: new Date().toISOString(),
       startedAt: new Date(Date.now() - 15 * 60_000).toISOString(),
       model: 'claude-sonnet-5-5',
@@ -562,6 +562,45 @@ describe('Detail: the open action in the header (C70)', () => {
       action.querySelector('button')!.click();
       assert.deepEqual(w.calls, [{ route: `/api/sessions/${UUID}/open`, body: {} }]);
       w.release();
+    } finally {
+      leave?.();
+    }
+  });
+
+  test('issue 761: Sua vez without a band keeps the notice: a quiet line, role status, the text of the turn, no yellow band; with a band the title says Sua vez', async () => {
+    const turn = head({ session: { ...head().session, attention: { level: 'blocked', reason: 'turn_ended' }, banner: null } });
+    const { area, leave } = await mountDetail(turn, stubWriter({}).write);
+    try {
+      const line = area.querySelector('.sd-idle')!;
+      assert.ok(line, 'the notice is still drawn');
+      assert.equal(line.getAttribute('role'), 'status');
+      assert.match(texto(line), /^Sua vez · o turno terminou (há .+ )?e a vez é sua\.$/);
+      assert.ok(!texto(line).includes('Ociosa') && !texto(line).includes('Nada trava'), 'it is not idle');
+      assert.equal(area.querySelector('.sd-band'), null, 'no strong yellow band');
+      const dot = line.querySelector('.attention-dot')!;
+      assert.match(dot.getAttribute('class')!, /attention-dot-blocked attention-dot-low/, 'the low dot, beside the text');
+      assert.match(texto(area.querySelector('.sd-row')!), /Precisa de você/, 'the header pill is the blocked one');
+    } finally {
+      leave?.();
+    }
+    const withBand = head({ session: { ...head().session, attention: { level: 'blocked', reason: 'turn_ended' }, banner: { type: 'question', text: 'Rodo os testes?', since: new Date().toISOString() } } });
+    const again = await mountDetail(withBand, stubWriter({}).write);
+    try {
+      assert.ok(again.area.querySelector('.sd-band'), 'with a banner the band is drawn');
+      assert.equal(again.area.querySelector('.sd-idle'), null, 'and the quiet line is not');
+      assert.match(texto(again.area.querySelector('.sd-band')!), /Precisa de você · Sua vez\./);
+    } finally {
+      again.leave?.();
+    }
+  });
+
+  test('issue 761: an idle session keeps its idle line, with the hollow dot', async () => {
+    const idle = head({ session: { ...head().session, attention: { level: 'idle', reason: 'interrupted' }, banner: null } });
+    const { area, leave } = await mountDetail(idle, stubWriter({}).write);
+    try {
+      const line = area.querySelector('.sd-idle')!;
+      assert.match(texto(line), /^Ociosa · interrompida/);
+      assert.match(line.querySelector('.attention-dot')!.getAttribute('class')!, /attention-dot-idle/);
     } finally {
       leave?.();
     }

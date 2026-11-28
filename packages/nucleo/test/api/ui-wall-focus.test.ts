@@ -783,3 +783,51 @@ describe('#751: "Ver sessão" keeps the focus through a redraw', () => {
     assert.equal(active(), one(s.area, '[data-key="local:c2"] a.wall-link'));
   });
 });
+
+// ---------- issue 761: the Sua vez row and its "Responder" keep the focus through the redraw ----------
+
+describe('issue 761: the Sua vez row keeps the focus', () => {
+  const turn = (id: string, extra: Card = {}) => session(id, { status: 'waiting', state: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' }, activity: { type: 'your-turn', text: 'Rodo os testes?' }, plan: null, context: null, ...extra });
+  const answer = (s: { area: ElementoFalso }, id: string) => one(s.area, `[data-key="local:${id}"] a[data-answer]`);
+
+  test('"Responder" goes back to the same control of the same session, in the new node, never scrolling', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), turn('v1'), turn('v2')]));
+    const button = answer(s, 'v2');
+    button.focus();
+    await s.refresh();
+    assert.notEqual(answer(s, 'v2'), button, 'the row was drawn again');
+    assert.equal(active(), answer(s, 'v2'));
+    assert.deepEqual(focusLog.at(-1)?.options, { preventScroll: true });
+  });
+
+  test('the link of the row goes back to the link of the same row', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), turn('v1')]));
+    one(s.area, '[data-key="local:v1"] a.wall-link').focus();
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:v1"] a.wall-link'));
+  });
+
+  test('the person answered and the agent works: the session leaves the list, the focus goes to its link in the new section, never lost', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), turn('v1')]));
+    answer(s, 'v1').focus();
+    s.state.wall = wallOf([blocked('c1'), session('v1')]);
+    await s.refresh();
+    assert.equal(s.area.querySelectorAll('[data-answer]').length, 0, 'no Responder any more');
+    assert.equal(active(), one(s.area, '[data-key="local:v1"] a.wall-link'));
+  });
+
+  test('Sua vez becomes a card (a question now): the focus goes to the link of the card', async () => {
+    const s = await mountWith(wallOf([turn('v1')]));
+    answer(s, 'v1').focus();
+    s.state.wall = wallOf([blocked('v1')]);
+    await s.refresh();
+    assert.equal(active(), one(s.area, '[data-key="local:v1"].wall-card a.wall-link'));
+  });
+
+  test('a filter that hides the row leaves the focus on the pressed segment, not on a missing node', async () => {
+    const s = await mountWith(wallOf([blocked('c1'), turn('v1')]));
+    answer(s, 'v1').focus();
+    one(s.area, '[data-filter="active"]').click();
+    assert.ok(!active() || s.area.contains(active()!), 'the focus is on a node still on screen, or nowhere');
+  });
+});

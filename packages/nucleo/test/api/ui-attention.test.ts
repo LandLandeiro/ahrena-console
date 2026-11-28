@@ -1,6 +1,7 @@
 // issue 245: the shared attention vocabulary of the /ui (ui/attention.js) and how the Sessões and
 // Detail screens use it: "Precisa de você" (blocked) and "Ociosa" (idle), never the old waiting label.
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { ElementoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 // @ts-expect-error: browser modules, plain JavaScript
@@ -120,11 +121,29 @@ describe('Sessões: the blocked and idle pills (issue 245)', () => {
   test('the status cell: the attention pill and its reason; an error keeps only "Com erro"; no raw status', () => {
     const cell = (status: string, a: unknown) => (badgeEl(status, a) as ElementoFalso[]).map((n) => texto(n));
     assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'permission' }), ['Precisa de você', 'Pede permissão']);
-    assert.deepEqual(cell('waiting', { level: 'idle', reason: 'turn_ended' }), ['Ociosa', 'Sua vez']);
+    assert.deepEqual(cell('waiting', { level: 'blocked', reason: 'turn_ended' }), ['Precisa de você', 'Sua vez'], 'issue 761: the real form of Sua vez');
+    assert.deepEqual(cell('waiting', { level: 'idle', reason: 'interrupted' }), ['Ociosa', 'Interrompida']);
     assert.deepEqual(cell('error', { level: 'blocked', reason: 'error' }), ['Com erro']);
     assert.deepEqual(cell('active', null), ['Ativa']);
     assert.deepEqual(cell('waiting', null), ['Ativa'], 'waiting without attention (delegating) is not waiting on you');
     assert.deepEqual(cell('nonsense', null), [], 'nothing raw on screen');
+  });
+});
+
+describe('the status dot (issue 761)', () => {
+  test('Sua vez has the dot of low urgency: yellow ring, not the filled yellow of a card; idle stays hollow neutral', () => {
+    const cls = (n: ElementoFalso) => classes(n);
+    assert.ok(cls(attention.attentionDot('blocked')).includes('attention-dot-blocked'));
+    assert.ok(!cls(attention.attentionDot('blocked')).includes('attention-dot-low'));
+    const low = attention.attentionDot('blocked', { low: true }) as ElementoFalso;
+    assert.ok(cls(low).includes('attention-dot-blocked') && cls(low).includes('attention-dot-low'));
+    assert.equal(low.getAttribute('aria-hidden'), 'true', 'decoration: the text beside it says it');
+    assert.ok(cls(attention.attentionDot('idle')).includes('attention-dot-idle'));
+    assert.ok(!cls(attention.attentionDot('idle', { low: true })).includes('attention-dot-low'), 'only a blocked dot is low');
+  });
+  test('the CSS of the low dot: a ring of the waiting token, no fill', () => {
+    const css = readFileSync(new URL('../../ui/shell.css', import.meta.url), 'utf8');
+    assert.match(css, /\.attention-dot-blocked\.attention-dot-low \{[^}]*background:\s*transparent[^}]*var\(--status-waiting-dot\)/);
   });
 });
 
@@ -137,7 +156,8 @@ describe('Detalhe: the band only when blocked, a muted line when idle (issue 245
 
   test('the idle line says what happened and since when, and that nothing blocks', () => {
     const now = Date.parse('2026-10-20T12:00:00Z');
-    assert.equal(idleNote({ level: 'idle', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Ociosa · o turno terminou há 1 min e a vez é sua. Nada trava a sessão.');
+    assert.equal(idleNote({ level: 'blocked', reason: 'turn_ended' }, '2026-10-20T11:59:00Z', now), 'Sua vez · o turno terminou há 1 min e a vez é sua.', 'issue 761: Sua vez is blocked, so the line does not say Ociosa nor that nothing blocks');
+    assert.equal(idleNote({ level: 'blocked', reason: 'turn_ended' }, null, now), 'Sua vez · o turno terminou e a vez é sua.');
     assert.match(idleNote({ level: 'idle', reason: 'interrupted' }, '2026-10-20T11:54:00Z', now), /^Ociosa · interrompida há 6 min/);
     assert.match(idleNote({ level: 'idle', reason: 'first_prompt' }, null, now), /^Ociosa · aberta no prompt, sem o primeiro pedido\. Nada trava a sessão\.$/);
   });

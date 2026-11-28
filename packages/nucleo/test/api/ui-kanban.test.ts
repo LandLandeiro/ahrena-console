@@ -60,7 +60,8 @@ describe('Kanban: funções da tela', () => {
 
   test('card tone: the attention first (blocked, idle, error), then the status; waiting without attention is active (issue 245)', () => {
     assert.equal(cardTone({ status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), 'blocked');
-    assert.equal(cardTone({ status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' } }), 'idle');
+    assert.equal(cardTone({ status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } }), 'idle');
+    assert.equal(cardTone({ status: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' } }), 'blocked', 'issue 761: Sua vez is in the blocked column');
     assert.equal(cardTone({ status: 'error', attention: { level: 'blocked', reason: 'error' } }), 'error');
     assert.equal(cardTone({ status: 'waiting', attention: null }), 'active', 'delegating: not waiting on you');
     assert.equal(cardTone({ status: 'working', attention: null }), 'active');

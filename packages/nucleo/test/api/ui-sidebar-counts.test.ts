@@ -70,10 +70,10 @@ describe('#750 the yellow tag of the Mural', () => {
   });
 
   test('without the blocked number it counts the blocked items; an idle item does not count', async () => {
-    const items = [{ attention: { level: 'blocked', reason: 'question' } }, { attention: { level: 'idle', reason: 'turn_ended' } }, { attention: { level: 'blocked', reason: 'permission' } }];
+    const items = [{ attention: { level: 'blocked', reason: 'question' } }, { attention: { level: 'idle', reason: 'interrupted' } }, { attention: { level: 'blocked', reason: 'permission' } }, { attention: { level: 'blocked', reason: 'turn_ended' } }];
     const { counts, last } = rig({ '/api/attention': async () => ({ items }), '/api/work': async () => work(0) });
     await counts.refresh();
-    assert.deepEqual(last('wall'), { tone: 'waiting', text: '2 esperam' });
+    assert.deepEqual(last('wall'), { tone: 'waiting', text: '3 esperam' }, 'issue 761: Sua vez counts with the others, one number');
   });
 
   test('an error, junk or a negative number takes the tag away', async () => {

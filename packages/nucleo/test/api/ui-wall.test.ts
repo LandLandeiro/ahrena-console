@@ -310,13 +310,12 @@ describe('#751: the phrase of an idle row says the reason first', () => {
     assert.equal(idle('interrupted', 'Interrompida: parou no passo 2'), 'Interrompida: parou no passo 2');
     assert.equal(idle('interrupted', 'interrompida'), 'interrompida');
   });
-  test('#761: a Sua vez row is blocked and says the reason first too, and it is not an idle row', () => {
+  test('#761: a Sua vez row is blocked, its phrase is only the text of the core (the state already says Sua vez), and it is not an idle row', () => {
     const turn = (text: string | undefined, extra: Card = {}) => rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' }, activity: text === undefined ? undefined : { type: 'your-turn', text }, ...extra }));
-    assert.equal(turn('Rodo os testes?').phrase, 'Sua vez · Rodo os testes?');
-    assert.equal(turn(undefined).phrase, 'Sua vez');
-    assert.equal(turn('   ').phrase, 'Sua vez');
+    assert.equal(turn('Rodo os testes?').phrase, 'Rodo os testes?', 'no repeated prefix: the state of the row says Sua vez');
+    assert.equal(turn(undefined).phrase, '', 'without a text the phrase is empty; the screen reader reads the state');
+    assert.equal(turn('   ').phrase, '');
     assert.equal(turn('Sua vez: rodo os testes?').phrase, 'Sua vez: rodo os testes?');
-    assert.equal(turn('sua vez').phrase, 'sua vez');
     const row = turn('Rodo os testes?', { plan: { done: 12, total: 14, current: null } });
     assert.equal(row.idle, false, 'it is not an idle row');
     assert.equal(row.turn, true);
@@ -1978,7 +1977,7 @@ describe('#761: "Sua vez" in "Precisam de você" as a row, below the cards', () 
     }
   });
 
-  test('the row: the title link, "Sua vez · text", the written state, how long ago, and no card look', async () => {
+  test('the row: the title link, the text alone, the written state, how long ago, and no card look', async () => {
     const { area, sair } = await montarTela(async () => MIXED());
     try {
       await ate(() => rowsOf(area).length > 0);
@@ -1987,7 +1986,7 @@ describe('#761: "Sua vez" in "Precisam de você" as a row, below the cards', () 
       assert.equal(link.tag, 'a');
       assert.equal(link.getAttribute('href'), '/ui/sessions/vez-1');
       assert.equal(link.textContent, 'Migração dos pedidos');
-      assert.equal(comClasse(row, 'wall-phrase')[0]!.textContent, 'Sua vez · Rodo os testes?');
+      assert.equal(comClasse(row, 'wall-phrase')[0]!.textContent, 'Rodo os testes?', 'the state tag says Sua vez; the phrase does not repeat it');
       const tag = comClasse(row, 'state-tag')[0]!;
       assert.equal(tag.textContent, 'Sua vez', 'the state in words, with its icon, never only colour');
       assert.equal(comClasse(tag, 'state-icon').length, 1);
