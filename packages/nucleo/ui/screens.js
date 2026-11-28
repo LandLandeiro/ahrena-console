@@ -190,7 +190,7 @@ export const SCREENS = [
   {
     id: 'decisions',
     route: '/ui/decisions',
-    item: { label: 'Decisões', icon: 'decision', section: 'delivery', project: { order: 2 } },
+    item: { label: 'Decisões', icon: 'decision', section: 'delivery', project: { order: 2, route: '/ui/pdrs' } },
     title: 'Decisões',
     sub: 'O que você e os agentes decidiram, em todas as sessões',
     icon: 'decision',
@@ -381,10 +381,11 @@ export function sidebarSections(screens = SCREENS, sections = SECTIONS, mode = '
     .filter((s) => s.items.length);
 }
 
-// The screen as the Projeto bar draws it: the label and the block of `item.project`, the Dev ones where it is silent.
+// The screen as the Projeto bar draws it: the label, the block and the route of `item.project`, the Dev ones where it is silent
+// (Decisões opens the product decisions there, #754; the registry's routes are not changed).
 function inProject(screen) {
-  const { label = screen.item.label, section = screen.item.section } = screen.item.project;
-  return { ...screen, item: { ...screen.item, label, section } };
+  const { label = screen.item.label, section = screen.item.section, route = screen.route } = screen.item.project;
+  return { ...screen, route, item: { ...screen.item, label, section } };
 }
 
 // In Projeto, `project.order` sets the place inside a block; an item without one goes after, in registry order.
@@ -430,13 +431,15 @@ export function findScreen(path, screens = SCREENS) {
 // A screen that lost its item to a merge keeps its route and gets, at its top, a row of tabs: links to routes that already
 // exist (ui/screen-tabs.js draws it). Each set is named after the item that receives its screens; its first tab is that item's
 // screen. A tab names the screens it covers (`screens`, the first one gives the route; the others are the same screen with a
-// parameter and keep the tab current) and may be for one mode only (`mode`).
+// parameter and keep the tab current) and may be for one mode only (`mode`). A set or a tab that the Projeto bar names
+// differently says it in `project: { label }`, like an item of the bar, so the name does not change between the bar and the row (#754).
 export const TAB_SETS = [
   {
     id: 'sessions',
     label: 'Sessões',
+    project: { label: 'Conversas' },
     tabs: [
-      { label: 'Sessões', screens: ['sessions'] },
+      { label: 'Sessões', project: { label: 'Conversas' }, screens: ['sessions'] },
       { label: 'Encerradas', screens: ['history'] },
       { label: 'Por estado', screens: ['kanban'] },
       { label: 'Eventos', screens: ['feed'], mode: 'dev' },
@@ -445,9 +448,10 @@ export const TAB_SETS = [
   {
     id: 'usage',
     label: 'Uso e custo',
+    project: { label: 'Custo' },
     tabs: [
       { label: 'Uso', screens: ['analytics', 'analytics-tab'] },
-      { label: 'Orquestração', screens: ['workflows'] },
+      { label: 'Orquestração', screens: ['workflows'], mode: 'dev' },
       { label: 'Resumo', screens: ['dashboard'] },
     ],
   },
@@ -471,7 +475,7 @@ export const TAB_SETS = [
     id: 'decisions',
     label: 'Decisões',
     tabs: [
-      { label: 'Nas sessões', screens: ['decisions'] },
+      { label: 'Nas sessões', project: { label: 'Nas conversas' }, screens: ['decisions'] },
       { label: 'Técnicas', screens: ['adrs'] },
       { label: 'Produto', screens: ['pdrs'] },
     ],
@@ -493,12 +497,13 @@ export const TAB_SETS = [
 export function tabsFor(screenId, mode = 'dev', screens = SCREENS, sets = TAB_SETS) {
   const set = sets.find((s) => s.tabs.some((t) => t.screens.includes(screenId)));
   if (!set) return null;
+  const projectMode = mode === 'project';
   const tabs = [];
   for (const t of set.tabs) {
     const current = t.screens.includes(screenId);
     const route = screens.find((s) => s.id === t.screens[0])?.route;
     if (!route || (t.mode && t.mode !== mode && !current)) continue;
-    tabs.push({ label: t.label, route, current });
+    tabs.push({ label: (projectMode && t.project?.label) || t.label, route, current });
   }
-  return { label: set.label, tabs };
+  return { label: (projectMode && set.project?.label) || set.label, tabs };
 }

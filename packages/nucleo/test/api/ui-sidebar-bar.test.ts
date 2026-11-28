@@ -330,8 +330,8 @@ describe('#754 C: the tab row', () => {
   });
 
   test('Eventos is Dev only; if it is the screen open, its tab stays', () => {
-    assert.deepEqual(tabsFor('history', 'project').tabs.map((t: { label: string }) => t.label), ['Sessões', 'Encerradas', 'Por estado']);
-    assert.deepEqual(tabsFor('feed', 'project').tabs.map((t: { label: string }) => t.label), ['Sessões', 'Encerradas', 'Por estado', 'Eventos']);
+    assert.deepEqual(tabsFor('history', 'project').tabs.map((t: { label: string }) => t.label), ['Conversas', 'Encerradas', 'Por estado']);
+    assert.deepEqual(tabsFor('feed', 'project').tabs.map((t: { label: string }) => t.label), ['Conversas', 'Encerradas', 'Por estado', 'Eventos']);
   });
 
   test('Orquestração is Dev only; in Projeto the usage row is Custo, Resumo (#754)', () => {
