@@ -82,10 +82,10 @@ button { font: inherit; cursor: pointer; }
 .cc-menu-item:hover { background: var(--raised); }
 .cc-menu-item:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 /* #754: the arrow of an outdated núcleo in the account menu: the arrow, the name (cut with an ellipsis), the words. The color is not the only sign. */
-.cc-menu-outdated { gap: 8px; }
+.cc-menu-outdated { flex-wrap: wrap; gap: 0 8px; padding-block: 5px; }
 .cc-menu-outdated .icon { flex: none; font-size: 14px; color: var(--status-waiting-text); }
 .cc-menu-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cc-menu-note { flex: none; font-size: 12px; color: var(--muted); }
+.cc-menu-note { flex: 0 0 100%; padding-left: 22px; font-size: 12px; line-height: 1.3; color: var(--muted); }
 /* The dot of an account or ☰ button while a núcleo is outdated; the name of the button says it too (aria-label). */
 .cc-ibtn { position: relative; }
 .cc-ibtn-dot { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--status-waiting-dot); border: 1.5px solid var(--sidebar); }
