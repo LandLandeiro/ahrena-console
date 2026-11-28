@@ -24,7 +24,8 @@ const { resetMachineChoice } = await import('../../ui/machine-filter.js');
 const at = (h: number, m = 0, day = 28) => new Date(2026, 10, day, h, m, 0).getTime();
 const iso = (ms: number) => new Date(ms).toISOString();
 const session = (id: string, start: number, last: number, status = 'completed', attention: unknown = null) => ({ id, status, attention, start: iso(start), lastActivity: iso(last), running: status === 'active' });
-const page = (rows: unknown[], total = rows.length) => ({ total, sessions: rows });
+// The shape `GET /api/sessions` answers: the rows are `items` (the Sessões reads `list.items` too).
+const page = (rows: unknown[], total = rows.length) => ({ total, items: rows });
 const NOW = at(16, 20);
 
 describe('issue 759: the greeting', () => {
@@ -66,7 +67,7 @@ describe('issue 759: what the sessions of the day say', () => {
   });
 
   test('what is not a page says nothing', () => {
-    for (const bad of [null, undefined, {}, { available: true }, { sessions: 'x' }]) {
+    for (const bad of [null, undefined, {}, { available: true }, { items: 'x' }, { sessions: [] }]) {
       const f = home.todayFigures(bad, NOW);
       assert.deepEqual([f.today, f.yesterday, f.completed, f.hours], [null, null, null, []]);
     }
