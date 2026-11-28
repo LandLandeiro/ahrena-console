@@ -249,13 +249,12 @@ describe('Dev Console: pure parts', () => {
 // ---------- registration and files ----------
 
 describe('Dev Console: registration and files', () => {
-  test('#179/AC-1 /ui/dev-console opens the screen, with the item in Entrega after Repositórios, Kanban do projeto and Quadro do trabalho', () => {
+  test('#179/AC-1 /ui/dev-console opens the screen, without an item, lighting Repositórios', () => {
     const { screen: found } = findScreen('/ui/dev-console');
     assert.equal(found.id, 'dev-console');
     assert.equal(found.file, '/ui/screens/dev-console.js');
-    assert.deepEqual(found.item, { label: 'Dev Console', icon: 'gauge', section: 'delivery' });
-    const delivery = sidebarSections().find((s: { id: string }) => s.id === 'delivery').items.map((t: { id: string }) => t.id);
-    assert.deepEqual(delivery, ['repos', 'project', 'work', 'dev-console']);
+    assert.equal(found.item, undefined);
+    assert.equal(found.highlights, 'repos');
   });
 
   test('#179/AC-5 every icon the screen uses exists in dom.js', () => {

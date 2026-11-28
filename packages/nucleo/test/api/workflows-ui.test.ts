@@ -216,12 +216,12 @@ describe('formatos e registro', () => {
     assert.equal(workflowsRoute('active', 'subagent:code-reviewer'), '/api/workflows?filter=active&node=subagent%3Acode-reviewer');
   });
 
-  test('Workflows está na barra depois de Analytics, como no wireframe, e todo ícone usado existe', () => {
+  test('Workflows não tem item (#754): acende Uso e custo, é a aba Orquestração, e todo ícone usado existe', () => {
     const t = SCREENS.find((x: any) => x.id === 'workflows');
     assert.deepEqual(t, {
       id: 'workflows',
       route: '/ui/workflows',
-      item: { label: 'Workflows', icon: 'workflows', section: 'main' },
+      highlights: 'analytics',
       title: 'Workflows',
       sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado',
       icon: 'workflows',

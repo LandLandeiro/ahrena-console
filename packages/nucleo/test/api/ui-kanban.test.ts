@@ -101,13 +101,13 @@ describe('Kanban: funções da tela', () => {
 });
 
 describe('Kanban: registro e arquivos', () => {
-  test('a rota /ui/kanban abre a tela, com o item depois de Sessões e do Feed (a ordem do wireframe)', () => {
-    const ids = SCREENS.filter((t: { item?: unknown }) => t.item).map((t: { id: string }) => t.id);
-    assert.equal(ids.indexOf('kanban'), Math.max(ids.indexOf('sessions'), ids.indexOf('feed')) + 1);
+  test('a rota /ui/kanban abre a tela, sem item, acendendo Sessões', () => {
+    // #754: the Kanban of sessions has no item; it lights Sessões and is its tab "Por estado".
     const { screen: tela } = findScreen('/ui/kanban');
     assert.equal(tela.id, 'kanban');
     assert.equal(tela.file, '/ui/screens/kanban.js');
-    assert.deepEqual(tela.item, { label: 'Kanban', icon: 'kanban', section: 'main' });
+    assert.equal(tela.item, undefined);
+    assert.equal(tela.highlights, 'sessions');
     assert.match(readFileSync(`${UI_FOLDER}dom.js`, 'utf8'), /\n {2}kanban: '/);
   });
 

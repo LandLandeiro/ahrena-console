@@ -803,18 +803,16 @@ describe('#465 the keyboard focus survives the redraws', () => {
 });
 
 describe('#465 the screen is registered', () => {
-  test('#465 /ui/work is the work board, "Quadro do trabalho", right after the project kanban under Entrega', () => {
+  test('#465 /ui/work is the work board, "Quadro do trabalho", the first item under Entrega', () => {
     const found = findScreen('/ui/work');
     assert.ok(found, '/ui/work is a screen');
     assert.equal(found.screen.id, 'work');
     assert.equal(found.screen.route, '/ui/work');
     assert.equal(found.screen.title, 'Quadro do trabalho');
     assert.equal(found.screen.file, '/ui/screens/work-board.js');
-    assert.deepEqual(found.screen.item, { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery' });
-    const ids = SCREENS.map((t: { id: string }) => t.id);
-    assert.equal(ids.indexOf('work'), ids.indexOf('project') + 1);
+    assert.deepEqual(found.screen.item, { label: 'Quadro do trabalho', icon: 'columns-3', section: 'delivery', project: { order: 1 } });
     const delivery = sidebarSections().find((b: { id: string }) => b.id === 'delivery');
-    assert.deepEqual(delivery.items.map((t: { id: string }) => t.id), ['repos', 'project', 'work', 'dev-console']);
+    assert.deepEqual(delivery.items.map((t: { id: string }) => t.id), ['work', 'repos', 'decisions']);
   });
 
   test('#465/AC-5 the core serves screens/work-board.js as JavaScript', async () => {

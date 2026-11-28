@@ -91,13 +91,13 @@ describe('#750: a redraw keeps who could see the lit item looking at it', () => 
     ElementoFalso.prototype.scrollIntoView = function (this: ElementoFalso) {
       reveals.push(this.getAttribute('data-screen') ?? '?');
     };
-    layout({ connections: 60 });
+    layout({ 'agent-config': 60 });
     const nav = new ElementoFalso('nav');
     const { highlight, readMachines } = createNav({ nav, read: async () => remote, screens: SCREENS });
-    highlight('connections');
-    assert.deepEqual(reveals, ['connections']);
+    highlight('agent-config');
+    assert.deepEqual(reveals, ['agent-config']);
     await readMachines();
-    assert.deepEqual(reveals, ['connections', 'connections']);
+    assert.deepEqual(reveals, ['agent-config', 'agent-config']);
   });
 
   test('the lit item was out of view: a redraw does not pull the list back to it', async () => {
@@ -105,10 +105,10 @@ describe('#750: a redraw keeps who could see the lit item looking at it', () => 
     ElementoFalso.prototype.scrollIntoView = function (this: ElementoFalso) {
       reveals.push(this.getAttribute('data-screen') ?? '?');
     };
-    layout({ connections: 400 });
+    layout({ 'agent-config': 400 });
     const nav = new ElementoFalso('nav');
     const { highlight, readMachines, draw } = createNav({ nav, read: async () => remote, screens: SCREENS });
-    highlight('connections');
+    highlight('agent-config');
     reveals.length = 0;
     await readMachines();
     draw();

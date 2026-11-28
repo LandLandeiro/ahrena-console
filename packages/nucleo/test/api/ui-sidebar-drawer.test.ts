@@ -186,7 +186,7 @@ describe('issue 750: the markup and the rules of the drawer', () => {
     assert.match(html, /<aside class="cc-side" id="sidebar">/);
     assert.match(html, /<div class="cc-scrim" id="scrim" hidden><\/div>/);
     assert.match(html, /<link rel="stylesheet" href="\/ui\/drawer\.css">/);
-    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<main class="cc-main" id="content">/);
+    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content">/);
   });
 
   test('the top bar and the scrim exist only below 860 px; the drawer slides in and is invisible when closed', () => {

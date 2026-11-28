@@ -525,15 +525,15 @@ describe('Analytics: Custo', () => {
 
 // ---------- Registro, rotas e regras da página ----------
 
-test('the registry: Analytics in the sidebar; /ui/analytics/cost opens the same screen and lights Analytics', () => {
+test('the registry: the item is "Uso e custo" (#754); /ui/analytics/cost opens the same screen and lights it', () => {
   const a = findScreen('/ui/analytics');
   assert.equal(a.screen.id, 'analytics');
-  assert.deepEqual(a.screen.item, { label: 'Analytics', icon: 'analytics', section: 'main' });
+  assert.deepEqual(a.screen.item, { label: 'Uso e custo', icon: 'analytics', section: 'main', project: { label: 'Custo', section: 'delivery', order: 3 } });
   const c = findScreen('/ui/analytics/cost');
   assert.equal(c.screen.highlights, 'analytics');
   assert.deepEqual(c.params, { tab: 'cost' });
   assert.equal(c.screen.file, a.screen.file);
-  assert.equal(SCREENS.filter((t: { item?: { label: string } }) => t.item?.label === 'Analytics').length, 1, 'um item só na barra');
+  assert.equal(SCREENS.filter((t: { item?: { label: string } }) => t.item?.label === 'Uso e custo').length, 1, 'um item só na barra');
 });
 
 test('as rotas e os períodos da tela são os do núcleo', async () => {

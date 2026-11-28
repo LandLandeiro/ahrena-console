@@ -269,7 +269,7 @@ describe('#750 the sidebar draws the tag and the number', () => {
   });
 
   test('the first block is called Agora; the other titles do not change', () => {
-    assert.deepEqual(SECTIONS.map((s: { label: string | null }) => s.label), ['Agora', 'Entrega', 'Decisões', 'Máquinas', 'Controle']);
+    assert.deepEqual(SECTIONS.map((s: { label: string | null }) => s.label), ['Agora', 'Entrega', 'Máquinas', null]);
     const n = nav();
     draw(n);
     assert.equal(texto(n.querySelector('[data-section="main"] .cc-nav-title')), 'Agora');

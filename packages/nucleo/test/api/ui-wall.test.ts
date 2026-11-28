@@ -912,7 +912,7 @@ test('a tela está registrada em /ui/wall, na barra como "Mural ao vivo"', () =>
   const { screen: t } = findScreen('/ui/wall');
   assert.equal(t.id, 'wall');
   assert.equal(t.file, '/ui/screens/wall.js');
-  assert.deepEqual(t.item, { label: 'Mural ao vivo', icon: 'wall', section: 'main' });
+  assert.deepEqual(t.item, { label: 'Mural ao vivo', icon: 'wall', section: 'main', project: { label: 'Sua atenção', order: 1 } });
   assert.equal(t.sub, 'Um card por sessão aberta nesta máquina');
 });
 

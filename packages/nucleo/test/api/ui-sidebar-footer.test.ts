@@ -39,7 +39,7 @@ describe('issue 750: the markup of the footer', () => {
   });
 
   test('the notice stays right before the main area, and nothing is inline', () => {
-    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<main class="cc-main" id="content">/);
+    assert.match(html, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content">/);
     assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)[^>]*>|\sstyle="|\sonclick=/);
   });
 
