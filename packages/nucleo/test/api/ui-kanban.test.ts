@@ -238,4 +238,37 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       abort.abort();
     }
   });
+  test('the same map from the sidebar, again and again, makes the board neither read nor say "Carregando o quadro" (#754)', async () => {
+    instalarDomFalso();
+    Object.assign(globalThis, { location: { search: '', pathname: '/ui/kanban' }, history: { state: null, replaceState: () => {} } });
+    const routes: string[] = [];
+    const listeners = new Set<() => void>();
+    let map = new Map<string, string>();
+    const area = new ElementoFalso('main');
+    const abort = new AbortController();
+    await mount(area, {
+      signal: abort.signal,
+      read: async (route: string) => (routes.push(route), BOARD),
+      onChange: () => {},
+      onRestart: () => {},
+      heldMachines: { get: () => map, onChange: (f: () => void) => (listeners.add(f), () => listeners.delete(f)) },
+      title: () => {},
+    });
+    try {
+      assert.equal(listeners.size, 1);
+      const reads = routes.length;
+      for (let i = 0; i < 3; i++) {
+        map = new Map();
+        [...listeners].forEach((f) => f());
+        assert.doesNotMatch(texto(area), /Carregando o quadro/);
+      }
+      map = new Map([['ws', 'stopped']]);
+      [...listeners].forEach((f) => f());
+      assert.doesNotMatch(texto(area), /Carregando o quadro/, 'with no remote a new map has no band to draw');
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(routes.length, reads);
+    } finally {
+      abort.abort();
+    }
+  });
 });

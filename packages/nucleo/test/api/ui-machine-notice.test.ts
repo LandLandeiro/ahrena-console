@@ -234,6 +234,41 @@ describe('#754 the band on the filter of a screen', () => {
     leave.abort();
   });
 
+  test('the same map again redraws nothing and, with no remote, a new map does not redraw the filter or call onLayout (#754)', async () => {
+    const leave = new AbortController();
+    const heldMachines = shellHeld([]);
+    const ctx = { signal: leave.signal, read: async () => ({}), onChange: () => {}, heldMachines };
+    let layouts = 0;
+    const filter = mf.createMachineFilter(ctx, { periodic: false, watchChanges: false, onLayout: () => void layouts++ });
+    filter.update({ machines: [local] });
+    layouts = 0;
+    let redraws = 0;
+    const replace = filter.row.replaceChildren.bind(filter.row);
+    filter.row.replaceChildren = (...a: unknown[]) => (redraws++, replace(...a));
+    heldMachines.set([]);
+    heldMachines.set([]);
+    heldMachines.set([['ws', 'stopped']]);
+    heldMachines.set([['ws', 'stopped']]);
+    assert.equal(layouts, 0);
+    assert.equal(redraws, 0);
+    leave.abort();
+  });
+
+  test('with a remote the same map redraws nothing and a different one redraws once (#754)', async () => {
+    const full = [local, remote()];
+    const { filter, heldMachines, leave } = rig(full, full, [['ws', 'stopped']]);
+    let layouts = 0;
+    const again = mf.createMachineFilter({ signal: leave.signal, read: async () => ({}), onChange: () => {}, heldMachines }, { periodic: false, watchChanges: false, onLayout: () => void layouts++ });
+    again.update({ machines: full });
+    heldMachines.set([['ws', 'stopped']]);
+    heldMachines.set([['ws', 'stopped']]);
+    assert.equal(layouts, 0);
+    heldMachines.set([['ws', 'updating']]);
+    assert.equal(layouts, 1);
+    assert.match(band(filter)[0], /^Workstation atualizando\./);
+    leave.abort();
+  });
+
   test('the filter stops following the sidebar when the screen leaves', async () => {
     const full = [local, remote()];
     const { filter, heldMachines, leave } = rig(full, full, [['ws', 'stopped']]);
