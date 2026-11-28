@@ -514,7 +514,8 @@ describe('Kanban with every machine (C46)', () => {
     assert.equal(texto(tag), '');
     assert.equal(cards[1]!.getAttribute('href'), '/ui/sessions/s1?machine=ws');
     assert.equal(all(area, '.mf-row .mf-filter').length, 1);
-    assert.match(texto(area), /As sessões das duas máquinas por status, só leitura/);
+    assert.doesNotMatch(texto(area), /por status, só leitura/);
+    assert.equal(texto(one(area, '.sub')), 'Nada precisa de você agora. 2 trabalhando.', '#766: the sentence says the state of the board, not how the screen works');
     f.leave.abort();
   });
 
@@ -558,7 +559,7 @@ describe('Sessões with every machine (C45, C48)', () => {
     assert.equal(all(area, '.mf-filter').length, 0);
     assert.equal(all(area, '.sessions-filter-label').length, 0);
     assert.equal(all(area, '.mf-tag').length, 0);
-    assert.equal(texto(one(area, '.sub')), '1 sessão registrada');
+    assert.equal(one(area, '.sub'), null, '#766: the numbers are in the filter; Sessões has only its title');
     cleanup();
     f.leave.abort();
   });
@@ -574,7 +575,7 @@ describe('Sessões with every machine (C45, C48)', () => {
       assert.ok(one(machineRow, '.mf-filter'));
       assert.equal(texto(one(machineRow, '.sessions-filter-label')), 'Status');
       assert.ok(one(machineRow, '.seg'), 'the status pills moved into the row');
-      assert.equal(texto(one(area, '.sub')), '3 sessões registradas · 1 na Workstation');
+      assert.equal(one(area, '.sub'), null, '#766: the numbers are in the filter; Sessões has only its title');
       const rows = all(area, 'tr.session-row');
       assert.deepEqual(rows.map((r) => r.getAttribute('data-key')), ['local:s3', 'ws:s3']);
       assert.equal(all(rows[0]!, '.mf-tag').length, 0);

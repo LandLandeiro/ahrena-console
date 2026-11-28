@@ -289,7 +289,7 @@ describe('Analytics: Visão geral', () => {
       assert.match(rotas[0]!, /^\/api\/analytics\?tz=[^&]+$/);
       const texto = area.textContent;
       assert.match(texto, /Analytics/);
-      assert.match(texto, /Uso, custo e produtividade das sessões/);
+      assert.doesNotMatch(texto, /Uso, custo e produtividade das sessões/, '#766: the overview has no data of yesterday: only its title');
       assert.match(texto, /Exportar/);
 
       const stats = comClasse(area, 'an-stat');
@@ -421,7 +421,8 @@ describe('Analytics: Custo', () => {
     try {
       assert.match(rotas[0]!, /^\/api\/analytics\/cost\?days=30&tz=[^&]+$/);
       const texto = area.textContent;
-      assert.match(texto, /Custo estimado pelo transcript, com o preço de cada modelo/);
+      assert.doesNotMatch(texto, /Custo estimado pelo transcript/);
+      assert.match(texto, /Gasto de hoje 9% acima da média diária de 30 dias\./);
       const botoes = porTag(area, 'button').filter((b) => b.getAttribute('data-days'));
       assert.deepEqual(botoes.map((b) => [b.textContent, b.getAttribute('aria-pressed')]), [['7 dias', 'false'], ['30 dias', 'true'], ['90 dias', 'false']]);
       assert.equal(porTag(comClasse(area, 'an-tabs')[0]!, 'a').find((a) => a.getAttribute('aria-current') === 'page')!.textContent, 'Custo');

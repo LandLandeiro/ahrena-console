@@ -223,7 +223,7 @@ describe('formatos e registro', () => {
       route: '/ui/workflows',
       highlights: 'analytics',
       title: 'Workflows',
-      sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado',
+      sub: null,
       icon: 'workflows',
       file: '/ui/screens/workflows.js',
     });

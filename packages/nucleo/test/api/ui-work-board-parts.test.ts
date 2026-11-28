@@ -826,16 +826,31 @@ describe('#610/AC-1 the header counts organizations and Projects (598-1)', () =>
     const head = workBoardHeader({ organizations: ORGS, fetchedAt: NOW - 40_000, now: NOW });
     assert.match(texto(head.querySelector('.wb-orgs-count')), /^3 organizações · 5 Projects$/);
     assert.match(texto(head), /acme-labs, northwind e mira-dev \(você\)/);
-    assert.match(texto(head), /a coluna vem dos sinais; só a fila é sua/);
+    assert.doesNotMatch(texto(head), /a coluna vem dos sinais/, '#766: how the column is chosen is the mechanism, not the state');
     assert.doesNotMatch(texto(head), /GitHub Project “/);
   });
 
   test('#610/AC-1 one organization and one Project: today\'s header names them, nothing counts', () => {
     const named = workBoardHeader({ organizations: [org('acme-labs', [PLATFORM])], fetchedAt: NOW, now: NOW });
-    assert.match(texto(named), /acme-labs · GitHub Project “Plataforma” · a coluna vem dos sinais/);
+    assert.match(texto(named), /acme-labs · GitHub Project “Plataforma”/);
+    assert.doesNotMatch(texto(named), /a coluna vem dos sinais/);
     assert.equal(named.querySelector('.wb-orgs-count'), null);
     const today = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, fetchedAt: NOW, now: NOW });
-    assert.match(texto(today), /acme-labs\/app · GitHub Project “Plataforma” · a coluna vem dos sinais/);
+    assert.match(texto(today), /acme-labs\/app · GitHub Project “Plataforma”/);
+    assert.doesNotMatch(texto(today), /a coluna vem dos sinais/);
+  });
+
+  test('#766 the header ends with what waits for the person, from the columns the screen read', () => {
+    const columns = [
+      { id: 'planning', count: 3, cards: [] },
+      { id: 'review', count: 1, cards: [] },
+    ];
+    const one = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, columns, fetchedAt: NOW, now: NOW });
+    assert.match(texto(one.querySelector('.sub')), /^acme-labs\/app · GitHub Project “Plataforma” · 3 itens esperam um plano e 1 espera revisão\.$/);
+    const many = workBoardHeader({ organizations: ORGS, columns, fetchedAt: NOW, now: NOW });
+    assert.match(texto(many.querySelector('.sub')), /3 itens esperam um plano e 1 espera revisão\.$/);
+    const quiet = workBoardHeader({ project: { owner: 'acme-labs', number: 3, title: 'Plataforma', primaryRepo: 'acme-labs/app' }, columns: [{ id: 'planning', count: 0, cards: [] }], fetchedAt: NOW, now: NOW });
+    assert.equal(texto(quiet.querySelector('.sub')), 'acme-labs/app · GitHub Project “Plataforma”');
   });
 
   test('#610/AC-1 the count leaves out an organization with a warning and marks "N com aviso"', () => {

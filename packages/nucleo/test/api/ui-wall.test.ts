@@ -913,7 +913,7 @@ test('a tela está registrada em /ui/wall, na barra como "Mural ao vivo"', () =>
   assert.equal(t.id, 'wall');
   assert.equal(t.file, '/ui/screens/wall.js');
   assert.deepEqual(t.item, { label: 'Mural ao vivo', icon: 'wall', section: 'main', project: { label: 'Sua atenção', order: 1 } });
-  assert.equal(t.sub, 'Um card por sessão aberta nesta máquina');
+  assert.equal(t.sub, null, '#766: the sentence of the header comes from the counts the screen reads, never from the registry');
 });
 
 test('a tela e o estilo dela não escrevem cor à mão, não chamam endereço de fora nem põem HTML ou estilo inline', () => {
