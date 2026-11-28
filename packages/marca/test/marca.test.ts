@@ -50,6 +50,8 @@ test('o módulo do painel traz as cores do tokens.json, em hex', () => {
     assert.deepEqual([s.label, s.glyph, s.color, s.dark, s.light], [fonte.label, fonte.glyph, fonte.color, fonte.dark, fonte.light], id)
   }
   assert.equal(marca.tipografia.mono, tokens.typography.mono)
+  assert.equal(marca.tipografia.sans, tokens.typography.sans)
+  assert.ok(!('googleFonts' in marca.tipografia))
 })
 
 // Lê as variáveis de um bloco do CSS gerado.
@@ -75,13 +77,18 @@ test('o CSS do artefato: escuro no :root, claro por prefers-color-scheme e por d
   assert.deepEqual(peloSistema, fixado, 'os dois blocos do claro são iguais')
   for (const id of tokens.status._ordem) {
     assert.equal(raizCss[`status-${id}`], tokens.status[id].color)
-    for (const p of ['dot', 'text', 'badge']) {
+    for (const p of Object.keys(tokens.status[id].dark)) {
       assert.equal(raizCss[`status-${id}-${p}`], tokens.status[id].dark[p], `${id} ${p} no escuro`)
       assert.equal(fixado[`status-${id}-${p}`], tokens.status[id].light[p], `${id} ${p} no claro`)
     }
   }
   assert.equal(raizCss['orange-500'], '#f47720')
   assert.equal(raizCss['font-sans'], tokens.typography.sans)
+  assert.equal(raizCss['font-mono'], tokens.typography.mono)
+  assert.equal(raizCss['text-title'], '30px')
+  assert.equal(raizCss['text-hero'], '64px')
+  assert.equal(raizCss['tracking-title'], '-0.02em')
+  assert.doesNotMatch(css, /googleapis|@font-face|https?:/, 'o CSS não carrega fonte de fora')
 })
 
 test('o painel de teste não fixa à mão nenhuma cor que já está na marca', () => {
@@ -90,4 +97,70 @@ test('o painel de teste não fixa à mão nenhuma cor que já está na marca', (
   const daMarca = new Set(Object.values(marca.paleta).flatMap(escala => Object.values(escala)).map(c => c.toLowerCase()))
   const fixas = [...fonte.matchAll(/#[0-9a-fA-F]{6}\b/g)].map(m => m[0].toLowerCase())
   for (const cor of fixas) assert.ok(!daMarca.has(cor), `register.tsx fixa ${cor}, que já está no módulo da marca`)
+})
+
+// #749: the radius scale, the agent colours, the float shadow and the status borders reach the CSS and the module.
+const cssVar = (name: string) => name.replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)
+
+test('the CSS has the radius scale as --radius-*, the same in every theme', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const raizCss = bloco(css, ':root')
+  const names = Object.keys(semNotas(tokens.radius))
+  assert.deepEqual(names.map(cssVar), ['card', 'control', 'tag', 'segment', 'segment-item', 'full'])
+  for (const name of names) assert.equal(raizCss[`radius-${cssVar(name)}`], tokens.radius[name], `--radius-${cssVar(name)}`)
+  const claro = bloco(css, ':root[data-theme="light"]')
+  assert.ok(!Object.keys(claro).some(k => k.startsWith('radius-')), 'the radius is not theme-dependent')
+  assert.deepEqual(marca.radius, semNotas(tokens.radius))
+})
+
+test('the CSS has each agent colour and the float shadow per theme, and the module carries them', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const escuro = bloco(css, ':root')
+  const claro = bloco(css, ':root[data-theme="light"]')
+  assert.equal(escuro['shadow-float'], tokens.shadow.dark.float)
+  assert.equal(claro['shadow-float'], tokens.shadow.light.float)
+  for (const cor of Object.keys(semNotas(tokens.agent))) {
+    for (const papel of ['text', 'bg']) {
+      assert.equal(escuro[`agent-${cor}-${papel}`], tokens.agent[cor].dark[papel], `--agent-${cor}-${papel} no escuro`)
+      assert.equal(claro[`agent-${cor}-${papel}`], tokens.agent[cor].light[papel], `--agent-${cor}-${papel} no claro`)
+    }
+  }
+  assert.deepEqual(marca.agent, semNotas(tokens.agent))
+  assert.deepEqual(marca.shadow, semNotas(tokens.shadow))
+})
+
+test('the new theme roles and the two status borders exist in both themes of the CSS', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const escuro = bloco(css, ':root')
+  const claro = bloco(css, ':root[data-theme="light"]')
+  for (const papel of ['subtle', 'sidebar', 'segment', 'track', 'avatar', 'primary', 'on-primary', 'accent-line', 'border-control']) {
+    assert.ok(papel in escuro && papel in claro, `--${papel} falta em um dos temas`)
+  }
+  for (const id of ['active', 'waiting']) {
+    assert.equal(escuro[`status-${id}-border`], tokens.status[id].dark.border)
+    assert.equal(claro[`status-${id}-border`], tokens.status[id].light.border)
+  }
+  for (const id of ['completed', 'error', 'abandoned']) assert.ok(!(`status-${id}-border` in escuro), `${id} has no border`)
+})
+
+// #749: the motion tokens reach the CSS; reduced motion zeroes the three durations and leaves the easings alone.
+test('the CSS has the five motion variables in :root and the module carries them', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const rootVars = bloco(css, ':root')
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(rootVars).filter(([k]) => k.startsWith('motion-') || k.startsWith('ease-'))),
+    { 'motion-fast': '120ms', 'motion-base': '180ms', 'motion-move': '220ms', 'ease-out': 'cubic-bezier(0.2, 0, 0, 1)', 'ease-in': 'cubic-bezier(0.4, 0, 1, 1)' },
+  )
+  assert.deepEqual(marca.motion, semNotas(tokens.motion))
+  assert.ok(!Object.keys(bloco(css, ':root[data-theme="light"]')).some(k => k.startsWith('motion-') || k.startsWith('ease-')), 'motion is not theme-dependent')
+})
+
+test('reduced motion zeroes exactly the three durations, after every theme block', () => {
+  const css = ler('packages/marca/gerado/marca.css')
+  const start = css.indexOf('@media (prefers-reduced-motion: reduce)')
+  assert.ok(start >= 0, 'missing prefers-reduced-motion block')
+  const reduced = css.slice(start)
+  assert.deepEqual(bloco(reduced, ':root'), { 'motion-fast': '0ms', 'motion-base': '0ms', 'motion-move': '0ms' })
+  assert.ok(start > css.indexOf(':root[data-theme="light"] {'), 'the reduced-motion block comes after the light theme blocks, so it wins in both themes')
+  assert.ok(start > css.indexOf('@media (prefers-color-scheme: light)'))
 })

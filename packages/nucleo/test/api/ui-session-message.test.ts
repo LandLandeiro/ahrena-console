@@ -210,9 +210,9 @@ describe('#61/AC-1 C51: the compose box at the foot of the Detail\'s Conversa', 
     plans.set(DETAIL_SESSION, { processes: 1, remoteControl: true, accountId: 'acc-1' });
     const { area, box } = await openDetail(DETAIL_SESSION);
     await until(() => /processo vivo nesta máquina/.test(texto(box)), 'the destination line');
-    const body = one(area, '.sd-body')!;
-    assert.equal(body.childNodes.at(-1), box, 'the box is the last thing of the Conversa tab');
-    assert.ok(one(body, '.sd-messages'), 'below the conversation');
+    const main = one(area, '.sd-conv-main')!;
+    assert.equal(main.childNodes.at(-1), box, 'the box is the last thing of the Conversa column (the plan and the numbers go beside it, issue 759)');
+    assert.ok(one(main, '.sd-messages'), 'below the conversation');
 
     const dest = texto(one(box, '.sm-dest'));
     assert.match(dest, /^Para Migração do esquema de pedidos Claude Desktop Pessoal \(teste\) Remote Control ligado processo vivo nesta máquina$/);

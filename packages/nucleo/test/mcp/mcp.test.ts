@@ -139,9 +139,9 @@ describe('sessions_needing_attention', () => {
     assert.equal(d.items.find((i: any) => i.sessionId === 'pergunta').questionOptions, 3);
     assert.equal(d.items.find((i: any) => i.sessionId === 'erro').errorCode, '529 overloaded_error');
     assert.equal(d.items.find((i: any) => i.sessionId === 'erro').account, null);
-    // #245: "precisa de você" is only what blocks; the turn that ended is "ociosa".
-    assert.match(r.content[0].text, /^4 sessões precisam de você e 3 estão ociosas\./);
-    assert.match(r.content[0].text, /\nPrecisam de você:[\s\S]*\nOciosas:/);
+    // #245: "precisa de você" is only what blocks; the turn that ended is "em pausa".
+    assert.match(r.content[0].text, /^4 sessões precisam de você e 3 estão em pausa\./);
+    assert.match(r.content[0].text, /\nPrecisam de você:[\s\S]*\nEm pausa:/);
     assert.doesNotMatch(r.content[0].text, /esperando você|na sua vez|travando/i);
   });
 
@@ -230,7 +230,7 @@ describe('fleet_overview', () => {
     assert.equal(r.structuredContent.day, '2026-11-02');
     assert.match(r.content[0].text, /Custo de hoje \(estimativa\): US\$ \d+\.\d\d/);
     // #245: the blocked ones need you; the idle ones are counted apart.
-    assert.match(r.content[0].text, /\nPrecisam de você: 4; ociosas: 3\./);
+    assert.match(r.content[0].text, /\nPrecisam de você: 4; em pausa: 3\./);
     assert.doesNotMatch(r.content[0].text, /esperando você|na sua vez|travando/i);
   });
 

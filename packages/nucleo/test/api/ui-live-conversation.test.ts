@@ -160,8 +160,13 @@ describe('Live conversation (#414, C100)', () => {
 
   test('AC-4: stuck to the bottom follows; scrolled up it holds position and shows the "N novas mensagens" pill, which lands at the bottom', async () => {
     const { h, area, ccMain } = await mountLive({ messages: [you('m1', 'começa'), bot('m2', 'ok, começando.')], total: 2, cursor: 'k0' });
-    // Presa ao fim: ao abrir, a lista desceu até o fim.
-    assert.equal(ccMain.scrollTop, ccMain.scrollHeight, 'abriu no fim');
+    // Issue 759 (A5): the page opens at the top; only the list of the conversation has an end to stick to.
+    const list = area.querySelector('.sd-messages')!;
+    list.scrollHeight = 1000;
+    list.clientHeight = 500;
+    list.scrollTop = 500;
+    list.dispatchEvent({ type: 'scroll' });
+    assert.equal(ccMain.scrollTop, 0, 'a página abriu no topo');
     const pill = () => area.querySelector('.sd-newpill')!;
     assert.equal(pill().hidden, true, 'sem aviso no começo');
 
@@ -170,18 +175,19 @@ describe('Live conversation (#414, C100)', () => {
     h.fire();
     await settle();
     assert.ok(midList(area).includes('m3'));
-    assert.equal(ccMain.scrollTop, ccMain.scrollHeight, 'presa ao fim, acompanhou');
+    assert.equal(list.scrollTop, list.scrollHeight, 'presa ao fim, a lista acompanhou');
+    assert.equal(ccMain.scrollTop, 0, 'e a página ficou onde estava');
     assert.equal(pill().hidden, true, 'presa ao fim não mostra aviso');
 
     // A pessoa rola para cima de propósito.
-    ccMain.scrollTop = 0;
-    ccMain.dispatchEvent({ type: 'scroll' });
+    list.scrollTop = 0;
+    list.dispatchEvent({ type: 'scroll' });
 
     // Chega um bloco novo: a posição se mantém e o aviso aparece com o número exato.
     h.queueDelta({ messages: [bot('m4', 'segundo passo.')], total: 4, cursor: 'k2' });
     h.fire();
     await settle();
-    assert.equal(ccMain.scrollTop, 0, 'rolada para cima, a leitura fica onde está');
+    assert.equal(list.scrollTop, 0, 'rolada para cima, a leitura fica onde está');
     assert.equal(pill().hidden, false, 'o aviso apareceu');
     assert.match(pill().textContent, /1 nova mensagem/);
 
@@ -190,11 +196,12 @@ describe('Live conversation (#414, C100)', () => {
     h.fire();
     await settle();
     assert.match(pill().textContent, /3 novas mensagens/);
-    assert.equal(ccMain.scrollTop, 0, 'ainda não puxou para baixo');
+    assert.equal(list.scrollTop, 0, 'ainda não puxou para baixo');
 
     // Clicar no aviso leva ao fim e o esconde.
     pill().click();
-    assert.equal(ccMain.scrollTop, ccMain.scrollHeight, 'o aviso levou ao fim');
+    assert.equal(list.scrollTop, list.scrollHeight, 'o aviso levou ao fim');
+    assert.equal(ccMain.scrollTop, 0, 'sem mexer na página');
     assert.equal(pill().hidden, true, 'o aviso sumiu');
   });
 });

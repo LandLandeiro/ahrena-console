@@ -101,12 +101,12 @@ function withoutOtherConfirmation(state, key) {
  * Planejar, or Replanejar with `replan` (decision 4: the same confirmation): opens the confirmation on the card. Epics and
  * initiatives, cards outside Planejamento, a card already planning, and a replan with no plan do nothing.
  */
-export function askPlan(state, card, { replan = false } = {}) {
+export function askPlan(state, card, { replan = false, target = DEFAULT_TARGET } = {}) {
   const now = planOf(state, card);
   if (!isPlannable(card) || BUSY.has(now.phase) || now.phase === 'confirming') return state;
   if (replan ? now.steps === 0 : now.phase === 'planned') return state;
   const prior = state.plans[card.key] ?? null;
-  return put(withoutOtherConfirmation(state, card.key), card.key, { phase: 'confirming', steps: now.steps, target: DEFAULT_TARGET, replan, prior });
+  return put(withoutOtherConfirmation(state, card.key), card.key, { phase: 'confirming', steps: now.steps, target: TARGETS.includes(target) ? target : DEFAULT_TARGET, replan, prior });
 }
 
 /** Where to open (Claude Desktop or Terminal) on the confirmation; an unknown target is ignored. */

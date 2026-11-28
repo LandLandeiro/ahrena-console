@@ -102,7 +102,7 @@ export async function mount(area, ctx) {
       refresh.removeAttribute('aria-busy');
     }
   });
-  const head = header({ icon: 'repos', title: 'Repositórios', sub: 'Organizações e repositórios da sua conta do GitHub', actions: [accountChip, refresh] });
+  const head = header({ icon: 'repos', title: 'Repositórios', sub: null, actions: [accountChip, refresh] });
 
   // ---------- filtros: montados uma vez ----------
   const search = el('input', { type: 'search', placeholder: 'Buscar repositórios…', 'aria-label': 'Buscar repositórios', autocomplete: 'off', spellcheck: 'false' });

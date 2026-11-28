@@ -109,7 +109,7 @@ const numbersIn = (view: WorkBoardView, column: string) => view.columns.find((c)
 describe('work board vocabulary', () => {
   test('the six columns in lifecycle order, with pt-BR label and criterion as data', () => {
     assert.deepEqual(WORK_BOARD_COLUMNS.map((c) => c.id), ['planning', 'queued', 'running', 'review', 'blocked', 'done']);
-    assert.deepEqual(WORK_BOARD_COLUMNS.map((c) => c.label), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Bloqueado', 'Concluído']);
+    assert.deepEqual(WORK_BOARD_COLUMNS.map((c) => c.label), ['Planejamento', 'Na fila', 'Em execução', 'Em review', 'Precisa de você', 'Concluído']);
     assert.ok(WORK_BOARD_COLUMNS.every((c) => c.criterion.length > 0));
   });
 
@@ -292,7 +292,7 @@ describe('blocked reasons', () => {
     assert.equal(columnOfIssue({ ...open, pullRequest: worst, sessions: ['needs-you'] }).blocked, 'needs-you');
   });
 
-  test('#465/AC-3 order inside Bloqueado: reason order first, then oldest in the column', () => {
+  test('#465/AC-3 order inside Precisa de você: reason order first, then oldest in the column', () => {
     const nodes = [
       boardNode(10, { pullRequest: pr({ ci: 'FAILURE' }) }),
       boardNode(11, { pullRequest: pr({ ci: 'FAILURE' }) }),

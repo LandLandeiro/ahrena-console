@@ -67,8 +67,8 @@ describe('Kanban: funções da tela', () => {
   });
 
   test('status: session and agent share the pill; the columns of both views get the right color (issue 245)', () => {
-    assert.deepEqual(status('active'), { cor: 'active', rotulo: 'Ativa' });
-    assert.deepEqual(status('working'), { cor: 'active', rotulo: 'Ativa' });
+    assert.deepEqual(status('active'), { cor: 'active', rotulo: 'Trabalhando' });
+    assert.deepEqual(status('working'), { cor: 'active', rotulo: 'Trabalhando' });
     assert.equal(status('completed').rotulo, 'Concluída');
     assert.equal(status('error').rotulo, 'Com erro');
     assert.equal(status('abandoned').rotulo, 'Abandonada');
@@ -101,13 +101,13 @@ describe('Kanban: funções da tela', () => {
 });
 
 describe('Kanban: registro e arquivos', () => {
-  test('a rota /ui/kanban abre a tela, com o item depois de Sessões e do Feed (a ordem do wireframe)', () => {
-    const ids = SCREENS.filter((t: { item?: unknown }) => t.item).map((t: { id: string }) => t.id);
-    assert.equal(ids.indexOf('kanban'), Math.max(ids.indexOf('sessions'), ids.indexOf('feed')) + 1);
+  test('a rota /ui/kanban abre a tela, sem item, acendendo Sessões', () => {
+    // #754: the Kanban of sessions has no item; it lights Sessões and is its tab "Por estado".
     const { screen: tela } = findScreen('/ui/kanban');
     assert.equal(tela.id, 'kanban');
     assert.equal(tela.file, '/ui/screens/kanban.js');
-    assert.deepEqual(tela.item, { label: 'Kanban', icon: 'kanban', section: 'main' });
+    assert.equal(tela.item, undefined);
+    assert.equal(tela.highlights, 'sessions');
     assert.match(readFileSync(`${UI_FOLDER}dom.js`, 'utf8'), /\n {2}kanban: '/);
   });
 
@@ -163,16 +163,16 @@ describe('Kanban: registro e arquivos', () => {
   });
 });
 
-// issue 245: the old waiting column split in two, "Precisam de você" (with the errors) and "Ociosas".
+// #753: the old waiting column split in two, "Precisam de você" (with the errors) and "Em pausa".
 describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
   const card = (id: string, extra: Record<string, unknown>) => ({ id, title: `Sessão ${id}`, status: 'active', reason: null, attention: null, lastPrompt: null, lastActivity: '2026-10-20T12:00:00Z', start: '2026-10-20T11:00:00Z', running: true, durationMs: 60_000, agents: 1, model: 'Opus 5.5', costUsd: 1, cwd: '/x', account: null, ...extra });
   const BOARD = {
     view: 'sessions',
     perPage: 10,
     columns: [
-      { id: 'active', label: 'Ativas', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
+      { id: 'active', label: 'Trabalhando', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
       { id: 'blocked', label: 'Precisam de você', total: 12, page: 1, hasMore: true, items: [card('b1', { status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), card('e1', { status: 'error', attention: { level: 'blocked', reason: 'error' } })] },
-      { id: 'idle', label: 'Ociosas', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
+      { id: 'idle', label: 'Em pausa', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
       { id: 'completed', label: 'Concluídas', total: 0, page: 1, hasMore: false, items: [] },
       { id: 'abandoned', label: 'Abandonadas', total: 0, page: 1, hasMore: false, items: [] },
     ],
@@ -199,14 +199,16 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       assert.equal(columns[2]!.querySelectorAll('.kb-dot.kb-d-idle').length, 1);
       const [blocked, error] = columns[1]!.querySelectorAll('.kb-kc');
       assert.ok(blocked!.classList.contains('kb-st-blocked'));
-      assert.match(texto(blocked!), /Precisa de você Pede permissão/);
+      assert.match(texto(blocked!), /Pede permissão/, 'the reason is the label of the state tag (#763)');
+      assert.equal(blocked!.querySelectorAll('.state-tag').length, 1);
       assert.ok(error!.classList.contains('kb-st-error'));
       assert.match(texto(error!), /Com erro/);
-      assert.equal(error!.querySelectorAll('.attention-chip').length, 0, 'the error keeps only its red pill');
+      assert.equal(error!.querySelectorAll('.attention-chip').length, 0, 'the error keeps only its state tag');
       const idle = columns[2]!.querySelector('.kb-kc')!;
       assert.ok(idle.classList.contains('kb-st-idle'));
-      assert.match(texto(idle), /Ociosa Interrompida/);
-      assert.equal(idle.querySelectorAll('.attention-chip.attention-chip-light').length, 1);
+      assert.match(texto(idle), /Em pausa Interrompida/);
+      assert.equal(idle.querySelectorAll('.kb-reason').length, 1, 'the reason of a pause is plain text, not a chip');
+      assert.equal(idle.querySelectorAll('.attention-chip').length, 0);
       assert.doesNotMatch(texto(area), /Esperando/);
 
       columns[1]!.querySelector('.kb-more')!.click();
@@ -214,6 +216,59 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       // Issue 243: the board is always read with `machine` (`all` by default).
       assert.deepEqual(routes, ['/api/kanban?view=sessions&machine=all', '/api/kanban?view=sessions&column=blocked&page=2&machine=all']);
       assert.ok(routes.every((r) => !r.includes('column=waiting')));
+    } finally {
+      abort.abort();
+    }
+  });
+  test('the board does not follow the mode by itself: it registers no listener, and the shell opens it again (#754)', async () => {
+    instalarDomFalso();
+    Object.assign(globalThis, { location: { search: '', pathname: '/ui/kanban' }, history: { state: null, replaceState: () => {} } });
+    const followers: (() => void)[] = [];
+    const area = new ElementoFalso('main');
+    const abort = new AbortController();
+    await mount(area, {
+      signal: abort.signal,
+      read: async () => BOARD,
+      onChange: () => {},
+      onRestart: () => {},
+      onModeChange: (f: () => void) => void followers.push(f),
+      title: () => {},
+    });
+    try {
+      assert.equal(followers.length, 0);
+    } finally {
+      abort.abort();
+    }
+  });
+  test('the same map from the sidebar, again and again, makes the board neither read nor say "Carregando o quadro" (#754)', async () => {
+    instalarDomFalso();
+    Object.assign(globalThis, { location: { search: '', pathname: '/ui/kanban' }, history: { state: null, replaceState: () => {} } });
+    const routes: string[] = [];
+    const listeners = new Set<() => void>();
+    let map = new Map<string, string>();
+    const area = new ElementoFalso('main');
+    const abort = new AbortController();
+    await mount(area, {
+      signal: abort.signal,
+      read: async (route: string) => (routes.push(route), BOARD),
+      onChange: () => {},
+      onRestart: () => {},
+      heldMachines: { get: () => map, onChange: (f: () => void) => (listeners.add(f), () => listeners.delete(f)) },
+      title: () => {},
+    });
+    try {
+      assert.equal(listeners.size, 1);
+      const reads = routes.length;
+      for (let i = 0; i < 3; i++) {
+        map = new Map();
+        [...listeners].forEach((f) => f());
+        assert.doesNotMatch(texto(area), /Carregando o quadro/);
+      }
+      map = new Map([['ws', 'stopped']]);
+      [...listeners].forEach((f) => f());
+      assert.doesNotMatch(texto(area), /Carregando o quadro/, 'with no remote a new map has no band to draw');
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(routes.length, reads);
     } finally {
       abort.abort();
     }

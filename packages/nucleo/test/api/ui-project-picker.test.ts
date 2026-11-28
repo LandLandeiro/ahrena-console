@@ -331,7 +331,7 @@ async function mountBoard(read: (route: string) => Promise<unknown>, write: (rou
 describe('the board (C43 1440, C44)', () => {
   test('the header names the Project, its owner and number, and offers Trocar de Project', async () => {
     const m = await mountBoard(async () => BOARD());
-    assert.equal(texto(m.area.querySelector('header .sub')), 'GitHub Project “Roadmap do app” · exemplo-labs #3 · por Status · arraste para mudar');
+    assert.equal(texto(m.area.querySelector('header .sub')), 'GitHub Project “Roadmap do app” · exemplo-labs #3');
     const sw = m.area.querySelector('.pp-switch')!;
     assert.equal(sw.hasAttribute('hidden'), false);
     assert.equal(texto(sw.querySelector('[data-action="switch-project"]')), 'Trocar de Project');

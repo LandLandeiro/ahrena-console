@@ -2,23 +2,19 @@
    marca.css. As peças da linguagem do console que a moldura ainda não tem (pílula de status, chip,
    campo, linha, bloco de ferramenta) estão aqui, com os nomes do wireframe. */
 
-.badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 11.5px; font-weight: var(--weight-medium); white-space: nowrap; flex: none; }
-.badge .p { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.b-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.b-waiting { background: var(--status-waiting-badge); color: var(--status-waiting-text); }
-.b-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.b-error { background: var(--status-error-badge); color: var(--status-error-text); }
+/* issue 763: the state of a row is the icon and the label of state-icon.css, in a column of its own width. */
+.feed-state { flex: none; width: 150px; min-width: 0; display: flex; }
 
-.feed-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 7px; font-size: 11.5px; background: var(--raised); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; font-family: var(--font-mono); flex: none; }
-.feed-field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 0; }
-.feed-field:focus-within { border-color: var(--accent); }
+.feed-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: var(--radius-control); font-size: 11.5px; background: var(--raised); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; font-family: var(--font-mono); flex: none; }
+.feed-field { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: var(--radius-control); background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; white-space: nowrap; min-width: 0; }
+.feed-field:focus-within { border-color: var(--accent-line); outline: 2px solid var(--accent-line); outline-offset: 1px; }
 .feed-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
 .feed-rows { display: flex; flex-direction: column; }
 .feed-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12.5px; min-width: 0; }
 .feed-row .feed-o { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 
-.feed-toolblock { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-top: 6px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11.5px; min-width: 0; }
+.feed-toolblock { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin-top: 6px; border-radius: var(--radius-card); background: var(--surface); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11.5px; min-width: 0; }
 .feed-toolblock .feed-n { color: var(--accent-text); font-weight: var(--weight-semibold); flex: none; }
 .feed-toolblock .feed-cmd { color: var(--muted); }
 
@@ -27,7 +23,7 @@
 .feed-about summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
 .feed-about summary::-webkit-details-marker { display: none; }
 .feed-about summary b { color: var(--text); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; font-weight: var(--weight-semibold); }
-.feed-about summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.feed-about summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-tag); }
 .feed-about-body { padding: 6px 0 2px 22px; line-height: 1.6; }
 .feed-about-body p { margin: 4px 0; max-width: 90ch; }
 
@@ -39,7 +35,7 @@
 .feed-input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--text); font: inherit; outline: none; }
 .feed-input::placeholder { color: var(--muted); }
 .feed-day .feed-input { color-scheme: dark light; }
-.feed-selector { cursor: pointer; appearance: none; max-width: 220px; text-overflow: ellipsis; }
+.feed-selector { border-color: var(--border-control); cursor: pointer; appearance: none; max-width: 220px; text-overflow: ellipsis; }
 .feed-selector:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- lista ---------- */
@@ -49,7 +45,7 @@
 .feed-item:last-child { border-bottom: 0; }
 .feed-item .feed-row { border-bottom: 0; cursor: pointer; }
 .feed-item .feed-row:hover { background: var(--raised); }
-.feed-arrow { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--muted); flex: none; }
+.feed-arrow { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--radius-tag); background: transparent; color: var(--muted); flex: none; }
 .feed-arrow:focus-visible, .feed-session:focus-visible, .feed-more:focus-visible, .feed-new:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .feed-time { width: 44px; flex: none; }
 .feed-trail { max-width: 330px; flex: 0 1 auto; min-width: 80px; }
@@ -75,3 +71,7 @@
 /* Issue 243 (C47): the machine filter and the C48 notices, under the header. */
 .feed-machines { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .feed-machines[hidden] { display: none; }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.feed-arrow { position: relative; }
+.feed-arrow::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

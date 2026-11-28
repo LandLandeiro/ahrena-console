@@ -70,7 +70,7 @@ export interface ItemDaAtencao {
   account: { label: string; color: string } | null;
   level: AttentionLevel;
   reason: AttentionReason;
-  /** #245: `blocked` ("Precisa de você") or `idle` ("Ociosa"), with the English reason; the same as `level` and `reason`. */
+  /** #245: `blocked` ("Precisa de você") or `idle` ("Em pausa"), with the English reason; the same as `level` and `reason`. */
   attention: SessionAttention;
   /** A frase curta em pt-BR (`MOTIVO_CURTO`). */
   shortReason: string;

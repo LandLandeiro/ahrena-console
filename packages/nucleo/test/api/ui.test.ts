@@ -148,7 +148,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}${a}`, 'utf8');
       const urls = externalUrls(a, text);
       assert.deepEqual(urls, [], `${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
+      // #750: a comment may carry an issue pointer such as `#750`, which reads like a short hex color; only code is checked.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
       assert.doesNotMatch(text, /\sstyle\s*=|setAttribute\(\s*['"]style/, `${a} usa estilo inline`);
       if (a !== 'api.js') assert.doesNotMatch(text, /\bfetch\(/, `${a} chama fetch: só api.js fala com o núcleo`);
       // `innerHTML` only in the icons (dom.js constants), never with data.
@@ -160,7 +162,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}screens/${a}`, 'utf8');
       const urls = externalUrls(`screens/${a}`, text);
       assert.deepEqual(urls, [], `screens/${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `screens/${a} escreve cor à mão`);
+      // #750: only code is checked for a color, as above; a comment may carry an issue pointer such as `#762`.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `screens/${a} escreve cor à mão`);
       if (a.endsWith('.js')) {
         // What the CSP (`style-src 'self'`) blocks is the `style` attribute: `{ style: … }` in el(),
         // `style="…"` and `setAttribute('style', …)`. It lets the CSSOM (`x.style.setProperty`) through.
@@ -168,7 +172,7 @@ describe('/ui in the core', () => {
       }
     }
     const page = readFileSync(`${UI_FOLDER}index.html`, 'utf8');
-    for (const [, ref] of page.matchAll(/(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
+    for (const [, ref] of page.matchAll(/<(?:link|script)\b[^>]*\b(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
   });
 
   test('read(route) reads the API over HTTP and only the local core API', async () => {
@@ -297,25 +301,24 @@ describe('UI rule 9 (#255): cards in the same row have the same height', () => {
 });
 
 describe('screen registry', () => {
-  test('the sidebar has Dashboard, Mural ao vivo, Sessões, the Feed, Kanban, Analytics, Workflows and Histórico; under Entrega Repositórios, the project Kanban, the work board and Dev Console; under Decisões, Das sessões, ADR and PDR; under Máquinas Esta máquina and, under Controle, Agent Config and Conexões; the Detail opens by a session and lights Sessões', () => {
-    assert.deepEqual(SCREENS.filter((t: { item?: unknown }) => t.item).map((t: { id: string }) => t.id), ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'repos', 'project', 'work', 'dev-console', 'analytics', 'workflows', 'history', 'decisions', 'adrs', 'pdrs', 'this-machine', 'agent-config', 'connections']);
+  test('the Dev bar has Mural ao vivo, Sessões and Uso e custo under Agora; the work board, Repositórios and Decisões under Entrega; Esta máquina under Máquinas and Configuração at the foot; the merged screens light the item that receives them, the Detail lights Sessões (#754, decision 0029)', () => {
+    assert.deepEqual(SCREENS.filter((t: { item?: unknown }) => t.item).map((t: { id: string }) => t.id), ['wall', 'sessions', 'work', 'repos', 'analytics', 'decisions', 'this-machine', 'agent-config']);
     assert.deepEqual(
       sidebarSections().map((s: { id: string; label: string | null; items: { id: string }[] }) => [s.id, s.label, s.items.map((t) => t.id)]),
       [
-        ['main', null, ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'analytics', 'workflows', 'history']],
-        ['delivery', 'Entrega', ['repos', 'project', 'work', 'dev-console']],
-        ['decisions', 'Decisões', ['decisions', 'adrs', 'pdrs']],
+        ['main', 'Agora', ['wall', 'sessions', 'analytics']],
+        ['delivery', 'Entrega', ['work', 'repos', 'decisions']],
         ['machines', 'Máquinas', ['this-machine']],
-        ['control', 'Controle', ['agent-config', 'connections']],
+        ['foot', null, ['agent-config']],
       ],
     );
     assert.equal(findScreen('/ui/decisions').screen.file, '/ui/screens/decisions.js');
-    // ADR e PDR (#174): a mesma tela de lista; o registro aberto acende o item do tipo.
+    // ADR e PDR (#174): a mesma tela de lista; o registro aberto acende Decisões (#754).
     assert.equal(findScreen('/ui/adrs').screen.file, '/ui/screens/adrs.js');
     assert.equal(findScreen('/ui/pdrs').screen.file, '/ui/screens/adrs.js');
     const adr = findScreen('/ui/adrs/exemplo-labs/motor-de-regras/0008-regras-em-tabela');
-    assert.deepEqual([adr.screen.id, adr.screen.highlights, adr.params], ['adr', 'adrs', { owner: 'exemplo-labs', repo: 'motor-de-regras', id: '0008-regras-em-tabela' }]);
-    assert.equal(findScreen('/ui/pdrs/a/b/PDR-001-x').screen.highlights, 'pdrs');
+    assert.deepEqual([adr.screen.id, adr.screen.highlights, adr.params], ['adr', 'decisions', { owner: 'exemplo-labs', repo: 'motor-de-regras', id: '0008-regras-em-tabela' }]);
+    assert.equal(findScreen('/ui/pdrs/a/b/PDR-001-x').screen.highlights, 'decisions');
     // O id do registro é o nome do arquivo: acento e espaço valem ali, e só ali.
     assert.equal(findScreen(`/ui/adrs/a/b/${encodeURIComponent('0004-decisão de fila')}`).params.id, '0004-decisão de fila');
     assert.equal(findScreen(`/ui/repos/${encodeURIComponent('dono ruim')}/b`), null);
@@ -334,42 +337,41 @@ describe('screen registry', () => {
     assert.equal(findScreen('/ui/sessions/a%20b'), null);
     assert.equal(findScreen('/ui/kanban').screen.id, 'kanban');
     assert.equal(findScreen('/ui/dev-console').screen.file, '/ui/screens/dev-console.js');
-    // Conexões (issue 241): the last item of Controle, with an English route.
+    // Conexões (#241): a tab of Configuração, with an English route.
     assert.equal(findScreen('/ui/connections').screen.file, '/ui/screens/connections.js');
     assert.equal(findScreen('/ui/nao-existe'), null);
     // The old URLs match nothing: the shell shows "Página não encontrada" (#173, phase 6).
     for (const old of ['/ui/sessoes', '/ui/sessoes/b91d04aa-4e1', '/ui/historico', '/ui/mural', '/ui/projeto', '/ui/decisoes']) assert.equal(findScreen(old), null, old);
   });
 
-  test('the sidebar has the sections: the everyday screens without a title, Entrega, Decisões, Máquinas and Controle; an empty section does not show', () => {
+  test('the sidebar has the sections: Agora, Entrega, Máquinas and the foot, which has no title; an empty section does not show', () => {
     assert.deepEqual(SECTIONS, [
-      { id: 'main', label: null },
+      { id: 'main', label: 'Agora' },
       { id: 'delivery', label: 'Entrega' },
-      { id: 'decisions', label: 'Decisões' },
       { id: 'machines', label: 'Máquinas' },
-      { id: 'control', label: 'Controle' },
+      { id: 'foot', label: null },
     ]);
     for (const t of SCREENS.filter((x: { item?: unknown }) => x.item)) assert.ok(SECTIONS.some((s: { id: string }) => s.id === t.item.section), t.id);
-    // A Controle item registered before the everyday ones still goes in its block, after Máquinas.
+    // A foot item registered before the everyday ones still goes in its block, after Máquinas (#754).
     const screens = [
-      { id: 'config', item: { label: 'Agent Config', icon: 'x', section: 'control' } },
+      { id: 'config', item: { label: 'Configuração', icon: 'x', section: 'foot' } },
       { id: 'dashboard', item: { label: 'Dashboard', icon: 'x', section: 'main' } },
       { id: 'session-detail', highlights: 'dashboard' },
       { id: 'local', item: { label: 'Esta máquina', icon: 'x', section: 'machines' } },
       { id: 'dev', item: { label: 'Dev Console', icon: 'x', section: 'main' } },
     ];
     const sectionsOf = (ts: unknown[]) => sidebarSections(ts).map((s: { id: string; items: { id: string }[] }) => [s.id, s.items.map((t) => t.id)]);
-    assert.deepEqual(sectionsOf(screens), [['main', ['dashboard', 'dev']], ['machines', ['local']], ['control', ['config']]]);
-    assert.deepEqual(sectionsOf(screens.filter((t) => t.id !== 'local')), [['main', ['dashboard', 'dev']], ['control', ['config']]]);
+    assert.deepEqual(sectionsOf(screens), [['main', ['dashboard', 'dev']], ['machines', ['local']], ['foot', ['config']]]);
+    assert.deepEqual(sectionsOf(screens.filter((t) => t.id !== 'local')), [['main', ['dashboard', 'dev']], ['foot', ['config']]]);
     // An item with a wrong section does not vanish: it falls in the top block (and the loop above refuses the registration).
     assert.deepEqual(sectionsOf([{ id: 'x', item: { label: 'X', icon: 'x', section: 'unknown' } }]), [['main', ['x']]]);
   });
 
   test('the shell draws each section title with the shell classes, without inline style', () => {
     const app = readFileSync(`${UI_FOLDER}nav.js`, 'utf8');
-    assert.match(app, /sidebarSections\(\[\.\.\.screens, \.\.\.remoteItems\]\)/);
+    assert.match(app, /sidebarSections\(\[\.\.\.screens, \.\.\.remoteItems\], undefined, appMode\(\)\)/);
     assert.match(app, /'cc-nav-section'/);
-    assert.match(app, /'cc-nav-title eyebrow'/);
+    assert.match(app, /'cc-nav-title'/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     assert.match(css, /\.cc-nav-section \{/);
     assert.match(css, /\.cc-nav-title \{/);
@@ -378,17 +380,16 @@ describe('screen registry', () => {
   test('sidebar breathing: items keep their height and only the item list scrolls on a short window', () => {
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     const rule = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.#]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
-    // The wireframe item is about 34 px tall; it never shrinks to fit the window.
-    assert.match(rule('.cc-nav'), /min-height: 34px/);
+    assert.match(rule('.cc-nav'), /min-height: 31px/);
     assert.match(rule('.cc-nav'), /flex: none/);
-    assert.match(rule('.cc-nav-title'), /padding: 18px 12px 8px/);
+    assert.match(rule('.cc-nav-title'), /margin: 11px 0 3px/);
     // The list scrolls; the brand and the footer stay put.
     assert.match(rule('#nav'), /overflow-y: auto/);
     assert.match(rule('#nav'), /min-height: 0/);
     assert.match(rule('.cc-side'), /overflow: hidden/);
     assert.match(rule('.cc-brand'), /flex: none/);
     assert.match(rule('.cc-foot'), /flex: none/);
-    assert.match(rule('.cc-foot'), /padding-top: 16px/);
+    assert.match(rule('.cc-foot'), /border-top: 1px solid var\(--border\)/);
     // The lit item is brought into view when the list scrolls.
     assert.match(readFileSync(`${UI_FOLDER}nav.js`, 'utf8'), /scrollIntoView\?\.\(\{ block: 'nearest' \}\)/);
   });
@@ -414,7 +415,7 @@ describe('screen registry', () => {
       ],
     );
     // The other blocks do not move.
-    assert.deepEqual(sidebarSections([...SCREENS, ...machineItems([local, ws])]).map((s: { id: string }) => s.id), ['main', 'delivery', 'decisions', 'machines', 'control']);
+    assert.deepEqual(sidebarSections([...SCREENS, ...machineItems([local, ws])]).map((s: { id: string }) => s.id), ['main', 'delivery', 'machines', 'foot']);
     // What the core sends is checked: a bad id, a repeated one, `local` and junk are left out.
     assert.deepEqual(machineItems([ws, { ...ws }, { id: '../x', label: 'x' }, { id: 'local' }, 'junk', null, { id: 'sem-rotulo', state: 'weird' }]).map((t: { id: string; item: { label: string }; state: string }) => [t.id, t.item.label, t.state]), [
       ['machine-ws-exemplo', 'Workstation', 'unreachable'],
@@ -437,7 +438,7 @@ describe('screen registry', () => {
   // The drawing itself (nav.js) is tested on the fake DOM in ui-machines.test.ts; here, the wiring.
   test('#178 criterion 1: the shell draws the sidebar through nav.js and re-reads the machines on an alert', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createNav\(\{ nav, read \}\)/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read: shellRead,/);
     assert.match(app, /highlight\(litItem\(screen, params\)\)/);
     assert.match(app, /changes\.some\(\(c\) => c\.type === 'alert'\)\) readMachines\(\)/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
@@ -488,7 +489,8 @@ describe('screen registry', () => {
   test('the shell routes the URL as it came: no old /ui URL is swapped any more (#173, phase 6)', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.doesNotMatch(app, /legacyUrl|replaceState/);
-    assert.match(app, /const found = findScreen\(location\.pathname\);\n\s+if \(!found\) \{[\s\S]{0,200}Página não encontrada/);
+    assert.match(app, /const found = findScreen\(location\.pathname\);\n\s+if \(!found\) return showNotFound\(\);/);
+    assert.match(app, /function showNotFound\(\) \{[\s\S]{0,300}Página não encontrada/);
   });
 });
 
@@ -521,11 +523,11 @@ describe('Agent Config screen (#63): registration and pure functions', () => {
     assert.deepEqual(selectors.filter((s) => !s.includes('.ac-')), []);
   });
 
-  test('registered at /ui/agent-config, with the Agent Config item (bot icon) and the file in screens/', () => {
+  test('registered at /ui/agent-config, with the Configuração item (bot icon) and the file in screens/', () => {
     const found = findScreen('/ui/agent-config');
     assert.equal(found.screen.id, 'agent-config');
     assert.equal(found.screen.file, '/ui/screens/agent-config.js');
-    assert.deepEqual(found.screen.item, { label: 'Agent Config', icon: 'bot', section: 'control' });
+    assert.deepEqual(found.screen.item, { label: 'Configuração', icon: 'bot', section: 'foot' });
     assert.equal(findScreen('/ui/agent-config/').screen.id, 'agent-config');
   });
 

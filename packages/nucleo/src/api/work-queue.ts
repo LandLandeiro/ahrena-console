@@ -18,7 +18,7 @@
  *   after the body is validated and before the issue is read.
  * - 422 `no-plan`: the issue has no sub-issue (the card's "plano · N passos", #467). "Planeje antes".
  * - 409 `not-plannable`: a closed issue, an epic or an initiative, or a card in Em execução, Em review,
- *   Bloqueado or Concluído, which are facts of the session and of GitHub (`column` names it).
+ *   Precisa de você or Concluído, which are facts of the session and of GitHub (`column` names it).
  * - 404 `not-queued`: take out or reorder of something that is not in line, or after something that is not.
  * Taking out and reordering never ask GitHub, so they work with it down and for any repository.
  *
