@@ -167,11 +167,16 @@ describe('#763/A7 one `.seg` and the radius tokens', () => {
     for (const file of ['kanban.css', 'work-board.css']) assert.doesNotMatch(css(file), /\.kb-seg|\.wb-levels|\.wb-level\b(?!-)/, file);
   });
 
-  test('the state column of a Feed row has a fixed basis but may shrink, so the "Sessão" button is not cut at 390 px', () => {
-    const rule = /\.feed-state\s*\{([^}]*)\}/.exec(css('feed.css'))?.[1] ?? '';
-    assert.doesNotMatch(rule, /flex:\s*none/);
-    assert.match(rule, /flex:\s*0 1 150px/);
-    assert.match(rule, /min-width:\s*0/);
+  test('the state column of a Feed row keeps its 150 px above 600 px and the row wraps below it, so no label or button is cut at 390 px', () => {
+    const feed = css('feed.css');
+    const rule = /\.feed-state\s*\{([^}]*)\}/.exec(feed)?.[1] ?? '';
+    assert.match(rule, /flex:\s*none/);
+    assert.match(rule, /width:\s*150px/);
+    assert.doesNotMatch(rule, /flex:\s*0 1/);
+    const narrow = /@media \(max-width:\s*600px\)\s*\{((?:[^{}]*\{[^}]*\})*)\s*\}/.exec(feed)?.[1] ?? '';
+    assert.match(narrow, /\.feed-row\s*\{[^}]*flex-wrap:\s*wrap/);
+    assert.match(narrow, /\.feed-state\s*\{[^}]*width:\s*auto/);
+    assert.match(narrow, /\.feed-summary\s*\{[^}]*flex:\s*1 0 100%[^}]*order:\s*1/);
   });
 
   test('the CSS of the three screens writes no radius by hand: tokens, or 50% for a dot', () => {
