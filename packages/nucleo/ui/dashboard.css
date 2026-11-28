@@ -52,7 +52,7 @@
 .mini { padding: 10px 12px; height: 104px; line-height: 1.45; display: flex; flex-direction: column; gap: 4px; background: var(--surface); min-width: 0; }
 .mini:hover { border-color: var(--status-waiting-dot); }
 .mini .l1 { display: flex; gap: 6px; align-items: center; min-width: 0; }
-.mini .l1 .attention-chip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mini .l1 .state-tag { flex: 0 1 auto; min-width: 0; font-size: var(--text-xs); }
 .mini .age { margin-left: auto; font-size: 11px; color: var(--muted); }
 .mini .n { font-size: 12.5px; font-weight: var(--weight-semibold); }
 .mini .x { font-size: 11.5px; color: var(--muted); }
@@ -127,6 +127,8 @@
 .row:last-child { border-bottom: 0; }
 .row:hover { background: var(--raised); }
 .row > .trunc:not(.o) { flex: 1 1 auto; }
+.row .state-tag { flex: 0 0 9.5rem; font-size: 12.5px; }
+.row .state-tag-label { overflow: visible; text-overflow: clip; white-space: normal; }
 .row .o { color: var(--muted); font-size: 11.5px; flex: 0 1 auto; max-width: 45%; }
 .row .t { margin-left: auto; color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 

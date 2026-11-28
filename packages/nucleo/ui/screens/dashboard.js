@@ -25,7 +25,8 @@ export const DASHBOARD_ROUTE = '/api/dashboard';
 export const ATTENTION_ROUTE = '/api/attention';
 // issue 759: the day of the sessions (newest activity first, the most one page holds) and the spend of today: the routes of the Sessões and the Custo.
 export const SESSIONS_ROUTE = '/api/sessions?order=activity&direction=desc&perPage=100';
-export const COST_ROUTE = '/api/analytics/cost?days=2';
+// The core accepts only 7, 30 or 90 days (DIAS_DO_CUSTO) and answers 400 to the rest; the shortest holds today in `todaySummary`.
+export const COST_ROUTE = '/api/analytics/cost?days=7';
 /** Releitura depois de uma rajada de mudanças, e a releitura de fundo das idades ("2 min"). */
 const DEBOUNCE_MS = 400;
 const BACKGROUND_MS = 30_000;
@@ -172,7 +173,7 @@ function inbox(attention, agents, write, navigate = () => {}) {
     return el(
       'div',
       { class: `card mini dash-mini${withAction ? ' dash-mini-sm' : ''}`, 'data-session': c.session, 'data-machine': c.machine?.id, 'data-key': itemKey({ id: c.session, machine: c.machine }) },
-      el('div', { class: 'l1' }, reasonChip(c.attention, { withError: true }), withAction ? el('span', { class: 'age' }, c.age) : null),
+      el('div', { class: 'l1' }, stateTag(stateOfSession({ attention: c.attention })), withAction ? el('span', { class: 'age' }, c.age) : null),
       tag ? el('div', { class: 'n mf-with-tag' }, el('span', { class: 'mf-shrink' }, c.name), tag) : el('div', { class: 'n trunc' }, c.name),
       el('div', { class: 'x trunc' }, c.text),
       // C1 (issue 245): the model and the age in the foot, "Opus 5.5 · 2 min", beside "Abrir ›".
