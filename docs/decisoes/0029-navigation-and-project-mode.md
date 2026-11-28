@@ -28,14 +28,18 @@
    | --- | --- |
    | Agora | Mural ao vivo · Sessões · Uso e custo |
    | Entrega | Quadro do trabalho · Repositórios · Decisões |
-   | Máquinas | um item por máquina |
-   | Menu da conta | Configuração (Configuração do Claude e Conexões, como abas) |
+   | Máquinas | um item por máquina (no modo Projeto, nenhum) |
+   | Menu da conta | Configuração (Configuração do Claude e Conexões, como abas), com o ponto da atualização do núcleo |
 
    O Dashboard some: o "precisa de você" fica no Mural, e os números vão para Uso e custo. Histórico, Kanban de sessões e Feed viram vistas de Sessões; Analytics vira Uso e custo, e Workflows, aba dela; Kanban do projeto, vista do Quadro; Dev Console, vista de Repositórios; ADR, PDR e Das sessões, abas de Decisões.
 2. **Modo Projeto**, num botão ao lado do de tema ("Ver como Projeto" / "Ver como Dev"):
    - **o que ele é:** a soma do preset do Exibir (#754, campos), da coluna Projeto do mapa de rótulos (#760, vocabulário) e da barra de 5 itens (Mural ao vivo, Conversas, Quadro do trabalho, Decisões e Custo);
    - **onde fica a escolha:** junto com a do tema. Hoje o tema fica no `localStorage` do navegador (`docs/design.md`), e o modo e o Exibir ficam ali também; os três passam ao núcleo juntos, na issue do tema que se perde ao reabrir, ainda a abrir;
-   - **a regra que não se quebra:** o que pede ação nunca some. Aprovação mostra "Ver o comando" antes do botão; máquina caída, conexão expirada e conversa quase cheia aparecem nos dois modos. No modo Projeto, o item de uma máquina que pede ação continua na barra enquanto durar o estado: Sem conexão, Acesso bloqueado, Versão diferente ou Sem configuração, com o ponto de estado, ou o núcleo desatualizado, com a seta. Parada por você e Atualizando não pedem ação e não entram. A faixa no Mural fica para depois.
+   - **a regra que não se quebra:** o que pede ação nunca some. Aprovação mostra "Ver o comando" antes do botão; máquina caída, conexão expirada e conversa quase cheia aparecem nos dois modos. No modo Projeto, o item da máquina sai sempre da barra, em qualquer estado, sem exceção para a máquina que pede ação. O aviso sobe para outro lugar, e a #754 constrói os dois:
+     - **faixa no Mural:** uma máquina sem conexão, parada por você ou atualizando aparece numa faixa que diz o estado certo: "sem conexão desde HH:MM", "parada por você" ou "atualizando";
+     - **menu da conta:** a seta de atualização do núcleo (núcleo da máquina mais velho que o app) vai para o menu da conta, com um ponto visível.
+
+     A faixa e o ponto também valem no modo Dev, onde o item da máquina continua na barra. Assim o item sai e o aviso fica nos dois modos.
 3. **Uma regra para "precisa de você"** no núcleo (#761): pergunta, permissão, plano, erro e "Sua vez". "Sua vez" sai de "Em pausa" e entra em "Precisam de você" como linha, o que emenda a 0028.
 4. **Cor de agente só com dois agentes ou mais na tela.** Com todas as linhas "C · Claude", a cor vira enfeite; emenda a 0028.
 5. **Subtítulo só com estado** (#766): quanto, quem, o que mudou. Explicação de como a tela funciona sai.
@@ -54,5 +58,6 @@
 
 - **#759:** fica menor, porque não gasta trabalho em telas que viram abas.
 - **#753:** passa a depender da #760 e da #761.
+- **#754:** constrói a faixa no Mural, o ponto no menu da conta e a saída do item da máquina da barra do modo Projeto.
 - **Testes:** os que conferem itens da barra e subtítulos mudam junto.
 - **Modo e Exibir se perdem ao reabrir o app instalado:** no `localStorage` como o tema, herdam a perda dele (o `localStorage` é por origem e a porta muda a cada abertura, `docs/design.md`). Quem está no Projeto volta ao Dev ao reabrir, até a issue do tema que se perde.
