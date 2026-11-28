@@ -249,6 +249,27 @@ describe('#754 in Projeto the band covers every remote of the set, whatever the 
   });
 });
 
+describe('#754 a switch of the mode redraws the band of the Mural in place', () => {
+  test('with the choice "Esta máquina", the band comes with Projeto and goes with Dev, without a new read of the screen', async () => {
+    const full = [local, remote({ state: 'unreachable', reason: 'port-closed', lastReadAt: AT })];
+    mf.rememberChoice('local');
+    const modeHandlers: (() => void)[] = [];
+    const leave = new AbortController();
+    const filter = mf.createMachineFilter({ signal: leave.signal, read: async () => structuredClone(full), onChange: () => {}, onModeChange: (f: () => void) => modeHandlers.push(f) }, { periodic: false, watchChanges: false });
+    filter.update({ machines: full });
+    await new Promise((r) => setTimeout(r, 30));
+    const count = () => filter.notices.querySelectorAll('.mf-notice').length;
+    assert.equal(count(), 0);
+    mode('project');
+    modeHandlers.forEach((f) => f());
+    assert.equal(count(), 1);
+    mode('dev');
+    modeHandlers.forEach((f) => f());
+    assert.equal(count(), 0);
+    leave.abort();
+  });
+});
+
 describe('#754 the session Detail says the same as the band', () => {
   test('readHeld reads the machines route the sidebar reads, and says stopped, updating or nothing; a failed read says nothing', async () => {
     const answer = [local, remote({ state: 'unreachable', ...STOPPED }), { ...remote(UPDATING), id: 'lab', label: 'Laboratório' }, { ...remote(), id: 'calm' }];
