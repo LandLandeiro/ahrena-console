@@ -47,11 +47,11 @@ a.adr-chip:hover { color: var(--text); }
 /* ---------- os filtros ---------- */
 .adr-filters { padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-width: 0; }
 .adr-filters-row { flex-basis: 100%; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; }
-.adr-field { flex: 1 1 300px; display: flex; gap: 8px; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; min-width: 0; }
+.adr-field { flex: 1 1 300px; display: flex; gap: 8px; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; min-width: 0; }
 .adr-field input { flex: 1; min-width: 0; height: 100%; padding: 0; background: none; border: 0; color: var(--text); font: inherit; outline: none; }
 .adr-field input::placeholder { color: var(--muted); }
 .adr-field:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.adr-select { height: 34px; width: 190px; max-width: 100%; padding: 0 10px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: 12.5px; }
+.adr-select { height: 34px; width: 190px; max-width: 100%; padding: 0 10px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--text); font: inherit; font-size: 12.5px; }
 .adr-sort { margin-left: auto; width: 200px; color: var(--muted); }
 .adr-status-slot { min-width: 0; }
 

@@ -12,6 +12,7 @@ import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { decimal, duration, modelName, num, percent, when, tokens } from './workflow-format.js';
 import { initialOpen, treeKpiRow, treePanel } from './workflow-tree.js';
+import { stateLabel } from '../state-labels.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -54,7 +55,7 @@ export function coverageText(d) {
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas as sessões', resumo: 'todas as sessões' },
   { id: 'active', rotulo: 'Só ativas', resumo: 'só as ativas' },
-  { id: 'completed', rotulo: 'Concluídas', resumo: 'só as concluídas' },
+  { id: 'completed', get rotulo() { return stateLabel('completed', { plural: true }); }, resumo: 'só as concluídas' },
 ];
 
 // ---------- Partes puras (testadas no node) ----------
@@ -94,13 +95,18 @@ export function runMeta(run, now = new Date()) {
   return parts.filter(Boolean).join(' · ');
 }
 
-const RUN_STATE = { active: ['Ativa', 'active'], completed: ['Concluída', 'completed'], error: ['Erro', 'error'] };
+// `[state, tone]`; the label is the state's in state-labels.js (ADR-0028), read when the run is drawn.
+const RUN_STATE = { active: ['active', 'active'], completed: ['completed', 'completed'], error: ['failed', 'error'] };
+const runState = (state) => {
+  const [id, tone] = RUN_STATE[state] ?? RUN_STATE.completed;
+  return [stateLabel(id), tone];
+};
 
 /** O estado de um agente do run: `[texto, cor]`. */
 export function agentState(a) {
-  if (a.state === 'completed') return ['Concluído', 'completed'];
-  if (a.state === 'running') return ['Rodando', 'active'];
-  if (a.state === 'error') return ['Erro', 'error'];
+  if (a.state === 'completed') return [stateLabel('completed_item'), 'completed'];
+  if (a.state === 'running') return [stateLabel('running'), 'active'];
+  if (a.state === 'error') return [stateLabel('failed'), 'error'];
   if (a.changesRequested === null || a.changesRequested === undefined) return ['Ajustes', 'error'];
   return [`${num(a.changesRequested)} ${a.changesRequested === 1 ? 'ajuste' : 'ajustes'}`, 'error'];
 }
@@ -223,7 +229,7 @@ function chip(text, extra = '') {
 }
 
 function runRow(run, isOpen, toggleOne, ctx) {
-  const [label, color] = RUN_STATE[run.state] ?? RUN_STATE.completed;
+  const [label, color] = runState(run.state);
   const target = `/ui/sessions/${encodeURIComponent(run.sessionId)}`;
   const link = el('a', { class: 'wf-run-link', href: `${target}#workflow`, title: 'Abrir a sessão', 'aria-label': `Abrir a sessão de ${run.name}` }, icon('external'));
   // A moldura troca de tela pelo caminho e deixaria o `#workflow` para trás: o hash vai antes.

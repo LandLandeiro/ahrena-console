@@ -7,6 +7,7 @@
 // brings its newest page once: both are inserted by `createdAt`, never just appended or prepended.
 
 import { itemKey, sessionHref } from '../machine-filter.js';
+import { needsOrIdleLabel, stateLabels } from '../state-labels.js';
 
 /** The key of an event: its machine and its id (`local:<id>` for this machine's). */
 export const eventKey = (ev) => itemKey(ev);
@@ -15,15 +16,10 @@ export const eventKey = (ev) => itemKey(ev);
 export const LIMIT = 500;
 
 /**
- * Os status de evento que o núcleo devolve e como o filtro os escreve. issue 245: `waiting` takes both the
+ * Os status de evento que o núcleo devolve e como o filtro os escreve (the words are in state-labels.js, issue 760). issue 245: `waiting` takes both the
  * blocked and the idle events; each row says which one by its `attention` (see `rowPill`).
  */
-export const STATUS = {
-  active: 'Ativa',
-  waiting: 'Precisa de você ou ociosa',
-  completed: 'Concluída',
-  error: 'Com erro',
-};
+export const STATUS = stateLabels({ active: 'active', waiting: needsOrIdleLabel, completed: 'completed', error: 'error' });
 
 /**
  * The row pill (issue 245): `{ attention }` when the event stands for one ("Precisa de você", "Ociosa",

@@ -93,7 +93,7 @@ article[data-selected] { border-color: var(--accent); box-shadow: 0 0 0 1px var(
 .wb-edit-badge .icon { width: 11px; height: 11px; }
 .wb-edit-saved { margin-left: auto; display: inline-flex; gap: 4px; align-items: center; font-size: 11.5px; color: var(--status-completed-text); }
 .wb-edit-done { margin-left: 0; }
-.wb-edit-title, .wb-edit-input, .wb-edit-textarea, .wb-edit-select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.wb-edit-title, .wb-edit-input, .wb-edit-textarea, .wb-edit-select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border-control); border-radius: 8px; min-width: 0; }
 .wb-edit-title { width: 100%; box-sizing: border-box; padding: 7px 9px; font-size: 16px; font-weight: var(--weight-semibold); line-height: 1.35; }
 .wb-edit-input { flex: 1; padding: 4px 8px; font-size: 12px; }
 .wb-edit-textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; resize: vertical; }

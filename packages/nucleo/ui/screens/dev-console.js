@@ -15,6 +15,7 @@
 import { el, header as screenHeader, icon } from '../dom.js';
 import { empty, error, errorBand, loading as loadingState } from '../states.js';
 import { attentionOf, isBlocked, isIdle, reasonChip } from '../attention.js';
+import { boardColumnLabel, stateLabel } from '../state-labels.js';
 import { connectEmptyFor, connectionChanged, isGithubNotConnected } from '../github-connect.js';
 
 const RELOAD_MS = 30_000;
@@ -31,7 +32,7 @@ export const DEV_COLUMNS = [
   { id: 'todo', label: 'A fazer', criterion: 'aberta, sem branch nem sessão', tone: 'abandoned' },
   { id: 'delegated', label: 'Delegada', criterion: 'sessão aberta no branch da issue, sem push', tone: 'waiting' },
   { id: 'in-progress', label: 'Em desenvolvimento', criterion: 'o branch da issue está no remoto', tone: 'active' },
-  { id: 'in-review', label: 'Em revisão', criterion: 'tem PR aberto que fecha a issue', tone: 'active' },
+  { id: 'in-review', get label() { return boardColumnLabel('review'); }, criterion: 'tem PR aberto que fecha a issue', tone: 'active' },
   { id: 'blocked', label: 'Bloqueada', criterion: 'etiqueta blocked na issue', tone: 'error' },
   { id: 'done', label: 'Feita', criterion: 'fechada nas últimas 24 h', tone: 'completed' },
 ];
@@ -153,11 +154,11 @@ export function scoreboardCards(view) {
       tone: 'error',
       alert: s.ciFailingOrConflict > 0,
     },
-    { id: 'working', label: 'Trabalhando', value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão ativa' : 'sessões ativas', icon: 'bot', tone: 'accent', alert: false },
+    { id: 'working', label: stateLabel('active', { plural: true }), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão ativa' : 'sessões ativas', icon: 'bot', tone: 'accent', alert: false },
     {
       // issue 245: only what blocks (sessions and decisions); the idle ones of the context stay apart.
       id: 'blocked',
-      label: 'Precisam de você',
+      label: stateLabel('blocked', { plural: true }),
       value: s.waitingOnYou,
       sub: blockedSub(sessions, decisions, s.idle),
       icon: 'hand',

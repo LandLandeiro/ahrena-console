@@ -1,15 +1,17 @@
 import { el, header, icon } from '../dom.js';
 import { errorBand } from '../states.js';
 import { queueLimit } from './work-board-queue.js';
+import { boardColumnLabel } from '../state-labels.js';
 
-/** The six columns of the work board (issue 465), the same copy as WORK_BOARD_COLUMNS, for the states with no payload. */
+/** The six columns of the work board (issue 465), for the states with no payload. The names are state-labels.js's (ADR-0028), read when drawn; the payload `label` is ignored. */
+const column = (id, criterion) => ({ id, get label() { return boardColumnLabel(id); }, criterion });
 export const COLUMNS = [
-  { id: 'planning', label: 'Planejamento', criterion: 'Aberta, sem sessão de execução e fora da fila' },
-  { id: 'queued', label: 'Na fila', criterion: 'Planejada e posta na fila; espera vaga' },
-  { id: 'running', label: 'Em execução', criterion: 'Sessão da Athena trabalhando' },
-  { id: 'review', label: 'Em review', criterion: 'PR aberto esperando o Argos' },
-  { id: 'blocked', label: 'Bloqueado', criterion: 'Precisa de você, 3 rodadas ou CI falhou' },
-  { id: 'done', label: 'Concluído', criterion: 'PR mergeado ou issue fechada' },
+  column('planning', 'Aberta, sem sessão de execução e fora da fila'),
+  column('queued', 'Planejada e posta na fila; espera vaga'),
+  column('running', 'Sessão da Athena trabalhando'),
+  column('review', 'PR aberto esperando o Argos'),
+  column('blocked', 'Precisa de você, 3 rodadas ou CI falhou'),
+  column('done', 'PR mergeado ou issue fechada'),
 ];
 
 /** The reasons of Bloqueado in lower case, as the parent card lists them (issue 465). */
@@ -568,7 +570,7 @@ export function parentCard(card, { primaryRepo = null, now = Date.now(), onDrill
       'ul',
       { class: 'wb-dist', 'aria-label': 'Filhas por coluna' },
       ...COLUMNS.filter((c) => byColumn[c.id]).map((c) =>
-        el('li', { 'data-column': c.id, title: c.label, 'aria-label': `${c.label}: ${byColumn[c.id]}` }, el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }), String(byColumn[c.id])),
+        el('li', { 'data-column': c.id, title: boardColumnLabel(c.id) ?? c.label, 'aria-label': `${boardColumnLabel(c.id) ?? c.label}: ${byColumn[c.id]}` }, el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }), String(byColumn[c.id])),
       ),
     ),
     el('button', { type: 'button', class: 'wb-drill', 'data-action': 'drill', 'data-key': card.key, 'aria-label': `Ver filhos (${kids.total}) de ${ref(card.number)}`, onClick: () => onDrill?.(card) }, `Ver filhos (${kids.total})`, icon('chevron-right')),
@@ -647,7 +649,7 @@ export function boardColumns({
         'h2',
         { class: 'wb-col-head', id: headingId },
         el('span', { class: `wb-dot wb-dot-${c.id}`, 'aria-hidden': 'true' }),
-        el('span', { class: 'wb-col-name' }, c.label),
+        el('span', { class: 'wb-col-name' }, boardColumnLabel(c.id) ?? c.label),
         FACT_COLUMNS.has(c.id) ? el('span', { class: 'wb-lock', title: 'Não recebe card arrastado', 'aria-hidden': 'true' }, icon('lock')) : null,
         el('span', { class: 'wb-count', 'aria-hidden': 'true' }, count),
         srOnly(`: ${countLabel(count)}`),

@@ -3,11 +3,16 @@
 
 import { el, icon } from '../dom.js';
 import { decimal, num, percent } from './workflow-format.js';
+import { stateLabel } from '../state-labels.js';
 
 // ---------- Pure parts (tested in node) ----------
 
-const STATUS = { active: ['Ativa', 'active'], completed: ['Concluída', 'completed'], error: ['Com erro', 'error'], abandoned: ['Abandonada', 'muted'] };
-export const statusOf = (s) => STATUS[s] ?? STATUS.completed;
+// The words are in state-labels.js (ADR-0028), read when the node is drawn: `[label, tone]`.
+const STATUS = { active: ['active', 'active'], completed: ['completed', 'completed'], error: ['error', 'error'], abandoned: ['abandoned', 'muted'] };
+export const statusOf = (s) => {
+  const [id, tone] = Object.hasOwn(STATUS, s) ? STATUS[s] : STATUS.completed;
+  return [stateLabel(id), tone];
+};
 
 /** The six numbers over the tree: trees, PRs in the loop, rounds per PR, approved, stopped loops and sessions. */
 export function treeKpis(d) {

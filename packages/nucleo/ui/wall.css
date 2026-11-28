@@ -1,79 +1,120 @@
-/* O Mural ao vivo (C2, #34): a tela carrega este arquivo. Toda cor vem de marca.css. As classes levam
-   `mural-` para não disputar com moldura.css nem com o estilo de outra tela já carregado. */
+/* ADR-0028: the wall draws the blocked sessions as cards and the rest as one list; every colour comes from brand.css. */
 
 .wall-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .wall-muted { color: var(--muted); }
 
-/* ---------- seletor Todas / Precisam de você / Ociosas / Ativas ---------- */
-.wall-seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; }
-.wall-seg button { font-size: var(--text-xs); color: var(--muted); background: none; border: 0; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* ---------- ADR-0028: the title with its sentence, and the state filter ---------- */
+.wall-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 24px; margin-bottom: 12px; }
+.wall-top-text { min-width: 0; flex: 1 1 320px; }
+.wall-top-act { flex: none; margin-left: auto; }
+.wall-title { margin: 0; font-size: var(--text-title); line-height: 1.15; font-weight: var(--weight-semibold); letter-spacing: var(--tracking-title); color: var(--text); }
+.wall-summary { margin: 6px 0 0; min-height: 1.5em; font-size: 17px; line-height: 1.5; color: var(--muted); }
+.wall-summary b { font-weight: var(--weight-semibold); color: var(--text); }
+.wall-segs { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 12px; min-width: 0; }
+.wall-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; padding: 3px; gap: 2px; background: var(--segment); border: 1px solid var(--border-control); border-radius: var(--radius-segment); }
+.wall-seg button { font: inherit; font-size: var(--text-sm); color: var(--muted); background: none; border: 0; padding: 5px 12px; border-radius: var(--radius-segment-item); display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; cursor: pointer; }
 .wall-seg button:hover { color: var(--text); }
-.wall-seg button[aria-pressed="true"] { background: var(--raised); color: var(--text); }
-.wall-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wall-seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: 500; }
+.wall-seg button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.wall-seg-n { font-variant-numeric: tabular-nums; }
+.wall-seg-need { color: var(--status-waiting-text); }
+.wall-seg-n:empty { display: none; }
 
-/* ---------- badge de status e motivo (o formato do Dashboard) ---------- */
-.wall-badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 11.5px; font-weight: var(--weight-medium); white-space: nowrap; flex: none; }
-.wall-badge .p { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.wall-b-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.wall-b-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.wall-b-error { background: var(--status-error-badge); color: var(--status-error-text); }
-.wall-b-abandoned { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
+/* ---------- the section of the blocked sessions: cards of the same height, the feet aligned ---------- */
+.wall-body { display: flex; flex-direction: column; gap: 28px; }
+.wall-sec { min-width: 0; }
+.wall-h { margin: 0 0 12px; display: flex; align-items: baseline; gap: 8px; font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: -.01em; }
+.wall-h-n { font-size: var(--text-sm); font-weight: 400; color: var(--subtle); font-variant-numeric: tabular-nums; }
+.wall-calm { display: flex; align-items: center; gap: 16px; padding: 24px 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.wall-calm-tile { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--avatar); color: var(--muted); }
+.wall-calm-tile .icon { width: 18px; height: 18px; }
+.wall-calm-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--muted); font-size: var(--text-md); }
+.wall-calm-text b { font-size: 17px; font-weight: var(--weight-semibold); color: var(--text); }
+.wall-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 28px; align-items: start; }
+.wall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.wall-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; border-radius: var(--radius-card); min-width: 0; position: relative; }
+.wall-card.wall-span { grid-column: 1 / -1; }
 
-/* ---------- a grade: cards do mesmo tamanho, três por linha ---------- */
-.wall-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.wall-card { padding: 14px; height: 252px; display: flex; flex-direction: column; gap: 9px; border-top: 3px solid var(--border); overflow: hidden; min-width: 0; position: relative; }
-.wall-card:hover { background: var(--raised); }
-/* The title is the card's link, stretched over the whole card; the foot's controls sit above it (issue 285). */
+/* The title is the link of the card and stretches over it; the controls above it sit at z-index 1. */
 .wall-link { color: inherit; text-decoration: none; }
 .wall-link::after { content: ""; position: absolute; inset: 0; }
 .wall-link:focus-visible { outline: none; }
-.wall-card:has(.wall-link:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-.wall-card.wall-st-active { border-top-color: var(--status-active-dot); }
-.wall-card.wall-st-blocked { border-top-color: var(--status-waiting-dot); }
-.wall-card.wall-st-idle { border-top-color: color-mix(in srgb, var(--muted) 45%, var(--border)); }
-.wall-card.wall-st-error { border-top-color: var(--status-error-dot); }
+.wall-card:has(.wall-link:focus-visible), .wall-row:has(.wall-link:focus-visible) { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.wall-row:has(.wall-link:focus-visible) { z-index: 2; }
 
-.wall-l1 { display: flex; gap: 8px; align-items: center; min-width: 0; }
-.wall-l1 .wall-pill { margin-left: auto; }
-.wall-tt { font-size: 13.5px; font-weight: var(--weight-semibold); }
-.wall-prj { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.wall-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.wall-name { font-size: var(--text-md); font-weight: var(--weight-semibold); color: var(--text); }
+.wall-age { font-size: var(--text-md); color: var(--subtle); white-space: nowrap; }
+.wall-state { margin-left: auto; min-width: 0; max-width: 100%; }
+/* ADR-0028: above the stretched link (z-index auto) and under the failure notice (3), so the label's title shows. */
+.wall-tag { position: relative; z-index: 1; cursor: pointer; }
 
-.wall-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; min-width: 0; }
-.wall-row.wall-error { color: var(--status-error-text); }
-.wall-row.wall-completed { color: var(--status-completed-text); }
+.wall-head { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wall-titleline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.wall-tt { font-size: 13.5px; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wall-link:hover { color: var(--text); }
+.wall-from { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); color: var(--muted); }
+.wall-ask { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500; letter-spacing: -.01em; color: var(--text); display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 
-.wall-gr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.wall-gr div { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: var(--weight-semibold); min-width: 0; }
-.wall-gr b { display: block; font-size: 13px; color: var(--text); font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-weight: var(--weight-medium); margin-top: 2px; }
+.wall-act { position: relative; z-index: 1; }
+/* ADR-0028, issue 751: "Ver sessão" is a link drawn as the kit's primary button; no underline. */
+.wall-see { text-decoration: none; }
+/* ADR-0028: an open failure goes over the rows below, their trees and the Paradas band. */
+.wall-act:has([role="status"]:not(:empty)) { z-index: 3; }
 
-/* ---------- the foot (C71): the open action and "Detalhe ›" ---------- */
-.wall-foot { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 9px; border-top: 1px solid var(--border); min-width: 0; }
-.wall-foot > * { position: relative; z-index: 1; }
-.wall-detail { margin-left: auto; font-size: 12px; color: var(--muted); flex: none; white-space: nowrap; }
-.wall-detail:hover { color: var(--text); }
+.wall-foot { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--text-sm); color: var(--subtle); min-width: 0; }
+.wall-num { color: var(--subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wall-over { color: var(--status-error-text); }
+.wall-mach { margin-left: auto; position: relative; color: var(--subtle); min-width: 0; max-width: 100%; }
 
-.wall-planrow { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+/* ---------- the bars: <progress>, neutral, with no inline style ---------- */
+.wall-bar { -webkit-appearance: none; appearance: none; flex: 1; display: block; height: 4px; min-width: 40px; border: 0; border-radius: 2px; overflow: hidden; background: var(--track); color: var(--muted); }
+.wall-bar::-webkit-progress-bar { background: var(--track); border-radius: 2px; }
+.wall-bar::-webkit-progress-value { background: var(--muted); border-radius: 2px; }
+.wall-bar::-moz-progress-bar { background: var(--muted); border-radius: 2px; }
+.wall-bar.wall-high { color: var(--status-error-text); }
+.wall-bar.wall-high::-webkit-progress-value { background: var(--status-error-text); }
+.wall-bar.wall-high::-moz-progress-bar { background: var(--status-error-text); }
 
-/* ---------- as barras: <progress>, sem estilo inline ---------- */
-.wall-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.wall-bar { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 6px; border: 0; border-radius: 99px; overflow: hidden; background: var(--raised); color: var(--accent); }
-.wall-bar::-webkit-progress-bar { background: var(--raised); border-radius: 99px; }
-.wall-bar::-webkit-progress-value { background: var(--accent); border-radius: 99px; }
-.wall-bar::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
-.wall-bar.wall-high { color: var(--status-error-dot); }
-.wall-bar.wall-high::-webkit-progress-value { background: var(--status-error-dot); }
-.wall-bar.wall-high::-moz-progress-bar { background: var(--status-error-dot); }
+/* ---------- the list of the others: one container, one row per session ---------- */
+.wall-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.wall-row { position: relative; display: flex; flex-direction: column; padding: 12px 16px; border-bottom: 1px solid var(--border); min-width: 0; }
+.wall-list > .wall-row:first-child { border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0; }
+.wall-list > .wall-row:last-child { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
+.wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
+.wall-row:hover { background: var(--raised); }
+.wall-row:has(.wall-act [role="status"]:not(:empty)) { z-index: 3; }
+.wall-filler { display: none; }
+/* ADR-0028: the text and the side each have a basis of their own, so every row of a list wraps or not together and the state starts at the same x; the title cuts. */
+.wall-main { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding-left: 40px; min-width: 0; }
+.wall-main > :first-child { position: absolute; left: 0; top: 7px; }
+/* ADR-0028, issue 751: without the monogram (one agent on screen) the 40px it takes and its absolute place go away, so the text starts at the left edge in every section and width. */
+.wall-main-solo { padding-left: 0; }
+.wall-main-solo > :first-child { position: static; }
+.wall-text { display: flex; flex-direction: column; flex: 1000 1 calc(var(--text-sm) * 24); min-width: 0; }
+.wall-rt { font-size: 15px; line-height: 1.5; font-weight: 400; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.wall-rt-work { font-weight: 500; }
+.wall-phrase { display: block; contain: inline-size; font-size: 13.5px; line-height: 1.5; color: var(--subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wall-phrase-work { color: var(--muted); }
+.wall-side { display: flex; flex: 1 0 calc(var(--text-sm) * 14); align-items: center; gap: 12px; max-width: 100%; min-width: 0; font-size: var(--text-sm); color: var(--subtle); white-space: nowrap; }
+.wall-side:has(.wall-mach) { flex-basis: calc(var(--text-sm) * 22); }
+.wall-side .wall-act { margin-left: auto; }
+.wall-since { color: var(--subtle); font-variant-numeric: tabular-nums; }
+.wall-ratio { color: var(--subtle); font-variant-numeric: tabular-nums; }
+.wall-row .wall-mach { margin-left: 0; max-width: 160px; }
+.wall-side .wall-mach { flex-shrink: 100; }
+.wall-side .wall-tag { flex-shrink: 0; }
 
 /* ---------- the children nested in a leader and the "Paradas" band (C85 to C87, issue 333) ---------- */
-/* Closed, a leader keeps the card height (the summary line fits in it); opened, it takes the row and grows with its children. */
-.wall-card.wall-span { grid-column: 1 / -1; height: auto; min-height: 252px; }
-.wall-from { margin-left: 6px; font-family: var(--font-sans); font-size: 10.5px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 99px; color: var(--muted); }
-.wall-treeline { display: flex; align-items: center; gap: 6px; padding: 8px 0 0; border: 0; border-top: 1px dashed var(--border); background: none; color: var(--text); font: inherit; font-size: 11px; white-space: nowrap; cursor: pointer; text-align: left; position: relative; z-index: 1; }
+.wall-tree { position: relative; z-index: 1; padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--border); }
+.wall-card .wall-tree { margin-top: 0; }
+.wall-treeline { display: flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 11px; white-space: nowrap; cursor: pointer; text-align: left; }
+.wall-treeline:focus-visible, .wall-kid-toggle:focus-visible, .wall-kid-title:focus-visible, .wall-parked-head:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .wall-tree-total { font-weight: var(--weight-semibold); }
 .wall-tree-blocked { color: var(--status-waiting-text); }
 .wall-tree-active { color: var(--status-active-text); }
 .wall-tree-parked { color: var(--muted); }
-.wall-kids, .wall-parked-list { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; }
+.wall-kids, .wall-parked-list { display: flex; flex-direction: column; gap: 6px; position: relative; z-index: 1; margin-top: 10px; }
 .wall-kid { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 12px; min-width: 0; }
 /* One level inside the other (the CSP blocks inline style): 24 px a level, six levels. */
 .wall-depth-1 { margin-left: 24px; }
@@ -86,17 +127,37 @@
 .wall-kid-title { font-weight: var(--weight-semibold); color: var(--text); flex: 0 1 auto; min-width: 56px; }
 .wall-kid-age { margin-left: auto; font-size: 11.5px; white-space: nowrap; }
 .wall-kid-parked { opacity: .8; }
-.wall-chip { font-family: var(--font-mono); font-size: 11px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 6px; white-space: nowrap; }
-.wall-parked { margin-top: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-.wall-parked-head { display: flex; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; text-align: left; min-width: 0; }
+.wall-origin { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.wall-chip { font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.wall-parked-h { margin: 0; font: inherit; min-width: 0; }
+.wall-parked { margin-top: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; border-radius: var(--radius-card); }
+.wall-parked-head { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .wall-parked-head b { white-space: nowrap; }
 .wall-parked-r { margin-left: auto; font-size: 12px; white-space: nowrap; }
 
-/* Três por linha até a janela do app (1100 de largura); mais estreita, duas, depois uma. */
-@media (max-width: 900px) {
-  .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* ADR-0028: below 1280px the last filler is hidden, so the row before it closes the list. */
+@media (max-width: 1279.98px) {
+  .wall-list > .wall-row:has(+ .wall-filler:last-child) { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
 }
-@media (max-width: 640px) {
+
+/* ADR-0028: two columns for "Ativas" only from 1280px; a row with its tree open spans both. */
+@media (min-width: 1280px) {
+  .wall-list.wall-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .wall-duo > .wall-filler { display: block; }
+  .wall-duo > .wall-filler:not(.wall-last) { border-bottom: 1px solid var(--border); }
+  .wall-duo > .wall-full, .wall-duo > .wall-span { grid-column: 1 / -1; }
+  .wall-list.wall-duo > .wall-row, .wall-list.wall-duo > .wall-row:first-child, .wall-list.wall-duo > .wall-row:last-child, .wall-list.wall-duo > .wall-row:only-child { border-radius: 0; border-bottom: 1px solid var(--border); }
+  .wall-list.wall-duo > .wall-row.wall-last { border-bottom: 0; }
+  .wall-list.wall-duo > .wall-row.wall-left { border-right: 1px solid var(--border); }
+  .wall-list.wall-duo > .wall-row.wall-first.wall-left, .wall-list.wall-duo > .wall-row.wall-first.wall-full { border-top-left-radius: calc(var(--radius-card) - 1px); }
+  .wall-list.wall-duo > .wall-row.wall-first.wall-right, .wall-list.wall-duo > .wall-row.wall-first.wall-full { border-top-right-radius: calc(var(--radius-card) - 1px); }
+  .wall-list.wall-duo > .wall-row.wall-last.wall-left, .wall-list.wall-duo > .wall-row.wall-last.wall-full { border-bottom-left-radius: calc(var(--radius-card) - 1px); }
+  .wall-list.wall-duo > .wall-row.wall-last.wall-right, .wall-list.wall-duo > .wall-row.wall-last.wall-full { border-bottom-right-radius: calc(var(--radius-card) - 1px); }
+}
+
+/* Below 600px the cards go one a row and a row loses the machine. */
+@media (max-width: 600px) {
+  .wall-side:has(.wall-mach) { flex-basis: calc(var(--text-sm) * 14); }
   .wall-grid { grid-template-columns: minmax(0, 1fr); }
-  .cc-head:has(.wall-seg) { flex-wrap: wrap; }
+  .wall-row .wall-mach { display: none; }
 }
