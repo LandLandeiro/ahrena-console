@@ -105,7 +105,7 @@ Object.assign(globalThis, {
 
 // @ts-expect-error: módulo do navegador, em JavaScript puro
 const tela = await import('../../ui/screens/dashboard.js');
-const { cards, inboxCards, cost, age, mount, modelName, quantity, inboxTitle, idleChips, idleTitle, sessionsDetail, blockedCount, idleCount } = tela;
+const { inboxCards, cost, age, mount, modelName, quantity, inboxTitle, idleChips, idleTitle, blockedCount, idleCount } = tela;
 
 const comClasse = (raiz: No, c: string) => raiz.todos((e) => e.classes.includes(c));
 
@@ -132,31 +132,6 @@ describe('Dashboard: formatação', () => {
     assert.equal(modelName('claude-haiku-4-5-20251001'), 'Haiku 4.5');
     assert.equal(modelName('outro-modelo'), 'outro-modelo');
     assert.equal(modelName(null), null);
-  });
-  test('the six cards, in order and with the C1 text: Sessões says who needs you and who is idle (issue 245)', () => {
-    const c = cards({
-      sessions: { total: 12, active: 4, waiting: 4, withError: 1, blocked: 5, idle: 3 },
-      agents: { active: 4, sessions: 4 },
-      subagents: { active: 7, sessions: 3 },
-      events: { today: 3200, lastHour: 412, total: 48_100 },
-      cost: { usd: 41.2, days: 30, unpriced: [] },
-    });
-    assert.deepEqual(
-      c.map((x: { rotulo: string; valor: string; extra?: string; sub: string }) => [x.rotulo, x.valor, x.extra ?? null, x.sub]),
-      [
-        ['Sessões', '12', '4 trabalhando', '5 precisam de você · 3 em pausa'],
-        ['Agentes ativos', '4', null, 'em 4 sessões'],
-        ['Subagentes ativos', '7', null, 'em 3 sessões'],
-        ['Eventos hoje', '3,2 mil', null, '+412 na última hora'],
-        ['Eventos no total', '48,1 mil', null, 'desde a importação'],
-        ['Custo', '~US$ 41,20', null, 'estimativa · 30 dias'],
-      ],
-    );
-  });
-  test('sessions detail: blocked and idle apart, nobody is "ninguém precisa de você" (issue 245)', () => {
-    assert.equal(sessionsDetail({ blocked: 1, idle: 0 }), '1 precisa de você');
-    assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 em pausa');
-    assert.equal(sessionsDetail({ blocked: 0, idle: 0 }), 'ninguém precisa de você');
   });
   test('inbox: only the blocked ones, at most five, the ask and the model from the agent card; the idle ones go to their own row (issue 245)', () => {
     const blocked = (reason: string) => ({ level: 'blocked', reason });
@@ -185,7 +160,8 @@ describe('Dashboard: formatação', () => {
     const { statusPill, cardToneClass } = tela;
     const pill = statusPill('waiting', null);
     assert.equal(pill.textContent, 'Trabalhando');
-    assert.ok(pill.classes.includes('b-active'));
+    assert.equal(pill.getAttribute('data-state-kind'), 'working', 'the state tag of the Mural, not the pill');
+    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).getAttribute('data-state-kind'), 'paused');
     assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Em pausa');
     assert.equal(cardToneClass('waiting', null), 'st-active');
     assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'permission' }), 'dash-st-blocked');
@@ -228,19 +204,18 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
     return { area, contadores, sair: () => (sair.abort(), limpar()) };
   }
 
-  test('header, the six cards, the blocked inbox, the idle row, the agents and the activity (issue 245)', async () => {
+  test('header, the three numbers, the blocked inbox, the idle row, the agents and the activity (issue 245)', async () => {
     const { area, contadores, sair } = await montarTela();
     try {
       const texto = area.textContent;
-      assert.match(texto, /Dashboard/);
+      assert.match(texto, /^(Bom dia|Boa tarde|Boa noite)/, 'issue 759: the greeting is the title');
       assert.doesNotMatch(texto, /O agora das suas sessões/);
-      assert.equal(comClasse(area, 'sub').length, 0, '#766: the cards under the header already say how many; no line explains the screen');
+      assert.match(comClasse(area, 'sub')[0]?.textContent ?? '', /^1 espera por você/, '#766: the line under the title says the state now: who waits (the sessions and the cost are not in this fixture)');
       assert.deepEqual(
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
-        ['sessions', 'agents', 'subagents', 'events-today', 'events-total', 'cost'],
+        ['working-now', 'spend-today', 'completed-today'],
       );
-      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 trabalhando1 precisa de você · 1 em pausa$/);
-      assert.match(comClasse(area, 'stat')[5]!.textContent, /~US\$ 1,84estimativa · 30 dias/);
+      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Trabalhando agora3 sessões$/);
 
       const inbox = comClasse(area, 'inbox')[0]!;
       assert.match(inbox.textContent, /1 precisa de você/);
@@ -303,7 +278,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
     try {
       assert.equal(comClasse(area, 'inbox').length, 0);
       assert.match(comClasse(area, 'error-band')[0]!.textContent, /Não deu para ler quem precisa de você/);
-      assert.equal(comClasse(area, 'stat').length, 6);
+      assert.equal(comClasse(area, 'stat').length, 3);
     } finally {
       sair();
     }

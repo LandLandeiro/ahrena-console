@@ -19,7 +19,7 @@ const { resetMachineChoice } = await import('../../ui/machine-filter.js');
 
 const machines = [{ id: 'local', label: 'Esta máquina', state: 'connected' }, { id: 'lab-01', label: 'Laboratório', state: 'connected' }];
 const numbers = (n: number) => ({
-  sessions: { total: n, active: 1, blocked: 0, idle: 0 },
+  sessions: { total: n, active: n, blocked: 0, idle: 0 },
   agents: { active: 1, sessions: 1 },
   subagents: { active: 0, sessions: 0 },
   events: { today: 3, lastHour: 1, total: 9 },
@@ -72,15 +72,15 @@ describe('Dashboard: the machine filter keeps the content (#765, M6)', () => {
     const slow = gate<unknown>();
     const { ctx, area, leave } = rig((route) => (route.includes('machine=lab-01') ? slow.promise : body(5)));
     stops.push(await dashboard.mount(area, ctx));
-    assert.ok(area.querySelector('[data-card="sessions"]'), 'the first content is there');
+    assert.ok(area.querySelector('[data-card="working-now"]'), 'the first content is there');
     segment(area, 'lab-01').dispatchEvent({ type: 'click', stopPropagation() {} } as never);
     await tick(10);
-    assert.ok(area.querySelector('[data-card="sessions"]'), 'the old content stays while the read is out');
+    assert.ok(area.querySelector('[data-card="working-now"]'), 'the old content stays while the read is out');
     assert.equal(loadingShown(area), false, 'no skeleton swaps the content');
     assert.equal(area.getAttribute('aria-busy'), 'true');
     slow.release(body(2));
     await until(() => area.getAttribute('aria-busy') !== 'true');
-    assert.match(area.querySelector('[data-card="sessions"]')!.textContent, /2/);
+    assert.match(area.querySelector('[data-card="working-now"]')!.textContent, /2 sessões/);
     leave.abort();
   });
 

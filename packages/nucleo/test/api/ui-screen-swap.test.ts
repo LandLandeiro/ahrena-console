@@ -146,7 +146,7 @@ describe('Each screen has its own shape (#765, M1)', () => {
     assert.ok(skeleton('sessions').querySelectorAll('.sk-row').length >= 8);
     assert.equal(skeleton('wall').querySelectorAll('.sk-card').length, 6);
     assert.equal(skeleton('kanban').querySelectorAll('.sk-column').length, 4);
-    assert.equal(skeleton('dashboard').querySelectorAll('.sk-stat').length, 6);
+    assert.equal(skeleton('dashboard').querySelectorAll('.sk-stat').length, 3);
     const detail = skeleton('session-detail');
     assert.ok(detail.querySelector('.sk-head'));
     assert.ok(detail.querySelector('.sk-notice'));
