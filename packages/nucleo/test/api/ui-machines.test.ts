@@ -349,7 +349,7 @@ describe('#178 criterion 2: a remote machine (C25) with the simulator', () => {
     assert.match(texto(m.area.querySelector('[data-card="gpu"]')), /de 15 GB VRAM/);
     assert.match(texto(m.area.querySelector('[data-card="disk"]')), /86% \/ · 24 GB livres/);
     assert.equal(m.area.querySelector('[data-card="docker"]'), null, 'Docker is the last band, not a resource card');
-    assert.match(texto(m.area.querySelector('[data-card="sessions"]')), /Sessões 5 2 precisam de você/);
+    assert.match(texto(m.area.querySelector('[data-card="sessions"]')), /Sessões 5 5 precisam de você/, 'Sua vez needs you (#761): the 3 of the old your-turn level count with the 2 asks');
   });
 
   test('the load chart with the vCPU line, volumes and the ports with the Mac port', async () => {
