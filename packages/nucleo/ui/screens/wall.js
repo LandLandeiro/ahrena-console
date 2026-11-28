@@ -15,8 +15,8 @@ import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceTex
 
 const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
-/** Releitura depois de uma rajada de mudanças. */
-export const DEBOUNCE_MS = 400;
+/** Wait before re-reading after a burst of changes that need no attention. */
+export const DEBOUNCE_MS = 120;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
 // ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
@@ -88,7 +88,7 @@ function idlePhrase(c) {
   return text.toLowerCase().startsWith(reason.toLowerCase()) ? text : `${reason} · ${text}`;
 }
 
-/** What a row shows, without DOM: the phrase, the slice of the state, "X de Y" when there is a plan and the time of a completed one. */
+/** What a row shows, without DOM: the phrase, the slice of the state, "passo X de Y" when there is a plan and the time of a completed one. */
 export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
@@ -97,8 +97,8 @@ export function rowContent(c) {
     ...v,
     phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
     fraction: plan ? plan.step / plan.total : 0,
-    // ADR-0028: an idle row is the icon, the written label and the time; the "X de Y" is for the others.
-    ratio: plan && !idle && c.status !== 'completed' ? `${plan.step} de ${plan.total}` : null,
+    // ADR-0028: an idle row is the icon, the written label and the time; the "passo X de Y" is for the others.
+    ratio: plan && !idle && c.status !== 'completed' ? `passo ${plan.step} de ${plan.total}` : null,
     // ADR-0028: a completed row shows the time of its last activity (`since`), not the plan.
     time: c.status === 'completed' ? clockOf(c.since) || null : null,
     idle,
@@ -567,8 +567,16 @@ export async function mount(area, ctx) {
   }
 
   ctx.onRestart(() => read());
-  // Junta a rajada, mas com teto: com atividade contínua, relê no máximo a cada ESPERA_MS.
-  ctx.onChange(() => {
+  // A burst of changes is read once, DEBOUNCE_MS after its first change (one pending timer, not reset by later changes,
+  // so continuous activity still re-reads every DEBOUNCE_MS). A list with an attention change (`needs-you` or
+  // `permission`) is read at once and cancels the pending timer, so the burst is not read twice.
+  ctx.onChange((changes) => {
+    if (Array.isArray(changes) && changes.some((c) => c?.type === 'needs-you' || c?.type === 'permission')) {
+      clearTimeout(wait);
+      wait = null;
+      read();
+      return;
+    }
     wait ??= setTimeout(() => {
       wait = null;
       read();
