@@ -116,7 +116,8 @@ describe('#763/A7 the Kanban and the Feed screens', () => {
       const cards = all(area, '.kb-kc');
       assert.equal(cards.length, 5);
       const kinds = cards.map((c) => [all(c, '.state-tag')[0]?.getAttribute('data-state-kind'), texto(all(c, '.state-tag')[0]!)]);
-      assert.deepEqual(kinds, [['working', 'Trabalhando'], ['permission', 'Pede permissão'], ['error', 'Com erro'], ['paused', 'Interrompida'], ['completed', 'Concluída']]);
+      assert.deepEqual(kinds, [['working', 'Trabalhando'], ['permission', 'Pede permissão'], ['error', 'Com erro'], ['paused', 'Em pausa'], ['completed', 'Concluída']]);
+      assert.deepEqual(cards.map((c) => (c.querySelector('.kb-reason') ? texto(c.querySelector('.kb-reason')!) : null)), [null, null, null, 'Interrompida', null], 'a pause keeps its reason as plain text, not as a chip');
       assert.equal(all(area, '.kb-badge-st, .attention-pill, .attention-chip').length, 0, 'no pill, no chip');
       const toggle = area.querySelector('[aria-label="Visão do Kanban"]')!;
       assert.ok(classesOf(toggle).includes('seg') && !classesOf(toggle).includes('kb-seg'), 'the one `.seg`');

@@ -361,9 +361,9 @@ describe('#465/AC-2 the card (465-2), data only', () => {
     const running = workCard(CARDS.running[0], { primaryRepo: REPO, now: NOW });
     assert.equal(texto(running.querySelector('.wb-session')), '2 sessões');
     assert.ok(running.querySelector('.wb-session')!.classList.contains('wb-session-working'));
-    assert.equal(sessionText({ count: 1, state: 'working' }), 'trabalhando');
-    assert.equal(sessionText({ count: 1, state: 'needs-you' }), 'precisa de você');
-    assert.equal(sessionText({ count: 1, state: 'idle' }), 'em pausa');
+    assert.equal(sessionText({ count: 1, state: 'working' }), 'Trabalhando');
+    assert.equal(sessionText({ count: 1, state: 'needs-you' }), 'Precisa de você');
+    assert.equal(sessionText({ count: 1, state: 'idle' }), 'Em pausa');
     assert.equal(sessionText({ count: 0, state: null }), null);
 
     const review = workCard(CARDS.review[0], { primaryRepo: REPO, now: NOW });
@@ -384,7 +384,7 @@ describe('#465/AC-2 the card (465-2), data only', () => {
     assert.equal(cardAge(card(9, { column: 'running', columnSince: ago(40 * MIN) }), NOW), 'há 40 min');
     const running = workCard(card(500, { column: 'running', plan: { steps: 3 }, sessions: { count: 1, state: 'working', ids: ['x'] } }), { now: NOW, primaryRepo: REPO });
     assert.equal(running.querySelector('.wb-plan'), null);
-    assert.equal(texto(running.querySelector('.wb-session')), 'trabalhando');
+    assert.equal(texto(running.querySelector('.wb-session')), 'Trabalhando');
     assert.equal(texto(workCard(card(1, { plan: { steps: 1 } }), { now: NOW }).querySelector('.wb-plan')), 'plano · 1 passo');
   });
 
@@ -411,7 +411,7 @@ describe('#465/AC-3 Bloqueado says why', () => {
     assert.equal(texto(ci!.querySelector('.wb-reason')), 'CI falhou');
     assert.ok(ci!.querySelector('.wb-reason')!.classList.contains('wb-reason-ci-failed'));
     assert.ok(ci!.classList.contains('wb-card-fail'));
-    assert.equal(texto(needs!.querySelector('.wb-session')), 'precisa de você');
+    assert.equal(texto(needs!.querySelector('.wb-session')), 'Precisa de você');
     assert.ok(needs!.querySelector('.wb-session')!.classList.contains('wb-session-needs-you'));
   });
 

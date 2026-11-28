@@ -525,7 +525,7 @@ describe('Kanban with every machine (C46)', () => {
     const f = context((route) => (route === '/api/machines' ? machinesUp : { view: 'agents', columns: [{ id: 'working', label: 'Trabalhando', total: 1, page: 1, hasMore: false, items: [agent] }], machines: [machinesUp[1]] }));
     const area = new ElementoFalso('main');
     await kanban.mount(area, f.ctx);
-    const switchTo = all(area, '.kb-seg button').find((b) => texto(b) === 'Agentes')!;
+    const switchTo = all(area, '.seg button').find((b) => texto(b) === 'Agentes')!;
     switchTo.click();
     await until(() => all(area, '.kb-agent').length === 1, 'the agent card');
     assert.equal(page.search, '?view=agents&machine=ws');

@@ -10,7 +10,7 @@
 
 import { header, el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { attentionPill } from '../attention.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
 import { stateLabel } from '../state-labels.js';
 import {
   toggleOne,
@@ -88,7 +88,7 @@ export async function mount(area, ctx) {
     el(
       'div',
       { class: 'feed-about-body' },
-      el('p', {}, `Cada linha é um evento gravado pelo núcleo, do mais novo para o mais velho. A pílula diz em que estado a sessão ficou depois dele: ${stateLabel('active')}, ${stateLabel('blocked')} (travada até você agir), ${stateLabel('idle')} (o turno acabou e nada trava), ${stateLabel('completed')} ou ${stateLabel('error')}.`),
+      el('p', {}, `Cada linha é um evento gravado pelo núcleo, do mais novo para o mais velho. O estado, com o ícone, diz em que a sessão ficou depois dele: ${stateLabel('active')}, ${stateLabel('blocked')} (travada até você agir), ${stateLabel('idle')} (o turno acabou e nada trava), ${stateLabel('completed')} ou ${stateLabel('error')}.`),
       el('p', {}, 'Uma sessão nasce, roda turnos, chama ferramentas e subagentes, e termina. O caminho projeto › sessão › agente diz de onde o evento veio; "Sessão" abre o detalhe dela.'),
       el('p', {}, 'Os filtros se somam. A busca olha o resumo e a ferramenta. Com a pausa, a lista para de mexer e os eventos novos esperam no aviso "novos".'),
     ),
@@ -192,7 +192,7 @@ export async function mount(area, ctx) {
       { class: `feed-row${isOpen ? ' feed-open' : ''}` },
       arrow,
       el('span', { class: 'feed-o mono feed-time' }, shortTime(ev.createdAt)),
-      pill.attention ? attentionPill(pill.attention) : el('span', { class: `badge b-${pill.status}` }, el('span', { class: 'p' }), STATUS[pill.status]),
+      el('span', { class: 'feed-state' }, stateTag(stateOfSession({ attention: pill.attention ?? null, status: pill.status ?? null }))),
       tag
         ? el('span', { class: 'feed-o feed-trail mf-with-tag', title: `${ev.machine.label} › ${path}` }, tag, el('span', {}, '›'), el('span', { class: 'mf-shrink' }, path))
         : el('span', { class: 'feed-o feed-trunc feed-trail', title: path }, path),

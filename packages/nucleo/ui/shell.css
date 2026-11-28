@@ -229,3 +229,14 @@ button { font: inherit; cursor: pointer; }
 .sk-head { height: 72px; border-radius: 12px; background: var(--raised); }
 .sk-notice { height: 48px; border-radius: 12px; background: var(--raised); }
 .sk-block { height: 88px; border-radius: 12px; background: var(--raised); }
+
+/* ---------- segment (issue 763): the one segmented control of the /ui, for the Kanban, the Quadro and the Feed ----------
+   A group of buttons with `aria-pressed`; the pressed one is also bolder, so it is not told by colour alone. The 24 px touch
+   area of #764 (WCAG 2.5.8) is the ::after: the drawing keeps its size. */
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--segment); border: 1px solid var(--border-control); border-radius: var(--radius-segment); }
+.seg button { position: relative; font: inherit; font-size: var(--text-xs); color: var(--muted); background: none; border: 0; padding: 4px 10px; border-radius: var(--radius-segment-item); white-space: nowrap; cursor: pointer; }
+.seg button:hover:not(:disabled) { color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); font-weight: var(--weight-semibold); box-shadow: 0 0 0 1px var(--border-control); }
+.seg button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 1px; }
+.seg button:disabled { cursor: not-allowed; opacity: .5; }
+.seg button::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

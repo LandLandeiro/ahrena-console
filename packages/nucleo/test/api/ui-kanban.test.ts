@@ -199,14 +199,16 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       assert.equal(columns[2]!.querySelectorAll('.kb-dot.kb-d-idle').length, 1);
       const [blocked, error] = columns[1]!.querySelectorAll('.kb-kc');
       assert.ok(blocked!.classList.contains('kb-st-blocked'));
-      assert.match(texto(blocked!), /Precisa de você Pede permissão/);
+      assert.match(texto(blocked!), /Pede permissão/, 'the reason is the label of the state tag (#763)');
+      assert.equal(blocked!.querySelectorAll('.state-tag').length, 1);
       assert.ok(error!.classList.contains('kb-st-error'));
       assert.match(texto(error!), /Com erro/);
-      assert.equal(error!.querySelectorAll('.attention-chip').length, 0, 'the error keeps only its red pill');
+      assert.equal(error!.querySelectorAll('.attention-chip').length, 0, 'the error keeps only its state tag');
       const idle = columns[2]!.querySelector('.kb-kc')!;
       assert.ok(idle.classList.contains('kb-st-idle'));
       assert.match(texto(idle), /Em pausa Interrompida/);
-      assert.equal(idle.querySelectorAll('.attention-chip.attention-chip-light').length, 1);
+      assert.equal(idle.querySelectorAll('.kb-reason').length, 1, 'the reason of a pause is plain text, not a chip');
+      assert.equal(idle.querySelectorAll('.attention-chip').length, 0);
       assert.doesNotMatch(texto(area), /Esperando/);
 
       columns[1]!.querySelector('.kb-more')!.click();

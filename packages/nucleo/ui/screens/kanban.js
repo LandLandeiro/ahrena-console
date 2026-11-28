@@ -11,7 +11,8 @@
 import { header, el, icon, setHeaderSub } from '../dom.js';
 import { sessionBoardSub } from '../subtitles.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { attentionBadges, attentionOf, attentionTone, statusWithoutAttention } from '../attention.js';
+import { attentionOf, attentionTone, reasonLabel, statusWithoutAttention } from '../attention.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
 import { stateLabel } from '../state-labels.js';
 import { createMachineFilter, itemHref, itemKey, isRemote, machineTag, queryWithMachine, whereText } from '../machine-filter.js';
 
@@ -132,10 +133,11 @@ const emptyFor = (view, where = 'nesta máquina') =>
     ? { title: 'Nenhum agente ainda', text: `Quando uma sessão do Claude Code começar ${where}, os agentes dela aparecem aqui.` }
     : { title: 'Nenhuma sessão ainda', text: `Quando uma sessão do Claude Code começar ${where}, ela aparece aqui.` };
 
+/** issue 763: the state of a card is the icon and the label of the map (the one tag of the Mural); a pause keeps its reason as plain text. */
 function badges(item) {
-  if (attentionOf(item.attention)) return el('div', { class: 'kb-badges' }, ...attentionBadges(item.attention));
-  const s = status(statusWithoutAttention(item.status));
-  return el('div', { class: 'kb-badges' }, el('span', { class: `kb-badge-st kb-b-${s.cor}` }, el('span', { class: 'kb-p' }), s.rotulo));
+  const { kind, label } = stateOfSession({ attention: item.attention, status: item.status });
+  const why = attentionOf(item.attention)?.level === 'idle' ? reasonLabel(item.attention) : null;
+  return el('div', { class: 'kb-badges' }, stateTag({ kind, label }), why ? el('span', { class: 'kb-reason' }, why) : null);
 }
 
 function avatar(name) {
@@ -191,7 +193,7 @@ export async function mount(area, ctx) {
   const buttons = Object.fromEntries(
     VIEWS.map((v) => [v, el('button', { type: 'button', 'aria-pressed': String(v === view), onClick: () => switchTo(v) }, v === 'agents' ? 'Agentes' : 'Sessões')]),
   );
-  const toggle = el('div', { class: 'kb-seg', role: 'group', 'aria-label': 'Visão do Kanban' }, buttons.agents, buttons.sessions);
+  const toggle = el('div', { class: 'seg', role: 'group', 'aria-label': 'Visão do Kanban' }, buttons.agents, buttons.sessions);
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw() }, icon('refresh'), 'Atualizar');
   const head = header({ icon: 'kanban', title: 'Kanban', sub: null, actions: [toggle, refresh] });
   // Issue 243 (C46): the machine filter on its own row under the header; both views follow it.

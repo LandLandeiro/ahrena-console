@@ -21,7 +21,6 @@ const SMALL_TARGETS = [
   'button.wft-toggle',
   '.dash-mini-actions .open-icon',
   '.seg button',
-  '.kb-seg button',
   '.mf-seg button',
   '.feed-arrow',
   'button.wall-kid-toggle',

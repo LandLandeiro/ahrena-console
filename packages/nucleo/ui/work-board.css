@@ -10,12 +10,7 @@
 /* ---------- level switch and path ---------- */
 .wb-level-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
 .wb-level-bar-label { font-size: var(--text-xs); color: var(--muted); }
-.wb-levels { display: inline-flex; padding: 3px; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; }
-.wb-level { font-size: var(--text-xs); color: var(--muted); background: none; border: 0; padding: 4px 10px; border-radius: 6px; white-space: nowrap; cursor: pointer; }
-.wb-level:hover:not(:disabled) { color: var(--text); }
-.wb-level[aria-pressed="true"] { background: var(--raised); color: var(--text); }
-.wb-level:focus-visible, .wb-path-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.wb-level:disabled { cursor: not-allowed; opacity: .5; }
+.wb-path-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .wb-level-note { font-size: 11.5px; color: var(--muted); }
 .wb-path { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); min-width: 0; flex-wrap: wrap; }
 .wb-path-step { font: inherit; color: var(--muted); background: none; border: 0; padding: 0; cursor: pointer; }
@@ -31,12 +26,12 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-fields { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .wb-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .wb-field-label { font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wb-select { height: 30px; min-width: 0; width: 100%; padding: 0 8px; font-family: var(--font-sans); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border-control); border-radius: 8px; }
+.wb-select { height: 30px; min-width: 0; width: 100%; padding: 0 8px; font-family: var(--font-sans); font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--border-control); border-radius: var(--radius-card); }
 .wb-field-set .wb-select { color: var(--text); border-color: var(--accent-line); }
 .wb-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .wb-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; }
 .wb-chips-label { color: var(--muted); }
-.wb-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 3px 0 9px; border-radius: 99px; font-size: 11.5px; color: var(--text); white-space: nowrap; background: var(--raised); border: 1px solid var(--border); }
+.wb-chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 3px 0 9px; border-radius: var(--radius-tag); font-size: 11.5px; color: var(--text); white-space: nowrap; background: var(--raised); border: 1px solid var(--border); }
 .wb-chip b { font-weight: var(--weight-semibold); }
 .wb-chip-remove { display: inline-grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; color: var(--muted); background: none; cursor: pointer; }
 .wb-chip-remove:hover:not(:disabled) { color: var(--text); background: var(--surface); }
@@ -45,7 +40,7 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-clear { margin-left: auto; height: 26px; color: var(--accent-text); }
 .wb-link { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); min-width: 0; }
 .wb-link-label { white-space: nowrap; }
-.wb-link code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 11.5px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 4px 8px; }
+.wb-link code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: 11.5px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-control); padding: 4px 8px; }
 
 /* ---------- board: six side by side, two rows of three below 1280 px, never a sideways scroll ---------- */
 .wb-board { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: start; min-width: 0; }
@@ -58,17 +53,17 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
   .wb-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.wb-col { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: color-mix(in srgb, var(--surface) 60%, var(--bg)); border: 1px solid var(--border); border-radius: 12px; }
+.wb-col { min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: color-mix(in srgb, var(--surface) 60%, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .wb-col.wb-col-attn { border-color: color-mix(in srgb, var(--status-waiting-dot) 45%, var(--border)); }
 .wb-col-head { margin: 0; display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: var(--weight-semibold); min-width: 0; }
 .wb-col-name { min-width: 0; overflow-wrap: anywhere; }
-.wb-count { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); background: var(--raised); border-radius: 99px; padding: 0 8px; letter-spacing: 0; }
+.wb-count { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); background: var(--raised); border-radius: var(--radius-tag); padding: 0 8px; letter-spacing: 0; }
 .wb-criterion { margin: -4px 0 0; padding: 0 4px; font-size: 10.5px; line-height: 1.35; color: var(--muted); }
 .wb-window { margin: 0; padding: 0 4px; font-size: 10.5px; color: var(--muted); }
 .wb-cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .wb-card-item { min-width: 0; }
-.wb-none { margin: 0; padding: 10px 4px; font-size: 11.5px; color: var(--muted); text-align: center; border: 1px dashed var(--border); border-radius: 10px; }
-.wb-done-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border-control); border-radius: 8px; cursor: pointer; }
+.wb-none { margin: 0; padding: 10px 4px; font-size: 11.5px; color: var(--muted); text-align: center; border: 1px dashed var(--border); border-radius: var(--radius-card); }
+.wb-done-more { font-size: 11.5px; color: var(--muted); background: none; padding: 6px; border: 1px dashed var(--border-control); border-radius: var(--radius-card); cursor: pointer; }
 .wb-done-more:hover { color: var(--text); background: var(--raised); }
 .wb-done-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -97,13 +92,13 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-card-github { margin-left: auto; flex: none; display: inline-grid; place-items: center; color: var(--muted); }
 .wb-age + .wb-card-github { margin-left: 0; }
 .wb-card-github:hover { color: var(--text); }
-.wb-card-github:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+.wb-card-github:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--radius-tag); }
 .wb-age { margin-left: auto; flex: none; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
-.wb-queue-pos { display: inline-grid; place-items: center; min-width: 24px; height: 18px; padding: 0 5px; border-radius: 6px; font-family: var(--font-mono); font-size: 10.5px; font-weight: var(--weight-semibold); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.wb-queue-pos { display: inline-grid; place-items: center; min-width: 24px; height: 18px; padding: 0 5px; border-radius: var(--radius-control); font-family: var(--font-mono); font-size: 10.5px; font-weight: var(--weight-semibold); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
 .wb-card-title { margin: 0; font-size: 12.5px; font-weight: var(--weight-semibold); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .wb-card-open { all: unset; cursor: pointer; color: var(--text); }
 .wb-card-open:hover { text-decoration: underline; }
-.wb-card-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 3px; }
+.wb-card-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--radius-tag); }
 .wb-chain { font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wb-chain b { color: var(--text); font-weight: var(--weight-semibold); }
 .wb-reason { display: flex; align-items: flex-start; gap: 5px; font-size: 11.5px; font-weight: var(--weight-semibold); line-height: 1.35; color: var(--status-waiting-text); }
@@ -111,20 +106,17 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-reason-needs-you, .wb-reason-review-rounds { color: var(--status-waiting-text); }
 .wb-reason-ci-failed { color: var(--status-error-text); }
 .wb-data { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
-.wb-status { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); background: var(--raised); border: 1px solid var(--border); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.wb-status { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: var(--radius-control); font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); background: var(--raised); border: 1px solid var(--border); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .wb-plan { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; }
 .wb-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
 .wb-pr { display: inline-flex; align-items: center; gap: 3px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: nowrap; text-decoration: none; }
 .wb-pr:hover { color: var(--text); }
 .wb-pr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.wb-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 99px; font-size: 10.5px; font-weight: var(--weight-medium); white-space: nowrap; }
-.wb-pill-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.wb-pill-waiting { background: var(--status-waiting-badge); color: var(--status-waiting-text); }
-.wb-pill-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.wb-pill-error { background: var(--status-error-badge); color: var(--status-error-text); }
-.wb-pill-idle { background: var(--raised); color: var(--muted); }
-.wb-session, .wb-ci, .wb-review { gap: 5px; }
-.wb-session-working, .wb-session-needs-you, .wb-session-idle { font-weight: var(--weight-semibold); }
+/* issue 763: the state of a card is the icon and the label (state-icon.css), no fill. */
+.wb-state { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
+.wb-state > [data-state-kind] { font-size: 11.5px; gap: 5px; }
+.wb-session, .wb-ci, .wb-review { flex: none; }
+.wb-session-working, .wb-session-needs-you, .wb-session-idle { flex: none; }
 
 /* ADR-0001: on a stale board what comes from GitHub fades; sessions and the queue stay live. */
 .wb-board-stale .wb-gh { opacity: .5; }
@@ -132,13 +124,13 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 /* ---------- initiative and epic card ---------- */
 .wb-parent-card { gap: 7px; }
 .wb-progress { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
-.wb-progress-track { display: block; height: 4px; border-radius: 99px; background: var(--raised); overflow: hidden; }
+.wb-progress-track { display: block; height: 4px; border-radius: var(--radius-tag); background: var(--raised); overflow: hidden; }
 .wb-progress-fill { display: block; height: 100%; width: var(--done-share, 0%); background: var(--status-completed-dot); }
 .wb-dist { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 .wb-dist li { display: inline-flex; align-items: center; gap: 4px; }
 .wb-drill { align-self: flex-start; display: inline-flex; align-items: center; gap: 2px; padding: 0; font-size: 12px; font-weight: var(--weight-semibold); color: var(--accent-text); background: none; border: 0; cursor: pointer; }
 .wb-drill:hover { text-decoration: underline; }
-.wb-drill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.wb-drill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--radius-tag); }
 
 /* ---------- states ---------- */
 .wb-skeleton { gap: 8px; min-height: 84px; }
@@ -151,14 +143,14 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-empty, .wb-first-failure { min-height: 0; padding: 26px 20px; }
 .wb-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .wb-no-result { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; }
-.wb-no-result-icon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 10px; background: var(--raised); color: var(--muted); }
+.wb-no-result-icon { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: var(--radius-card); background: var(--raised); color: var(--muted); }
 .wb-no-result-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .wb-no-result-text h2 { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
 .wb-no-result-text p { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 .wb-no-result-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---------- the execution queue (issue 477, wireframes 477-1 and 477-2) ---------- */
-.wb-limit { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border-radius: 8px; font-size: 11.5px; background: var(--raised); color: var(--text); }
+.wb-limit { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border-radius: var(--radius-card); font-size: 11.5px; background: var(--raised); color: var(--text); }
 .wb-limit b { font-weight: var(--weight-semibold); }
 .wb-limit .icon { flex: none; }
 .wb-limit.wb-full b { color: var(--status-waiting-text); }
@@ -176,8 +168,8 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-col.wb-target { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
 .wb-col.wb-refuse { border-color: var(--status-error-dot); border-style: dashed; background: color-mix(in srgb, var(--status-error-badge) 40%, var(--surface)); }
 .wb-drop-item { list-style: none; }
-.wb-drop { display: flex; align-items: center; justify-content: center; min-height: 34px; border: 2px dashed var(--accent); border-radius: 10px; font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--accent-text); }
-.wb-refuse-msg { display: flex; align-items: flex-start; gap: 5px; padding: 6px 8px; border-radius: 8px; font-size: 11.5px; font-weight: var(--weight-semibold); line-height: 1.35; color: var(--status-error-text); background: var(--status-error-badge); }
+.wb-drop { display: flex; align-items: center; justify-content: center; min-height: 34px; border: 2px dashed var(--accent); border-radius: var(--radius-card); font-size: 11.5px; font-weight: var(--weight-semibold); color: var(--accent-text); }
+.wb-refuse-msg { display: flex; align-items: flex-start; gap: 5px; padding: 6px 8px; border-radius: var(--radius-card); font-size: 11.5px; font-weight: var(--weight-semibold); line-height: 1.35; color: var(--status-error-text); background: var(--status-error-badge); }
 .wb-refuse-msg .icon { flex: none; margin-top: 1px; }
 .wb-card:has(.wb-queue-note) { box-shadow: inset 3px 0 0 var(--status-error-dot); }
 @media (prefers-reduced-motion: no-preference) { .wb-col { transition: border-color .12s, opacity .12s; } }
@@ -192,7 +184,7 @@ button.wb-path-step:hover:not(:disabled) { color: var(--text); text-decoration: 
 .wb-fields.wb-fields-origin { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .wb-reset-note { margin: 0; display: flex; gap: 6px; align-items: center; font-size: 11.5px; color: var(--status-waiting-text); }
 .wb-warns { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.wb-warn-band { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-radius: 12px; font-size: 13px; border: 1px solid var(--status-waiting-dot); background: var(--status-waiting-badge); }
+.wb-warn-band { display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; border-radius: var(--radius-card); font-size: 13px; border: 1px solid var(--status-waiting-dot); background: var(--status-waiting-badge); }
 .wb-warn-band > .icon { flex: none; margin-top: 1px; font-size: 18px; color: var(--status-waiting-text); }
 .wb-warn-band p { margin: 0; flex: 1; min-width: 0; }
 .wb-warn-band b { font-weight: var(--weight-semibold); color: var(--status-waiting-text); }

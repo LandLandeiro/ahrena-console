@@ -2,7 +2,8 @@ import { el, header, icon } from '../dom.js';
 import { workBoardSub } from '../subtitles.js';
 import { errorBand } from '../states.js';
 import { queueLimit } from './work-board-queue.js';
-import { boardColumnLabel } from '../state-labels.js';
+import { boardColumnLabel, stateLabel } from '../state-labels.js';
+import { boardTag } from './work-board-tag.js';
 
 /** The six columns of the work board (issue 465), for the states with no payload. The names are state-labels.js's (ADR-0028), read when drawn; the payload `label` is ignored. */
 const column = (id, criterion) => ({ id, get label() { return boardColumnLabel(id); }, criterion });
@@ -52,9 +53,10 @@ export const SWITCH_PROJECT_HREF = '/ui/project';
 
 const PATH_LABELS = { initiative: 'Iniciativa', epic: 'Épico' };
 const REASON_ICONS = { 'needs-you': 'hand', 'review-rounds': 'repeat', 'ci-failed': 'error' };
-const CI = { ok: ['CI ✓', 'completed'], failed: ['CI ✕', 'error'], running: ['CI …', 'waiting'] };
-const REVIEW = { approved: ['aprovado', 'completed'], 'changes-requested': ['ajustes', 'error'], pending: ['review', 'waiting'] };
-const SESSIONS = { working: 'trabalhando', 'needs-you': 'precisa de você', idle: 'em pausa' };
+// issue 763: the kind of state-icon.js each fact draws, with its words; a session says its state with the id of state-labels.js.
+const CI = { ok: ['CI ✓', 'completed'], failed: ['CI ✕', 'error'], running: ['CI …', 'queued'] };
+const REVIEW = { approved: ['aprovado', 'completed'], 'changes-requested': ['ajustes', 'error'], pending: ['review', 'queued'] };
+const SESSIONS = { working: ['active', 'working'], 'needs-you': ['blocked', 'needs'], idle: ['idle', 'paused'] };
 const TYPE_CLASSES = new Set(Object.keys(TYPE_LABELS));
 /** issue 477: the columns that are facts of the session and of GitHub and refuse a dragged card (a lock shows while one is dragged). */
 const FACT_COLUMNS = new Set(['running', 'review', 'blocked', 'done']);
@@ -124,7 +126,8 @@ export function sessionText(sessions) {
   const count = sessions?.count ?? 0;
   if (count < 1) return null;
   if (count > 1) return `${count} sessões`;
-  return SESSIONS[sessions.state] ?? null;
+  const known = SESSIONS[sessions.state];
+  return known ? stateLabel(known[0]) : null;
 }
 
 /** "plano · 5 passos" (issue 465). */
@@ -300,9 +303,9 @@ export function workBoardHeader({ project = null, organizations = null, columns 
 export function levelSwitch({ levels = Object.keys(LEVEL_LABELS), level = 'item', path = [], disabled = false, onLevelChange = null, onPathSelect = null } = {}) {
   const group = el(
     'div',
-    { class: 'wb-levels', role: 'group', 'aria-label': 'Nível' },
+    { class: 'seg', role: 'group', 'aria-label': 'Nível' },
     ...levels.map((l) =>
-      el('button', { type: 'button', class: 'wb-level', 'data-level': l, 'aria-pressed': String(l === level), disabled, onClick: () => l !== level && onLevelChange?.(l) }, LEVEL_LABELS[l] ?? l),
+      el('button', { type: 'button', 'data-level': l, 'aria-pressed': String(l === level), disabled, onClick: () => l !== level && onLevelChange?.(l) }, LEVEL_LABELS[l] ?? l),
     ),
   );
   const steps = path.flatMap((p, i) => {
@@ -479,17 +482,15 @@ function originLine(origin) {
 const githubLink = (card) =>
   el('a', { class: 'wb-card-github', href: card.url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Abrir no GitHub', title: 'Abrir no GitHub' }, icon('external'));
 
-const pill = (kind, tone, text, extra = '') => el('span', { class: `wb-pill wb-pill-${tone} ${kind}${extra}` }, text);
-
 function cardBadges(card, planning = null) {
   const session = sessionText(card.sessions);
   const p = card.pullRequest;
   const parts = [
     planning,
-    session ? pill('wb-session', card.sessions.state === 'needs-you' ? 'waiting' : card.sessions.state === 'idle' ? 'idle' : 'active', session, ` wb-session-${card.sessions.state ?? 'working'}`) : null,
+    session ? boardTag(SESSIONS[card.sessions.state]?.[1] ?? 'working', session, `wb-session wb-session-${card.sessions.state ?? 'working'}`) : null,
     p ? el('a', { class: 'wb-pr wb-gh', href: p.url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': `PR ${ref(p.number)} no GitHub` }, icon('git-pull-request'), ref(p.number)) : null,
-    p?.ci && CI[p.ci] ? pill('wb-ci', CI[p.ci][1], CI[p.ci][0], ' wb-gh') : null,
-    p?.review && REVIEW[p.review] ? pill('wb-review', REVIEW[p.review][1], REVIEW[p.review][0], ' wb-gh') : null,
+    p?.ci && CI[p.ci] ? boardTag(CI[p.ci][1], CI[p.ci][0], 'wb-ci wb-gh') : null,
+    p?.review && REVIEW[p.review] ? boardTag(REVIEW[p.review][1], REVIEW[p.review][0], 'wb-review wb-gh') : null,
   ].filter(Boolean);
   return parts.length ? el('div', { class: 'wb-badges' }, ...parts) : null;
 }

@@ -6,6 +6,7 @@ confirmation is open, calls POST /api/work/plan and hands the answer back. The s
 `work-board-issue-panel.css` (classes `wb-plan-`). */
 
 import { el, icon } from '../dom.js';
+import { boardTag } from './work-board-tag.js';
 import { OPEN_IN_KEY, OPEN_TARGETS, destinationLabel, popoverContext, popoverFooter, popoverShell, segmented } from '../popover.js';
 
 /** The types "Planejar" is offered for: epics, initiatives and plan steps are planned elsewhere or not at all. */
@@ -50,7 +51,7 @@ export function cardPlanParts(card, { onPlan = null, onReplan = null, lead = nul
   const act = (cls, action, label, name, handler, iconName = null) =>
     el('button', { type: 'button', class: cls, 'data-action': action, 'aria-label': name, onClick: (ev) => handler?.(card, ev.currentTarget) }, iconName ? icon(iconName) : null, label);
   if (state === 'planning') {
-    const badge = el('span', { class: 'wb-pill wb-pill-active wb-session', role: 'status', 'data-state': 'planning' }, 'planejando…');
+    const badge = boardTag('working', 'planejando…', 'wb-session', { role: 'status', 'data-state': 'planning' });
     return { ...none, badge };
   }
   // issue 595: on a repository that is not trusted the core refuses Planejar and Executar plano, so none is offered.
@@ -59,7 +60,7 @@ export function cardPlanParts(card, { onPlan = null, onReplan = null, lead = nul
   const hasPlan = card.plan?.steps > 0;
   const actions = hasPlan
     ? el('div', { class: 'wb-plan-acts' }, lead, el('div', { class: 'wb-plan-links' }, act('wb-plan-link', 'replan', 'Replanejar', `Replanejar a ${number}`, onReplan)))
-    : el('div', { class: 'wb-plan-acts' }, act('btn filled sm wb-plan-act', 'plan', 'Planejar', `Planejar a ${number}`, onPlan, 'bot'));
+    : el('div', { class: 'wb-plan-acts' }, act('btn outline sm wb-plan-act', 'plan', 'Planejar', `Planejar a ${number}`, onPlan, 'bot'));
   return { ...none, note, actions };
 }
 

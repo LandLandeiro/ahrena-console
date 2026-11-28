@@ -7,16 +7,16 @@ The styles are in `work-board-issue-panel.css` (classes `wb-panel-`). */
 import { el, icon } from '../dom.js';
 import { loading, errorBand } from '../states.js';
 import { trapFocus } from '../popover.js';
+import { boardTag } from './work-board-tag.js';
 import { COLUMNS, TYPE_LABELS, cardAge, formatAgo, staleBand, typeLabel } from './work-board-parts.js';
 
 const ref = (n) => `#${n}`;
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const shortRepo = (name) => String(name ?? '').split('/').pop();
-const CI = { SUCCESS: ['CI ✓', 'completed'], FAILURE: ['CI ✕', 'error'], ERROR: ['CI ✕', 'error'], PENDING: ['CI …', 'waiting'], EXPECTED: ['CI …', 'waiting'] };
-const REVIEW = { APPROVED: ['aprovado', 'completed'], CHANGES_REQUESTED: ['ajustes', 'error'], REVIEW_REQUIRED: ['review', 'waiting'] };
+const CI = { SUCCESS: ['CI ✓', 'completed'], FAILURE: ['CI ✕', 'error'], ERROR: ['CI ✕', 'error'], PENDING: ['CI …', 'queued'], EXPECTED: ['CI …', 'queued'] };
+const REVIEW = { APPROVED: ['aprovado', 'completed'], CHANGES_REQUESTED: ['ajustes', 'error'], REVIEW_REQUIRED: ['review', 'queued'] };
 const NO_PLAN = 'Sem plano ainda. Planejar abre uma sessão da Athena só de planejamento, que lê a issue e o código e escreve os passos aqui como sub-issues do tipo Plan. Ela não escreve código.';
 
-const pill = (tone, text, extra = '') => el('span', { class: `wb-pill wb-pill-${tone}${extra}` }, text);
 
 /** A section of the panel: a labelled region with its heading (and what goes on the right of it). (issue 508). */
 export function section(name, label, heading, ...body) {
@@ -76,9 +76,9 @@ function planSection(issue) {
 function prSection(issue) {
   const pr = issue.pullRequest;
   if (!pr) return section('pr', 'PR', heading('PR'), el('div', { class: 'wb-panel-box' }, el('span', { class: 'wb-panel-muted' }, `Nenhum PR ainda. Aparece aqui quando a sessão abrir o PR que fecha a ${ref(issue.number)}.`)));
-  const state = pr.state === 'MERGED' ? pill('completed', 'mergeado') : pr.state === 'CLOSED' ? pill('idle', 'fechado') : pr.isDraft ? pill('idle', 'rascunho') : null;
-  const ci = pr.ci && CI[pr.ci] ? pill(CI[pr.ci][1], CI[pr.ci][0], ' wb-ci wb-gh') : null;
-  const review = pr.review && REVIEW[pr.review] ? pill(REVIEW[pr.review][1], REVIEW[pr.review][0], ' wb-review wb-gh') : null;
+  const state = pr.state === 'MERGED' ? boardTag('completed', 'mergeado') : pr.state === 'CLOSED' ? boardTag('paused', 'fechado') : pr.isDraft ? boardTag('paused', 'rascunho') : null;
+  const ci = pr.ci && CI[pr.ci] ? boardTag(CI[pr.ci][1], CI[pr.ci][0], 'wb-ci wb-gh') : null;
+  const review = pr.review && REVIEW[pr.review] ? boardTag(REVIEW[pr.review][1], REVIEW[pr.review][0], 'wb-review wb-gh') : null;
   const checks = pr.checks?.total ? `${pr.checks.passed} de ${pr.checks.total} checks${pr.checks.failed ? ` · ${plural(pr.checks.failed, 'falhou', 'falharam')}` : ''}` : null;
   return section(
     'pr',
@@ -142,7 +142,7 @@ function panelHead({ card, number, url, now, onClose, onEdit = null }) {
     { class: 'wb-panel-head' },
     el('span', { class: `wb-type wb-type-${TYPE_LABELS[card?.type] ? card.type : 'other'}` }, typeLabel(card)),
     el('span', { class: 'wb-number mono' }, ref(number)),
-    column ? pill('idle', age ? `${column} · ${age}` : column) : null,
+    column ? el('span', { class: 'wb-panel-tag' }, age ? `${column} · ${age}` : column) : null,
     onEdit ? el('button', { type: 'button', class: 'btn outline sm wb-panel-github', 'data-action': 'edit', onClick: () => onEdit() }, icon('pencil'), 'Editar') : null,
     url ? el('a', { class: `btn outline sm icon-only${onEdit ? '' : ' wb-panel-github'}`, href: url, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Abrir no GitHub', title: 'Abrir no GitHub' }, icon('external')) : null,
     el('button', { type: 'button', class: `btn ghost sm icon-only${url || onEdit ? '' : ' wb-panel-github'}`, 'data-action': 'close', 'aria-label': 'Fechar o detalhe', title: 'Fechar o detalhe', onClick: () => onClose?.() }, icon('x')),

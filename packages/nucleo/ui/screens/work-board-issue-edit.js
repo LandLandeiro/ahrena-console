@@ -10,6 +10,7 @@ The styles are in `work-board-issue-panel.css` (classes `wb-edit-`). */
 
 import { el, icon } from '../dom.js';
 import { trapFocus } from '../popover.js';
+import { boardTag } from './work-board-tag.js';
 import { bodyBlocks, heading, section } from './work-board-issue-panel.js';
 import { formatAgo, formatClock, typeLabel, TYPE_LABELS } from './work-board-parts.js';
 
@@ -104,7 +105,7 @@ function editHead({ card, number, savedAt, busy, onDone, onClose }) {
     { class: 'wb-panel-head wb-edit-head' },
     el('span', { class: `wb-type wb-type-${TYPE_LABELS[card?.type] ? card.type : 'other'}` }, typeLabel(card)),
     el('span', { class: 'wb-number mono' }, ref(number)),
-    el('span', { class: 'wb-pill wb-pill-active wb-edit-badge' }, icon('pencil'), 'editando'),
+    boardTag('working', 'editando', 'wb-edit-badge'),
     saved ? el('span', { class: 'wb-edit-saved', role: 'status' }, icon('done'), saved) : null,
     button({ cls: 'btn outline sm wb-edit-done', action: 'done', label: 'Concluir', onClick: onDone, busy }),
     el('button', { type: 'button', class: 'btn ghost sm icon-only', 'data-action': 'close', 'aria-label': 'Fechar o detalhe', title: 'Fechar o detalhe', onClick: () => onClose?.() }, icon('x')),

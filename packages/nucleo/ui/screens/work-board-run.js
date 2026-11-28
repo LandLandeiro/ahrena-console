@@ -7,6 +7,7 @@ open, calls POST /api/work/run and hands the answer back (the limit full as `ful
 of work-board-plan.js). The styles are in `work-board-issue-panel.css` (classes `wb-run-`, and `wb-plan-` where shared). */
 
 import { el, icon } from '../dom.js';
+import { boardTag } from './work-board-tag.js';
 import { PLANNABLE_TYPES, cardPlanParts, planState, untrustedLine } from './work-board-plan.js';
 import { OPEN_IN_KEY, OPEN_TARGETS, destinationLabel, popoverContext, popoverFooter, popoverShell, segmented } from '../popover.js';
 
@@ -45,7 +46,7 @@ export function cardRunParts(card, { onRun = null, onReplan = null, onPlan = nul
   const state = runState(card);
   const number = ref(card?.number);
   if (state === 'booting') {
-    const badge = el('span', { class: 'wb-pill wb-pill-waiting wb-session wb-run-boot', role: 'status', 'data-state': 'booting' }, icon('wall-loader'), 'subindo…');
+    const badge = boardTag('working', 'subindo…', 'wb-session wb-run-boot', { role: 'status', 'data-state': 'booting' });
     return { badge, note: null, actions: null };
   }
   if (state === 'live' || state === 'planningLive') {
@@ -62,7 +63,7 @@ export function cardRunParts(card, { onRun = null, onReplan = null, onPlan = nul
   }
   const lead =
     state === 'planned'
-      ? el('button', { type: 'button', class: 'btn filled sm wb-plan-act', 'data-action': 'run', 'aria-label': `Executar o plano da ${number}`, onClick: (ev) => onRun?.(card, ev.currentTarget) }, icon('play'), 'Executar plano')
+      ? el('button', { type: 'button', class: 'btn outline sm wb-plan-act', 'data-action': 'run', 'aria-label': `Executar o plano da ${number}`, onClick: (ev) => onRun?.(card, ev.currentTarget) }, icon('play'), 'Executar plano')
       : null;
   return cardPlanParts(card, { onPlan, onReplan, lead, place });
 }

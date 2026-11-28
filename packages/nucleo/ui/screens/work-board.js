@@ -299,7 +299,7 @@ export async function mount(area, ctx) {
     const hit = focusable.find((n) => focusKey(n) === key);
     if (hit?.hasAttribute('disabled')) pendingFocus = key;
     else if (hit) hit.focus();
-    else area.querySelector('button.wb-level[aria-pressed="true"]')?.focus();
+    else area.querySelector('.seg button[aria-pressed="true"]')?.focus();
   }
 
   ctx.onRestart(() => run(startLoad(state)));

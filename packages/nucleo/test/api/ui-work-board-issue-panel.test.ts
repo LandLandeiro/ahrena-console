@@ -122,7 +122,7 @@ describe('Planejar on the card (465-2, 465-6)', () => {
       assert.equal(button.getAttribute('type'), 'button');
       assert.equal(texto(button), 'Planejar');
       assert.equal(button.getAttribute('aria-label'), 'Planejar a #500');
-      assert.ok(button.classList.contains('filled'), 'the primary action is a filled button');
+      assert.ok(button.classList.contains('outline') && !button.classList.contains('filled'), 'the action is an outlined button, never a flat orange one (issue 763)');
       assert.equal(all(parts.actions, 'button').length, 1, 'one action only');
       assert.equal(parts.badge, null);
       assert.equal(parts.note, null);

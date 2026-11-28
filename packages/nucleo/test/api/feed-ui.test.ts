@@ -294,7 +294,7 @@ describe('Feed de atividade: a tela', () => {
     assert.ok(documento.head.querySelector('link[data-screen="feed"]'), 'o CSS da tela entrou no head');
     assert.deepEqual(linhasDe(area), ['e2', 'e1']);
     const [l2, l1] = area.querySelectorAll('.feed-item');
-    assert.match(l1!.textContent, /Precisa de você/);
+    assert.match(l1!.textContent, /Pede permissão/, 'the state tag says the reason of the block (#763)');
     assert.doesNotMatch(area.textContent, /Esperando/);
     assert.match(l1!.textContent, /motor-de-regras › Separar pagamentos em serviços › test-runner/);
     assert.match(l1!.textContent, /1 min/);
