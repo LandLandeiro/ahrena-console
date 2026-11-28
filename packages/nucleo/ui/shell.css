@@ -100,6 +100,37 @@ button { font: inherit; cursor: pointer; }
 .cc-gh:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .cc-gh[data-state="pending"] .cc-gh-state .icon { animation: none; } }
 
+/* Issue 764 (WCAG 2.5.8): the touch area of a control is 24 px at least. The drawing keeps its size; a transparent ::after
+   grows the area around it (it never shrinks one that is larger), so the density does not change. */
+.wb-chip-remove,
+.open-close,
+.av-toggle,
+button.wft-toggle,
+.dash-mini-actions .open-icon,
+.seg button,
+.kb-seg button,
+.mf-seg button,
+.feed-arrow,
+button.wall-kid-toggle,
+.repo-back,
+.subs,
+.up-version,
+.wb-edit-chip-x { position: relative; }
+.wb-chip-remove::after,
+.open-close::after,
+.av-toggle::after,
+button.wft-toggle::after,
+.dash-mini-actions .open-icon::after,
+.seg button::after,
+.kb-seg button::after,
+.mf-seg button::after,
+.feed-arrow::after,
+button.wall-kid-toggle::after,
+.repo-back::after,
+.subs::after,
+.up-version::after,
+.wb-edit-chip-x::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
+
 .cc-main { padding: 20px 24px 24px; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
 
 /* ---------- cabeçalho de tela ---------- */

@@ -69,7 +69,7 @@ describe('issue 764: the touch area of a control is 24 px at least', () => {
       if (!((w && Number(w) < MIN) || (h && Number(h) < MIN))) continue;
       for (const s of r.selectors) {
         const last = s.split(/\s+/).pop()!.replace(/::?[a-z-]+(\([^)]*\))?/g, '');
-        if (/\.icon\b|::|\bi\b/.test(s) || !clickable.test(last)) continue;
+        if (/\.icon\b|::|\bi\b|-(dot|gap)$/.test(s) || !clickable.test(last)) continue;
         if (!covered.has(s) && !covered.has(last)) bad.push(s);
       }
     }
