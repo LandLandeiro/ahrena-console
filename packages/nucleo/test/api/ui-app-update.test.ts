@@ -324,6 +324,7 @@ describe('the wiring', () => {
     assert.match(page, /href="\/ui\/app-update\.css"/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.match(app, /if \(appUpdateChanged\(changes\)\) appUpdate\.refresh\(\)/);
-    assert.match(app, /class: 'version up-version mono'/);
+    assert.match(readFileSync(`${UI_FOLDER}live-block.js`, 'utf8'), /class: 'version up-version'/);
+    assert.match(app, /label: `versão \$\{version\}`/);
   });
 });

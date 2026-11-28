@@ -243,6 +243,19 @@ export function machineTag(item, { iconOnly = false } = {}) {
   return el('span', { class: 'mf-tag' }, icon('server'), el('span', {}, label));
 }
 
+/** What an item's machine is called and drawn as: a laptop for this machine, a server for a remote. */
+export function machineLabel(item) {
+  if (!isRemote(item)) return { remote: false, icon: 'laptop', text: LOCAL_LABEL };
+  const label = typeof item.machine.label === 'string' && item.machine.label ? item.machine.label : 'Máquina remota';
+  return { remote: true, icon: 'server', text: label };
+}
+
+/** The machine of an item with its icon and its name written, for the foot of a card and a row. */
+export function machineMark(item) {
+  const m = machineLabel(item);
+  return el('span', { class: 'mf-mach', 'data-machine-kind': m.remote ? 'remote' : 'local' }, icon(m.icon), el('span', { title: m.text }, m.text));
+}
+
 /** The C48 band: neutral, the wifi-off icon, the text and "Ver a <label>" to the machine screen. */
 export function downNotice(machine, { now = Date.now(), title = null } = {}) {
   const t = downText(machine, now);
@@ -323,12 +336,22 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
 
   function draw() {
     const remotes = remotesOf(known).length > 0;
+    // ADR-0028: the control is drawn again on every answer; the focus stays on the same machine.
+    const held = row.contains(document.activeElement) ? document.activeElement.getAttribute('data-machine') : null;
+    // ADR-0028: the link of a notice is found again by the machine of its notice; with the notice gone, the focus goes to that machine's segment.
+    const heldNotice = notices.contains(document.activeElement) ? (document.activeElement.closest?.('.mf-notice')?.getAttribute('data-machine') ?? null) : null;
     row.replaceChildren(...(remotes ? [machineControl(known, choice, choose)] : []));
     row.hidden = !remotes;
+    const segment = (id) => [...row.querySelectorAll('[data-machine]')].find((b) => b.getAttribute('data-machine') === id);
+    if (held !== null) segment(held)?.focus({ preventScroll: true });
     const now = Date.now();
     const down = remotes ? downFor(known, choice) : [];
     notices.replaceChildren(...down.map((m) => downNotice(m, { now })));
     notices.hidden = down.length === 0;
+    if (heldNotice !== null) {
+      const notice = [...notices.querySelectorAll('.mf-notice')].find((n) => n.getAttribute('data-machine') === heldNotice);
+      (notice?.querySelector('.mf-notice-link') ?? segment(heldNotice))?.focus({ preventScroll: true });
+    }
     tick();
   }
 
