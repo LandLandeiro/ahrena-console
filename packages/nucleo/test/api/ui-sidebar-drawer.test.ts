@@ -388,7 +388,7 @@ describe('#750: the waiting count on the menu button', () => {
   });
 
   test('the markup: the tag is the yellow one of the bar, hidden from the name; the button is named Menu', () => {
-    assert.match(html, /<span class="cc-nav-tag" data-tone="waiting" aria-hidden="true" hidden><\/span>\s*<\/button>/);
+    assert.match(html, /<span class="cc-nav-tag" data-tone="waiting" aria-hidden="true" hidden><\/span>\s*(<span class="cc-ibtn-dot" aria-hidden="true" hidden><\/span>\s*)?<\/button>/);
     const shell = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     assert.match(shell, /\.cc-nav-tag\[data-tone="waiting"\] \{ color: var\(--status-waiting-text\); background: var\(--status-waiting-badge\);/);
   });

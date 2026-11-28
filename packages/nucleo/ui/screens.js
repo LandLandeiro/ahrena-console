@@ -309,7 +309,7 @@ export const machineItemId = (id) => `machine-${id}`;
 const MACHINE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const MACHINE_STATES = new Set(['connected', 'unreachable', 'incompatible-version', 'not-configured']);
 // A connection the person stopped (issue 278) is not a drop: its own state, a grey dot.
-const stoppedByYou = (m) => m.connection && typeof m.connection === 'object' && m.connection.state === 'stopped';
+export const stoppedByYou = (m) => m.connection && typeof m.connection === 'object' && m.connection.state === 'stopped';
 // The tunnel is up and the core over there asks for the owner proof (issue 388): one state for the three
 // reasons, its own yellow dot, and the reason on the dot's label (the color alone does not say it).
 // The labels come from machine-format.js's OWNER_AUTH, so the pill and the dot cannot drift apart.
@@ -319,14 +319,10 @@ const ownerAuthOf = (m) => (m.state === 'unreachable' && Object.hasOwn(OWNER_AUT
  * dot, "Atualizando", from the --check until the new version answers. Only a connection the person stopped wins over it.
  * (ADR-0024)
  */
-const updatingOf = (m) => {
+export const updatingOf = (m) => {
   const u = normalizeUpdate(m.update);
   return Boolean(u && updatingNow(u));
 };
-
-// A machine asks for action (#754) when its state says so (Sem conexão, Acesso bloqueado, Versão diferente, Sem configuração) or
-// its núcleo is older than the app (the arrow). "Parada por você" and "Atualizando" do not, even with the arrow (decision 0029, #754).
-const asksForAction = (state, outdated) => state !== 'stopped' && state !== 'updating' && (outdated || state !== 'connected');
 
 /** The sidebar entries of the remote machines in `GET /api/machines` (this machine is in SCREENS). */
 export function machineItems(machines) {
@@ -340,16 +336,16 @@ export function machineItems(machines) {
     const updating = !stoppedByYou(m) && updatingOf(m);
     const auth = stoppedByYou(m) || updating ? null : ownerAuthOf(m);
     const state = stoppedByYou(m) ? 'stopped' : updating ? 'updating' : auth ? 'owner-auth' : MACHINE_STATES.has(m.state) ? m.state : 'unreachable';
-    const outdated = coreOutdated(normalizeCore(m.core));
     out.push({
       id: machineItemId(m.id),
       route: `/ui/machines/${m.id}`,
-      // In Projeto the item stays only while the alert lasts (decision 0029); the label and the block are the same (#754).
-      item: { label, icon: 'server', section: 'machines', ...(asksForAction(state, outdated) ? { project: {} } : {}) },
+      // No `project` entry: in Projeto no machine is in the bar, in any state (decision 0029, line 38). The warning goes to the Mural
+      // band (machine-filter.js) and the arrow to the account menu (account-menu.js); the route stays open (#754).
+      item: { label, icon: 'server', section: 'machines' },
       state,
       ...(auth ? { stateLabel: OWNER_AUTH[auth].dot } : {}),
       // The núcleo over there is older than the app (issue 449): a yellow arrow beside the name, nothing else of `core`.
-      ...(outdated ? { coreOutdated: true } : {}),
+      ...(coreOutdated(normalizeCore(m.core)) ? { coreOutdated: true } : {}),
       title: label,
       icon: 'server',
     });

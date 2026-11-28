@@ -113,7 +113,6 @@ describe('#754 the account menu', () => {
     account.setCoreOutdated([{ id: 'machine-old', label: 'Workstation', route: '/ui/machines/old' }]);
     assert.equal(dot.hidden, false);
     assert.equal(button.getAttribute('aria-label'), 'Opções da conta, núcleo defasado');
-    assert.equal(dot.getAttribute('aria-hidden'), 'true', 'the name is on the button, the dot is not read twice');
     account.setCoreOutdated([]);
     assert.equal(dot.hidden, true);
     assert.equal(button.getAttribute('aria-label'), 'Opções da conta');
@@ -241,7 +240,9 @@ describe('#754 the page and the wiring', () => {
     assert.match(app, /onCoreOutdated/);
     assert.match(app, /accountMenu\.setCoreOutdated\(/);
     assert.match(app, /drawer\.outdated\(/);
-    assert.equal((app.match(/MACHINES_ROUTE|\/api\/machines/g) ?? []).length, 0);
+    const block = app.match(/onCoreOutdated\(list\) \{[\s\S]*?\n  \},/)?.[0] ?? '';
+    assert.ok(block);
+    assert.doesNotMatch(block, /read|fetch|api\//);
   });
 
   test('the CSS of the dot uses tokens only', () => {

@@ -1,6 +1,7 @@
 // The sidebar (C1, C24): one block per section of the registry, and the remote machines (issue 178).
 //
 // The bar follows the mode (#754): `sidebarSections` gets `appMode()` and a switch draws it again, keeping what a redraw keeps.
+// In Projeto no remote item is drawn, in any state: its warning is the Mural band, and the arrow of an outdated núcleo is in the account menu (#754).
 // The registry is static; the remote machines come from `machines.json`, which only the core reads.
 // `readMachines()` reads `GET /api/machines` and, when the list changed, draws the sidebar again with
 // `machineItems(list)` added: each remote is an item of the Máquinas block, after "Esta máquina",
@@ -12,6 +13,7 @@ import { el, icon } from './dom.js';
 import { appMode, onModeChange } from './mode.js';
 import { machineItems, MACHINES_ROUTE, SCREENS, sidebarSections } from './screens.js';
 import { CONNECTORS_ROUTE, connectorsDot } from './screens/cloud-format.js';
+import { CORE_OUTDATED_LABEL } from './screens/machine-core-format.js';
 
 /** The state of a remote machine, said on its dot: the color alone does not say it. */
 export const MACHINE_STATE_LABELS = { connected: 'Conectada', unreachable: 'Sem conexão', 'incompatible-version': 'Versão diferente', 'not-configured': 'Sem configuração', stopped: 'Parada por você', 'owner-auth': 'Acesso bloqueado', updating: 'Atualizando' };
@@ -19,17 +21,18 @@ export const MACHINE_STATE_LABELS = { connected: 'Conectada', unreachable: 'Sem 
 /** How soon the sidebar reads the machines again while one is being updated (issue 484): the dot must not lag. (ADR-0024) */
 const UPDATING_REREAD_MS = 5000;
 
-/** The yellow arrow of a remote whose núcleo is older than the app (issue 449): the color alone does not say it. */
-const CORE_OUTDATED_LABEL = 'Núcleo defasado';
-
 /** Conexões has no item of its own since decision 0029: its dot goes on Configuração, the item that receives it (#754). */
 const CONNECTIONS_ITEM = 'agent-config';
 
 /** A label this long gets a tooltip with the full text: the item cuts it with an ellipsis (ADR-0028). */
 const LONG_LABEL = 24;
 
-/** Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are. */
-export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} }) {
+/**
+ * Draws the sidebar into `nav` at once; `read` is the shell's read layer; `onMachines(n)` hears how many machines there are;
+ * `onCoreOutdated(list)` hears, on every read, the remotes whose núcleo is older than the app (`[{ id, label, route }]`, any state of the
+ * machine, both modes): the account menu draws them (#754).
+ */
+export function createNav({ nav, read, screens = SCREENS, onMachines = () => {}, onCoreOutdated = () => {} }) {
   const items = new Map();
   const counts = new Map();
   const tags = new Map();
@@ -143,6 +146,7 @@ export function createNav({ nav, read, screens = SCREENS, onMachines = () => {} 
     }
     const next = machineItems(list);
     onMachines(1 + next.length);
+    onCoreOutdated(next.filter((item) => item.coreOutdated).map(({ id, title, route }) => ({ id, label: title, route })));
     if (!updatingTimer && next.some((item) => item.state === 'updating')) {
       updatingTimer = setTimeout(() => {
         updatingTimer = null;

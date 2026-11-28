@@ -48,6 +48,11 @@ const { readMachines, readConnectors, highlight, counter, tag } = createNav({
     machineCount = n;
     drawLive();
   },
+  // #754: the arrow of an outdated núcleo is in the account menu in both modes, and its dot is also on the ☰ below 860 px.
+  onCoreOutdated(list) {
+    accountMenu.setCoreOutdated(list);
+    drawer.outdated(list.length > 0);
+  },
 });
 // ADR-0028: the Mural tag also goes to the menu button; one read, two places.
 const counts = createCounts({ read: shellRead, nav: { tag: (id, next) => { tag(id, next); if (id === 'wall') drawer.waiting(next); } } });

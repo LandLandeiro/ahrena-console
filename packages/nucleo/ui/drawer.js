@@ -1,9 +1,18 @@
 // The drawer (ADR-0028): below 860 px the bar is out of the tab until the menu button opens it; crossing 860 px clears the state and takes no focus.
 
+import { CORE_OUTDATED_LABEL } from './screens/machine-core-format.js';
+
 export const DRAWER_QUERY = '(max-width: 859px)';
 
-export function createDrawer({ button, side, scrim, background, closeButton = null, count = button.querySelector?.('.cc-nav-tag') ?? null, media = globalThis.matchMedia(DRAWER_QUERY), firstItem = () => side.querySelector('#nav a[href]') }) {
+export function createDrawer({ button, side, scrim, background, closeButton = null, count = button.querySelector?.('.cc-nav-tag') ?? null, dot = button.querySelector?.('.cc-ibtn-dot') ?? null, media = globalThis.matchMedia(DRAWER_QUERY), firstItem = () => side.querySelector('#nav a[href]') }) {
   let opened = false;
+  // The name of the button holds what its tag and its dot say, once (#754): "Menu, 3 esperam, núcleo defasado".
+  let waitingText = '';
+  let outdatedNow = false;
+
+  function name() {
+    button.setAttribute('aria-label', ['Menu', waitingText, outdatedNow ? CORE_OUTDATED_LABEL.toLowerCase() : ''].filter(Boolean).join(', '));
+  }
 
   function paint() {
     side.inert = media.matches && !opened;
@@ -36,7 +45,15 @@ export function createDrawer({ button, side, scrim, background, closeButton = nu
       count.textContent = text;
       count.hidden = !text;
     }
-    button.setAttribute('aria-label', text ? `Menu, ${text}` : 'Menu');
+    waitingText = text;
+    name();
+  }
+
+  // #754: the account button is inside the closed drawer below 860 px, so the same dot shows on this button, with the same words.
+  function outdated(on) {
+    outdatedNow = Boolean(on);
+    if (dot) dot.hidden = !outdatedNow;
+    name();
   }
 
   button.addEventListener('click', (ev) => (opened ? close() : open({ keyboard: ev.detail === 0 })));
@@ -50,5 +67,5 @@ export function createDrawer({ button, side, scrim, background, closeButton = nu
     paint();
   });
   paint();
-  return { isOpen: () => opened, open, close, waiting };
+  return { isOpen: () => opened, open, close, waiting, outdated };
 }

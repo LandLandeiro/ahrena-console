@@ -81,6 +81,14 @@ button { font: inherit; cursor: pointer; }
 .cc-menu-item { display: flex; align-items: center; min-height: 31px; padding: 0 10px; border-radius: var(--radius-control); font-size: 13px; color: var(--text); }
 .cc-menu-item:hover { background: var(--raised); }
 .cc-menu-item:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+/* #754: the arrow of an outdated núcleo in the account menu: the arrow, the name (cut with an ellipsis), the words. The color is not the only sign. */
+.cc-menu-outdated { gap: 8px; }
+.cc-menu-outdated .icon { flex: none; font-size: 14px; color: var(--status-waiting-text); }
+.cc-menu-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-menu-note { flex: none; font-size: 12px; color: var(--muted); }
+/* The dot of an account or ☰ button while a núcleo is outdated; the name of the button says it too (aria-label). */
+.cc-ibtn { position: relative; }
+.cc-ibtn-dot { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: var(--status-waiting-dot); border: 1.5px solid var(--sidebar); }
 .cc-menu-core { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
 /* The GitHub connection (ghFooter, C39 to C42, issue 241): "GitHub · conectar", "esperando", "<login> · conectado". */
 .cc-gh { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 11.5px; color: var(--subtle); }
