@@ -148,7 +148,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}${a}`, 'utf8');
       const urls = externalUrls(a, text);
       assert.deepEqual(urls, [], `${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
+      // #750: a comment may carry an issue pointer such as `#750`, which reads like a short hex color; only code is checked.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `${a} escreve cor à mão`);
       assert.doesNotMatch(text, /\sstyle\s*=|setAttribute\(\s*['"]style/, `${a} usa estilo inline`);
       if (a !== 'api.js') assert.doesNotMatch(text, /\bfetch\(/, `${a} chama fetch: só api.js fala com o núcleo`);
       // `innerHTML` only in the icons (dom.js constants), never with data.
@@ -160,7 +162,9 @@ describe('/ui in the core', () => {
       const text = readFileSync(`${UI_FOLDER}screens/${a}`, 'utf8');
       const urls = externalUrls(`screens/${a}`, text);
       assert.deepEqual(urls, [], `screens/${a} cita endereço externo`);
-      assert.doesNotMatch(text, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `screens/${a} escreve cor à mão`);
+      // #750: only code is checked for a color, as above; a comment may carry an issue pointer such as `#762`.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.doesNotMatch(code, /#[0-9a-f]{3,8}\b(?![\w-])|rgba?\(|hsla?\(/i, `screens/${a} escreve cor à mão`);
       if (a.endsWith('.js')) {
         // What the CSP (`style-src 'self'`) blocks is the `style` attribute: `{ style: … }` in el(),
         // `style="…"` and `setAttribute('style', …)`. It lets the CSSOM (`x.style.setProperty`) through.
@@ -168,7 +172,7 @@ describe('/ui in the core', () => {
       }
     }
     const page = readFileSync(`${UI_FOLDER}index.html`, 'utf8');
-    for (const [, ref] of page.matchAll(/(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
+    for (const [, ref] of page.matchAll(/<(?:link|script)\b[^>]*\b(?:href|src)="\/ui\/([^"]+)"/g)) assert.ok(readdirSync(UI_FOLDER).includes(ref!), `index.html cita ${ref}, que não existe`);
   });
 
   test('read(route) reads the API over HTTP and only the local core API', async () => {
@@ -302,7 +306,7 @@ describe('screen registry', () => {
     assert.deepEqual(
       sidebarSections().map((s: { id: string; label: string | null; items: { id: string }[] }) => [s.id, s.label, s.items.map((t) => t.id)]),
       [
-        ['main', null, ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'analytics', 'workflows', 'history']],
+        ['main', 'Agora', ['dashboard', 'wall', 'sessions', 'feed', 'kanban', 'analytics', 'workflows', 'history']],
         ['delivery', 'Entrega', ['repos', 'project', 'work', 'dev-console']],
         ['decisions', 'Decisões', ['decisions', 'adrs', 'pdrs']],
         ['machines', 'Máquinas', ['this-machine']],
@@ -341,9 +345,9 @@ describe('screen registry', () => {
     for (const old of ['/ui/sessoes', '/ui/sessoes/b91d04aa-4e1', '/ui/historico', '/ui/mural', '/ui/projeto', '/ui/decisoes']) assert.equal(findScreen(old), null, old);
   });
 
-  test('the sidebar has the sections: the everyday screens without a title, Entrega, Decisões, Máquinas and Controle; an empty section does not show', () => {
+  test('the sidebar has the sections: the everyday screens under Agora, Entrega, Decisões, Máquinas and Controle; an empty section does not show', () => {
     assert.deepEqual(SECTIONS, [
-      { id: 'main', label: null },
+      { id: 'main', label: 'Agora' },
       { id: 'delivery', label: 'Entrega' },
       { id: 'decisions', label: 'Decisões' },
       { id: 'machines', label: 'Máquinas' },
@@ -369,7 +373,7 @@ describe('screen registry', () => {
     const app = readFileSync(`${UI_FOLDER}nav.js`, 'utf8');
     assert.match(app, /sidebarSections\(\[\.\.\.screens, \.\.\.remoteItems\]\)/);
     assert.match(app, /'cc-nav-section'/);
-    assert.match(app, /'cc-nav-title eyebrow'/);
+    assert.match(app, /'cc-nav-title'/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     assert.match(css, /\.cc-nav-section \{/);
     assert.match(css, /\.cc-nav-title \{/);
@@ -378,17 +382,16 @@ describe('screen registry', () => {
   test('sidebar breathing: items keep their height and only the item list scrolls on a short window', () => {
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
     const rule = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.#]/g, '\\$&')} \\{([^}]*)\\}`, 'm'))?.[1] ?? '';
-    // The wireframe item is about 34 px tall; it never shrinks to fit the window.
-    assert.match(rule('.cc-nav'), /min-height: 34px/);
+    assert.match(rule('.cc-nav'), /min-height: 31px/);
     assert.match(rule('.cc-nav'), /flex: none/);
-    assert.match(rule('.cc-nav-title'), /padding: 18px 12px 8px/);
+    assert.match(rule('.cc-nav-title'), /margin: 11px 0 3px/);
     // The list scrolls; the brand and the footer stay put.
     assert.match(rule('#nav'), /overflow-y: auto/);
     assert.match(rule('#nav'), /min-height: 0/);
     assert.match(rule('.cc-side'), /overflow: hidden/);
     assert.match(rule('.cc-brand'), /flex: none/);
     assert.match(rule('.cc-foot'), /flex: none/);
-    assert.match(rule('.cc-foot'), /padding-top: 16px/);
+    assert.match(rule('.cc-foot'), /border-top: 1px solid var\(--border\)/);
     // The lit item is brought into view when the list scrolls.
     assert.match(readFileSync(`${UI_FOLDER}nav.js`, 'utf8'), /scrollIntoView\?\.\(\{ block: 'nearest' \}\)/);
   });
@@ -437,7 +440,7 @@ describe('screen registry', () => {
   // The drawing itself (nav.js) is tested on the fake DOM in ui-machines.test.ts; here, the wiring.
   test('#178 criterion 1: the shell draws the sidebar through nav.js and re-reads the machines on an alert', () => {
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createNav\(\{ nav, read \}\)/);
+    assert.match(app, /createNav\(\{\s*nav,\s*read: shellRead,/);
     assert.match(app, /highlight\(litItem\(screen, params\)\)/);
     assert.match(app, /changes\.some\(\(c\) => c\.type === 'alert'\)\) readMachines\(\)/);
     const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');

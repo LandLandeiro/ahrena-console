@@ -6,6 +6,7 @@ confirmation is open, calls POST /api/work/plan and hands the answer back. The s
 `work-board-issue-panel.css` (classes `wb-plan-`). */
 
 import { el, icon } from '../dom.js';
+import { OPEN_IN_KEY, OPEN_TARGETS, destinationLabel, popoverContext, popoverFooter, popoverShell, segmented } from '../popover.js';
 
 /** The types "Planejar" is offered for: epics, initiatives and plan steps are planned elsewhere or not at all. */
 export const PLANNABLE_TYPES = new Set(['story', 'task', 'bug', 'spike']);
@@ -13,10 +14,6 @@ export const PLANNABLE_TYPES = new Set(['story', 'task', 'bug', 'spike']);
 const ref = (n) => `#${n}`;
 const FAILED_FALLBACK = 'O planejamento terminou sem plano';
 const FOLDER_TITLE = 'Falta a pasta do repositório nesta máquina';
-const TARGETS = [
-  { target: 'desktop', label: 'Claude Desktop', icon: 'monitor' },
-  { target: 'terminal', label: 'Terminal', icon: 'terminal' },
-];
 
 /**
  * What the card offers: `hidden` (no action), `planning` ("planejando…"), `failed` (back to the action, with the reason),
@@ -66,67 +63,39 @@ export function cardPlanParts(card, { onPlan = null, onReplan = null, lead = nul
   return { ...none, note, actions };
 }
 
-export function targetChoice(target, onTarget) {
-  const group = el(
-    'div',
-    { class: 'wb-plan-choice', role: 'radiogroup', 'aria-label': 'Abrir em' },
-    ...TARGETS.map((t) =>
-      el(
-        'button',
-        { type: 'button', class: 'wb-plan-radio', role: 'radio', 'aria-checked': String(t.target === target), tabindex: t.target === target ? '0' : '-1', 'data-target': t.target, onClick: () => t.target !== target && onTarget?.(t.target) },
-        icon(t.icon),
-        t.label,
-      ),
-    ),
-  );
-  group.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
-    ev.preventDefault?.();
-    onTarget?.(TARGETS.find((t) => t.target !== target).target);
+/**
+ * The confirmation anchored on the card (465-6), drawn by the one popover (popover.js): repository, the current account
+ * (read-only), where to open and the primary with the verb and the destination. `trigger` is the button that opened it, a
+ * node or a function that finds it once drawn: the popover is placed on it and a click outside calls `onCancel`, as Esc does.
+ * `replan` is the same confirmation worded for a replan.
+ */
+export function planConfirm({ repo, number, replan = false, target = 'desktop', account = null, busy = false, trigger = null, onTarget = null, onCancel = null, onConfirm = null }) {
+  const verb = replan ? 'Replanejar' : 'Planejar';
+  const title = `${verb} a ${ref(number)} com a Athena`;
+  const hint = `${replan ? 'O plano atual vai para a sessão, que o substitui. ' : ''}O card fica em Planejamento com “planejando…” até o plano sair. Não conta no limite de execuções.`;
+  return popoverShell({
+    title,
+    kind: replan ? 'replan' : 'plan',
+    trigger,
+    onDismiss: () => onCancel?.(),
+    content: [
+      popoverContext([{ label: 'Repositório', value: repo, mono: true, field: 'repo' }, account ? { label: 'Conta', value: account, field: 'account' } : null]),
+      segmented({ label: 'Abrir em', options: OPEN_TARGETS, value: target, onChange: onTarget, storageKey: OPEN_IN_KEY }),
+      el('p', { class: 'pop-note' }, hint),
+    ],
+    footer: popoverFooter({ cancel: { onClick: () => onCancel?.() }, primary: { label: destinationLabel(verb, target), busy, onClick: () => onConfirm?.() } }),
   });
-  return group;
 }
 
 /**
- * The confirmation anchored on the card (465-6): repository, the current account (read-only) and where to open.
- * `replan` is the same confirmation worded for a replan.
+ * The repository is not on this machine (465-6), in the same popover: the message, the command to run and "Copiar comando". `message`
+ * is the core's own text when it sent one; `copy` replaces the clipboard writer (tests); `trigger` is as in `planConfirm`.
  */
-export function planConfirm({ repo, number, replan = false, target = 'desktop', account = null, busy = false, onTarget = null, onCancel = null, onConfirm = null }) {
-  const verb = replan ? 'Replanejar' : 'Planejar';
-  const title = `${verb} a ${ref(number)} com a Athena`;
-  const rows = [
-    el('dt', {}, 'Repositório'),
-    el('dd', { class: 'mono wb-plan-trunc', 'data-field': 'repo' }, repo),
-    account ? el('dt', {}, 'Conta') : null,
-    account ? el('dd', { 'data-field': 'account' }, account) : null,
-    el('dt', {}, 'Abrir em'),
-    el('dd', { 'data-field': 'target' }, targetChoice(target, onTarget)),
-  ];
-  const root = el(
-    'div',
-    { class: 'card wb-plan-pop', role: 'dialog', 'aria-label': title, 'data-kind': replan ? 'replan' : 'plan' },
-    el('h3', {}, title),
-    el('dl', { class: 'wb-plan-kv' }, ...rows),
-    el(
-      'p',
-      { class: 'wb-plan-hint' },
-      `${replan ? 'O plano atual vai para a sessão, que o substitui. ' : ''}O card fica em Planejamento com “planejando…” até o plano sair. Não conta no limite de execuções.`,
-    ),
-    el(
-      'div',
-      { class: 'wb-plan-pop-acts' },
-      el('button', { type: 'button', class: 'btn outline sm', 'data-action': 'cancel', onClick: () => onCancel?.() }, 'Cancelar'),
-      el('button', { type: 'button', class: 'btn filled sm', 'data-action': 'confirm', disabled: busy, 'aria-busy': busy ? 'true' : null, onClick: () => onConfirm?.() }, icon('bot'), verb),
-    ),
-  );
-  root.addEventListener('keydown', (ev) => ev.key === 'Escape' && onCancel?.());
-  return root;
-}
-
-function copyButton(command, copy) {
-  const write = copy ?? ((text) => navigator.clipboard.writeText(text));
-  const button = el('button', { type: 'button', class: 'btn filled sm', 'data-action': 'copy', 'aria-live': 'polite' }, icon('copy'), 'Copiar comando');
-  button.addEventListener('click', async () => {
+export function missingFolder({ repo, title = FOLDER_TITLE, message = null, command = null, copy = null, trigger = null, onClose = null }) {
+  const text = message ?? `O Console não achou ${repo} em nenhuma pasta deste Mac. Clone e tente de novo; o card fica onde estava.`;
+  const write = copy ?? ((value) => navigator.clipboard.writeText(value));
+  const onCopy = async (ev) => {
+    const button = ev.currentTarget;
     let done;
     try {
       await write(command);
@@ -135,29 +104,16 @@ function copyButton(command, copy) {
       done = 'Não deu para copiar';
     }
     button.replaceChildren(icon('copy'), done);
+  };
+  return popoverShell({
+    title,
+    kind: 'folder',
+    trigger,
+    onDismiss: () => onClose?.(),
+    content: [el('p', { class: 'pop-note' }, text), command ? el('pre', { class: 'pop-code', role: 'note', 'aria-label': 'Comando' }, command) : null].filter(Boolean),
+    footer: popoverFooter({
+      cancel: { label: 'Fechar', action: 'close', onClick: () => onClose?.() },
+      primary: command ? { label: 'Copiar comando', icon: 'copy', action: 'copy', onClick: onCopy } : null,
+    }),
   });
-  return button;
-}
-
-/**
- * The repository is not on this machine (465-6): the message, the command to run and "Copiar comando". `message` is the core's
- * own text when it sent one; `copy` replaces the clipboard writer (tests).
- */
-export function missingFolder({ repo, title = FOLDER_TITLE, message = null, command = null, copy = null, onClose = null }) {
-  const text = message ?? `O Console não achou ${repo} em nenhuma pasta deste Mac. Clone e tente de novo; o card fica onde estava.`;
-  const root = el(
-    'div',
-    { class: 'card wb-plan-pop', role: 'dialog', 'aria-label': title, 'data-kind': 'folder' },
-    el('h3', {}, title),
-    el('p', { class: 'wb-plan-hint' }, text),
-    command ? el('pre', { class: 'wb-plan-cmd', role: 'note', 'aria-label': 'Comando' }, command) : null,
-    el(
-      'div',
-      { class: 'wb-plan-pop-acts' },
-      el('button', { type: 'button', class: 'btn outline sm', 'data-action': 'close', onClick: () => onClose?.() }, 'Fechar'),
-      command ? copyButton(command, copy) : null,
-    ),
-  );
-  root.addEventListener('keydown', (ev) => ev.key === 'Escape' && onClose?.());
-  return root;
 }

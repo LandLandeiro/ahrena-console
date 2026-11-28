@@ -67,8 +67,8 @@ describe('Kanban: funções da tela', () => {
   });
 
   test('status: session and agent share the pill; the columns of both views get the right color (issue 245)', () => {
-    assert.deepEqual(status('active'), { cor: 'active', rotulo: 'Ativa' });
-    assert.deepEqual(status('working'), { cor: 'active', rotulo: 'Ativa' });
+    assert.deepEqual(status('active'), { cor: 'active', rotulo: 'Trabalhando' });
+    assert.deepEqual(status('working'), { cor: 'active', rotulo: 'Trabalhando' });
     assert.equal(status('completed').rotulo, 'Concluída');
     assert.equal(status('error').rotulo, 'Com erro');
     assert.equal(status('abandoned').rotulo, 'Abandonada');
@@ -163,16 +163,16 @@ describe('Kanban: registro e arquivos', () => {
   });
 });
 
-// issue 245: the old waiting column split in two, "Precisam de você" (with the errors) and "Ociosas".
+// #753: the old waiting column split in two, "Precisam de você" (with the errors) and "Em pausa".
 describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
   const card = (id: string, extra: Record<string, unknown>) => ({ id, title: `Sessão ${id}`, status: 'active', reason: null, attention: null, lastPrompt: null, lastActivity: '2026-10-20T12:00:00Z', start: '2026-10-20T11:00:00Z', running: true, durationMs: 60_000, agents: 1, model: 'Opus 5.5', costUsd: 1, cwd: '/x', account: null, ...extra });
   const BOARD = {
     view: 'sessions',
     perPage: 10,
     columns: [
-      { id: 'active', label: 'Ativas', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
+      { id: 'active', label: 'Trabalhando', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
       { id: 'blocked', label: 'Precisam de você', total: 12, page: 1, hasMore: true, items: [card('b1', { status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), card('e1', { status: 'error', attention: { level: 'blocked', reason: 'error' } })] },
-      { id: 'idle', label: 'Ociosas', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
+      { id: 'idle', label: 'Em pausa', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
       { id: 'completed', label: 'Concluídas', total: 0, page: 1, hasMore: false, items: [] },
       { id: 'abandoned', label: 'Abandonadas', total: 0, page: 1, hasMore: false, items: [] },
     ],
@@ -205,7 +205,7 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
       assert.equal(error!.querySelectorAll('.attention-chip').length, 0, 'the error keeps only its red pill');
       const idle = columns[2]!.querySelector('.kb-kc')!;
       assert.ok(idle.classList.contains('kb-st-idle'));
-      assert.match(texto(idle), /Ociosa Interrompida/);
+      assert.match(texto(idle), /Em pausa Interrompida/);
       assert.equal(idle.querySelectorAll('.attention-chip.attention-chip-light').length, 1);
       assert.doesNotMatch(texto(area), /Esperando/);
 

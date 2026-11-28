@@ -1,0 +1,54 @@
+/* The one popover (ui/popover.js, #762): Nova sessão, Planejar, Executar plano and, from #754, Exibir. Loaded once by
+   index.html; every class carries `pop-`. Every value comes from brand.css. */
+
+.pop { position: fixed; left: var(--pop-left, 16px); top: var(--pop-top, 72px); z-index: 30; box-sizing: border-box; width: 344px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; text-align: left; font-size: var(--text-xs); line-height: 1.4; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); transform-origin: top left; animation: pop-in var(--motion-fast) var(--ease-out) both; }
+.pop[data-side="top"] { transform-origin: bottom left; }
+.pop[data-side="right"] { transform-origin: top left; }
+.pop[data-side="left"] { transform-origin: top right; }
+.pop[data-settled] { animation: none; }
+.pop:focus { outline: none; }
+@keyframes pop-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+
+/* Under 600 px it sits on the bottom edge of the screen, the full width. */
+@media (max-width: 599px) {
+  .pop { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; max-height: 85vh; border-radius: var(--radius-card) var(--radius-card) 0 0; transform-origin: bottom center; }
+}
+
+/* The motion is the token's: with reduced motion the duration is 0, and the scale goes too. */
+@media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+
+.pop-title { margin: 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); line-height: 1.35; }
+.pop-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.pop-context { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 12px; align-items: center; margin: 0; }
+.pop-context dt { color: var(--muted); }
+.pop-context dd { margin: 0; min-width: 0; }
+.pop-trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pop-label { color: var(--muted); }
+.pop-note { margin: 0; color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; }
+.pop-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; line-height: 1.4; }
+.pop-status:empty { display: none; }
+.pop-ok { color: var(--status-completed-text); }
+.pop-fail { color: var(--status-error-text); overflow-wrap: anywhere; }
+.pop-code { margin: 0; padding: 7px 9px; font-family: var(--font-mono); font-size: 11px; line-height: 1.5; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-control); white-space: pre-wrap; word-break: break-all; }
+.pop-warn { display: flex; gap: 7px; align-items: flex-start; padding: 8px 9px; border-radius: var(--radius-control); line-height: 1.4; background: var(--status-waiting-badge); color: var(--status-waiting-text); }
+.pop-warn .icon { flex: none; margin-top: 1px; }
+.pop-quote { padding: 7px 9px; line-height: 1.45; color: var(--muted); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-control); overflow-wrap: anywhere; }
+
+/* "Abrir em": the segmented control, one box, the chosen item raised. */
+.pop-seg { display: flex; padding: 3px; gap: 2px; background: var(--segment); border: 1px solid var(--border-control); border-radius: var(--radius-segment); }
+.pop-radio { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 28px; padding: 4px 8px; font: inherit; color: var(--muted); background: none; border: 0; border-radius: var(--radius-segment-item); white-space: nowrap; cursor: pointer; }
+.pop-radio:hover { color: var(--text); }
+.pop-radio[aria-checked="true"] { background: var(--surface); color: var(--text); font-weight: var(--weight-medium); }
+
+/* The folder of Nova sessão (the one select of the popover). */
+.pop-select { position: relative; display: flex; align-items: center; }
+.pop-select > .icon { position: absolute; right: 10px; pointer-events: none; color: var(--muted); }
+
+.pop-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+/* The focus ring is the system's own, --accent-line (the orange as a stroke, not --accent): the tokens test holds it at 3:1
+   on bg, surface, raised, sidebar and segment in both themes, and the popover sits on --surface. */
+.pop :focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+/* A path with the end kept: the ellipsis eats the start; the left-to-right mark keeps the leading "/" in place. */
+.pop-path { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }

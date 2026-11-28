@@ -226,10 +226,10 @@ describe('Dev Console: pure parts', () => {
     assert.deepEqual(v.mergeQueue.map((q) => queueNote(q, v.mergeQueue)), ['fecha #31', 'fecha #58 · base de #84', 'empilhado em #79']);
   });
 
-  test('issue 245: the scoreboard counts only what blocks, the idle ones apart; board cards say precisa de você or ociosa', () => {
+  test('issue 245: the scoreboard counts only what blocks, the idle ones apart; board cards say precisa de você or em pausa', () => {
     const { blockedSub, cardAttention } = screen;
-    assert.equal(blockedSub(2, 1, 1), '2 sessões, 1 decisão · 1 ociosa fora');
-    assert.equal(blockedSub(0, 0, 2), 'ninguém · 2 ociosas fora');
+    assert.equal(blockedSub(2, 1, 1), '2 sessões, 1 decisão · 1 em pausa fora');
+    assert.equal(blockedSub(0, 0, 2), 'ninguém · 2 em pausa fora');
     assert.equal(blockedSub(1, 0, 0), '1 sessão');
     assert.deepEqual(cardAttention({ id: 's', attention: { level: 'idle', reason: 'turn_ended' }, waitingOnYou: false }), { level: 'idle', reason: 'turn_ended' });
     assert.deepEqual(cardAttention({ id: 's', attention: null, waitingOnYou: true }), { level: 'blocked', reason: null }, 'an older core: waitingOnYou is blocked');

@@ -234,7 +234,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
     assert.deepEqual(radios.map((r) => texto(r)), ['Claude Desktop', 'Terminal']);
     assert.equal(radios[0]!.getAttribute('aria-checked'), 'true');
     assert.equal(texto(one(root, '[data-field="prompt"]')), base.prompt);
-    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Executar plano');
+    assert.equal(texto(one(root, '[data-action="confirm"]')), 'Executar no Claude Desktop');
     assert.equal(all(root, '[data-field="limit"]').length, 0);
   });
 
@@ -245,7 +245,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
 
   test('the hint says the card goes straight to Em execução and counts against the limit when the count is known', () => {
     const root = runConfirm({ ...base, running: 1, limit: 2 });
-    const hint = texto(one(root, '.wb-plan-hint'));
+    const hint = texto(one(root, '.pop-note'));
     assert.ok(hint.includes('o card vai direto para Em execução'));
     assert.ok(hint.includes('Conta como 1 das 2 execuções; hoje há 1 rodando.'));
     assert.ok(!texto(runConfirm(base)).includes('Conta como'));
@@ -285,7 +285,7 @@ describe('the confirmation anchored on the card (465-6)', () => {
     const button = one(root, '[data-action="confirm"]');
     assert.equal(texto(button), 'Executar mesmo assim');
     assert.equal(all(root, '[data-action="confirm"]').length, 1);
-    assert.ok(texto(one(root, '.wb-plan-hint')).includes('Executar mesmo assim abre a sessão agora.'));
+    assert.ok(texto(one(root, '.pop-note')).includes('Executar mesmo assim abre a sessão agora.'));
     click(button);
     assert.deepEqual(calls, ['force']);
   });

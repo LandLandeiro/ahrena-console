@@ -5,7 +5,7 @@
  * are api/work-queue.ts. The read side the board needs (`WorkQueue`) is in work-board.ts.
  *
  * - Only an item with a plan, in Planejamento or Na fila, enters the queue. Em execução, Em review,
- *   Bloqueado and Concluído are facts of the session and of GitHub: they never receive a card.
+ *   Precisa de você and Concluído are facts of the session and of GitHub: they never receive a card.
  * - The position is 1-based and contiguous; the order of the queue is the order of the column.
  * - Putting an item that is already queued again keeps its place and takes the new target (the last
  *   choice, wireframe 477-1).

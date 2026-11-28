@@ -9,6 +9,7 @@ GitHub-authored text (title, body, comments, steps, labels, the GitHub version) 
 The styles are in `work-board-issue-panel.css` (classes `wb-edit-`). */
 
 import { el, icon } from '../dom.js';
+import { trapFocus } from '../popover.js';
 import { bodyBlocks, heading, section } from './work-board-issue-panel.js';
 import { formatAgo, formatClock, typeLabel, TYPE_LABELS } from './work-board-parts.js';
 
@@ -377,15 +378,17 @@ function commentsSection({ issue = {}, comment = {}, now, busy, band = null }) {
  */
 export function issueEditPanel({ card = null, issue = {}, now = Date.now(), savedAt = null, title = '', body = {}, details = {}, plan = {}, comment = {}, refusal = null, busy = null, onTitle = null, onTitleSave = null, onType = null, onMilestone = null, onParent = null, onLabelAdd = null, onLabelRemove = null, onDone = null, onClose = null } = {}) {
   const number = issue.number ?? card?.number;
-  return el(
-    'aside',
-    { class: 'card wb-panel wb-edit-panel', role: 'dialog', 'aria-label': `Edição da issue ${ref(number)}` },
-    editHead({ card, number, savedAt, busy, onDone, onClose }),
-    titleField({ title, busy, onTitle, onTitleSave }),
-    placeBand(refusal, 'title', busy),
-    descriptionSection({ number, body, now, busy }),
-    detailsSection({ details, handlers: { onType, onMilestone, onParent, onLabelAdd, onLabelRemove }, busy, band: placeBand(refusal, 'details', busy) }),
-    planSection({ ...plan, busy, band: placeBand(refusal, 'plan', busy) }),
-    commentsSection({ issue, comment, now, busy, band: placeBand(refusal, 'comment', busy) }),
+  return trapFocus(
+    el(
+      'aside',
+      { class: 'card wb-panel wb-edit-panel', role: 'dialog', 'aria-label': `Edição da issue ${ref(number)}` },
+      editHead({ card, number, savedAt, busy, onDone, onClose }),
+      titleField({ title, busy, onTitle, onTitleSave }),
+      placeBand(refusal, 'title', busy),
+      descriptionSection({ number, body, now, busy }),
+      detailsSection({ details, handlers: { onType, onMilestone, onParent, onLabelAdd, onLabelRemove }, busy, band: placeBand(refusal, 'details', busy) }),
+      planSection({ ...plan, busy, band: placeBand(refusal, 'plan', busy) }),
+      commentsSection({ issue, comment, now, busy, band: placeBand(refusal, 'comment', busy) }),
+    ),
   );
 }

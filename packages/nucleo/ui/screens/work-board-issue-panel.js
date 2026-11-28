@@ -6,6 +6,7 @@ The styles are in `work-board-issue-panel.css` (classes `wb-panel-`). */
 
 import { el, icon } from '../dom.js';
 import { loading, errorBand } from '../states.js';
+import { trapFocus } from '../popover.js';
 import { COLUMNS, TYPE_LABELS, cardAge, formatAgo, staleBand, typeLabel } from './work-board-parts.js';
 
 const ref = (n) => `#${n}`;
@@ -149,7 +150,7 @@ function panelHead({ card, number, url, now, onClose, onEdit = null }) {
 }
 
 function panelShell({ card, number, url, now, onClose, onEdit = null, busy = false }, ...body) {
-  const root = el('aside', { class: 'card wb-panel', role: 'dialog', 'aria-label': `Detalhe da issue ${ref(number)}`, 'aria-busy': busy ? 'true' : null }, panelHead({ card, number, url, now, onClose, onEdit }), ...body);
+  const root = trapFocus(el('aside', { class: 'card wb-panel', role: 'dialog', 'aria-label': `Detalhe da issue ${ref(number)}`, 'aria-busy': busy ? 'true' : null }, panelHead({ card, number, url, now, onClose, onEdit }), ...body));
   root.addEventListener('keydown', (ev) => ev.key === 'Escape' && onClose?.());
   return root;
 }

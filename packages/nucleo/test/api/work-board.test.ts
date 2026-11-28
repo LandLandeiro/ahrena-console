@@ -256,7 +256,7 @@ describe('#465/AC-2 GET /api/work: each column comes from the real signals', () 
           ['queued', 'Na fila', 0],
           ['running', 'Em execução', 0],
           ['review', 'Em review', 0],
-          ['blocked', 'Bloqueado', 0],
+          ['blocked', 'Precisa de você', 0],
           ['done', 'Concluído', 0],
         ],
       );

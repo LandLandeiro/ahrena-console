@@ -94,7 +94,7 @@ attention: { level: 'blocked' | 'idle'; reason: 'permission' | 'question' | 'pla
 ```
 
 - `blocked` ("Precisa de você" na tela): a sessão trava até a pessoa agir; `reason` é `permission`, `question`, `plan`, `decision` ou `error`.
-- `idle` ("Ociosa" na tela): o turno acabou e nada trava; `reason` é `turn_ended`, `interrupted` ou `first_prompt`.
+- `idle` ("Em pausa" na tela): o turno acabou e nada trava; `reason` é `turn_ended`, `interrupted` ou `first_prompt`.
 - `null`: a sessão não espera você nem está com erro (trabalhando, delegando, em background, concluída, abandonada).
 
 Os motivos são os do MCP (`reason` de `sessions_needing_attention`). Onde a tela mostra números, eles vêm separados:
