@@ -2,7 +2,7 @@
 // the recent activity with the state icon instead of the pill, and a redraw that keeps the focus (M6).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { afterEach, describe, test } from 'node:test';
+import { afterEach, describe, mock, test } from 'node:test';
 import { UI_FOLDER } from '../../src/api/ui.ts';
 import { ElementoFalso, documentoFalso, instalarDomFalso, texto } from './fake-dom.ts';
 
@@ -334,4 +334,45 @@ describe('issue 759: the style of the Início', () => {
     const source = readFileSync(`${UI_FOLDER}screens/dashboard.js`, 'utf8');
     assert.doesNotMatch(source, /class: `badge|attentionPill/);
   });
+});
+
+// issue 759: the window of the bars is the last nine hours up to now, so what the test puts on screen has to be
+// relative to the clock it runs under, at any hour of the day and in any time zone.
+describe('issue 759: the bars at any hour of the day', () => {
+  afterEach(() => (stops.splice(0).forEach((s) => s()), resetMachineChoice(), (documentoFalso.activeElement = null)));
+  const HOURS = [[0, 0], [0, 30], [8, 30], [9, 30], [12, 0], [22, 30], [23, 30], [23, 59]] as const;
+
+  test('the window: nine hours up to now, or from midnight when the day is younger', () => {
+    const win = (h: number, m: number) => home.todayFigures(page([session('w', at(h, m), at(h, m))]), at(h, m)).hours.map((x: { hour: number }) => x.hour);
+    assert.deepEqual(win(0, 30), [0]);
+    assert.deepEqual(win(8, 30), [0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    assert.deepEqual(win(9, 30), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    assert.deepEqual(win(23, 30), [15, 16, 17, 18, 19, 20, 21, 22, 23]);
+  });
+
+  for (const [h, m] of HOURS) {
+    test(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}: the sessions of the fixture are on today and inside the window`, async () => {
+      mock.timers.enable({ apis: ['Date'], now: at(h, m) });
+      try {
+        const rows = liveRows();
+        const now = Date.now();
+        const f = home.todayFigures(page(rows), now);
+        assert.equal(f.today, 2, 'both rows started today');
+        assert.equal(f.completed, 1);
+        const kinds = f.hours.flatMap((x: { bars: { kind: string }[] }) => x.bars.map((b) => b.kind));
+        assert.ok(kinds.includes('completed') && kinds.includes('active'), `a completed and a working bar inside ${f.hours.map((x: { hour: number }) => x.hour)}`);
+        const { ctx, area, leave } = rig({ sessions: () => page(liveRows()) });
+        try {
+          stops.push(await dashboard.mount(area, ctx));
+          const legend = texto(area.querySelector('.home-legend'));
+          assert.match(legend, /Concluída/);
+          assert.match(legend, /Trabalhando/);
+        } finally {
+          leave.abort();
+        }
+      } finally {
+        mock.timers.reset();
+      }
+    });
+  }
 });
