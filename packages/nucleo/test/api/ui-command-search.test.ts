@@ -526,7 +526,7 @@ describe('#755: the keyboard', () => {
     const layers = createEscape(documentoFalso, [instance as never, drawer]);
     trigger.focus();
     chord();
-    // a keydown that is not stopped on its way up reaches the document, as in the browser; the scrim is the last node the fake walks once the dialog is gone
+    // ADR-0028: a keydown that is not stopped on its way up reaches the document, as in the browser; the scrim is the last node the fake walks once the dialog is gone
     one(body, '.cs-scrim').addEventListener('keydown', (ev: Row) => documentoFalso.dispatchEvent(ev as never));
     assert.equal(dialog() !== null, true);
     key(field(), 'Escape');

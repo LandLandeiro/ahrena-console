@@ -18,17 +18,15 @@
 .cs-head > .icon { font-size: 16px; }
 .cs-input { flex: 1; min-width: 0; height: 44px; padding: 0; font: inherit; font-size: var(--text-md); color: var(--text); background: transparent; border: 0; border-radius: var(--radius-control); }
 .cs-input::placeholder { color: var(--subtle); }
-.cs-input:focus-visible, .cs-close:focus-visible, .cs-link:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.cs-input:focus-visible, .cs-close:focus-visible, .cs-row:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 .cs-close { flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-control); font-size: 16px; }
 .cs-close:hover { color: var(--text); background: var(--raised); }
 
 .cs-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 6px; }
 .cs-group-title { margin: 8px 0 2px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); font-weight: var(--weight-semibold); }
-.cs-row { display: flex; align-items: center; gap: 8px; border: 1px solid transparent; border-radius: var(--radius-control); }
+.cs-row { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 32px; padding: 0 8px; color: var(--text); border: 1px solid transparent; border-radius: var(--radius-control); }
 .cs-row.on { background: var(--raised); border-color: var(--border-control); }
-.cs-row.on .cs-enter { margin-right: 8px; }
-.cs-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 0 8px; color: var(--text); }
-.cs-link .icon { font-size: 16px; color: var(--muted); }
+.cs-row .icon { font-size: 16px; color: var(--muted); }
 .cs-state { display: inline-flex; flex: none; }
 .cs-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cs-where { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); color: var(--muted); }

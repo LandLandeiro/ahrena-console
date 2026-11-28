@@ -31,10 +31,14 @@ export const isMacPlatform = (platform) => /mac|iphone|ipad|ipod/i.test(String(p
 /** The hint on the field: `⌘K` on a Mac, `Ctrl K` off it. */
 export const shortcutLabel = (platform) => (isMacPlatform(platform) ? '⌘K' : 'Ctrl K');
 
-/** Whether the keydown is the chord: Cmd or Ctrl with K, alone, not taken, not repeated and not part of a composition. */
-export function isSearchChord(ev) {
+/**
+ * Whether the keydown is the chord: Cmd with K on a Mac, Ctrl with K off it, alone, not taken, not repeated and not part of
+ * a composition. The other modifier is left to the page: Ctrl K on a Mac is the text field's own (kill to the end of the line).
+ */
+export function isSearchChord(ev, platform = '') {
   if (!ev || ev.defaultPrevented || ev.isComposing || ev.repeat || ev.altKey || ev.shiftKey) return false;
-  return Boolean(ev.metaKey || ev.ctrlKey) && typeof ev.key === 'string' && ev.key.toLowerCase() === 'k';
+  const mod = isMacPlatform(platform) ? ev.metaKey && !ev.ctrlKey : ev.ctrlKey && !ev.metaKey;
+  return Boolean(mod) && typeof ev.key === 'string' && ev.key.toLowerCase() === 'k';
 }
 
 function screenEntries(screens, mode) {
@@ -89,7 +93,7 @@ const platformOf = () => globalThis.navigator?.userAgentData?.platform ?? global
 export function createCommandSearch({ host, read, navigate = null, screens, background = [], dialogHost = globalThis.document?.body, platform = platformOf() }) {
   const doc = globalThis.document;
   const hint = shortcutLabel(platform);
-  const button = el('button', { type: 'button', class: 'cc-search', 'aria-haspopup': 'dialog', 'aria-keyshortcuts': 'Meta+K Control+K' }, icon('search'), el('span', { class: 'cc-search-label' }, 'Buscar'), el('kbd', { class: 'cc-search-key' }, hint));
+  const button = el('button', { type: 'button', class: 'cc-search', 'aria-haspopup': 'dialog', 'aria-keyshortcuts': isMacPlatform(platform) ? 'Meta+K' : 'Control+K' }, icon('search'), el('span', { class: 'cc-search-label' }, 'Buscar'), el('kbd', { class: 'cc-search-key' }, hint));
   host.append(button);
 
   let sessions = [];
@@ -125,11 +129,11 @@ export function createCommandSearch({ host, read, navigate = null, screens, back
 
   function sessionRow(entry, id) {
     const state_ = entry.kind ? el('span', { class: 'cs-state', title: entry.stateText }, stateIcon(entry.kind), el('span', { class: 'cc-sr-only' }, entry.stateText)) : null;
-    return el('div', { class: 'cs-row', role: 'option', id, 'aria-selected': 'false' }, el('a', { class: 'cs-link', href: entry.href, tabindex: '-1' }, state_, el('span', { class: 'cs-title', title: entry.label }, entry.label), el('span', { class: 'cs-where' }, entry.machine)));
+    return el('a', { class: 'cs-row', role: 'option', id, href: entry.href, tabindex: '-1', 'aria-selected': 'false' }, state_, el('span', { class: 'cs-title', title: entry.label }, entry.label), el('span', { class: 'cs-where' }, entry.machine));
   }
 
   function screenRow(entry, id) {
-    return el('div', { class: 'cs-row', role: 'option', id, 'aria-selected': 'false' }, el('a', { class: 'cs-link', href: entry.href, tabindex: '-1' }, entry.iconName ? icon(entry.iconName) : null, el('span', { class: 'cs-title' }, entry.label), entry.outOfBar ? el('span', { class: 'cs-tag' }, HIDDEN_TAG) : null));
+    return el('a', { class: 'cs-row', role: 'option', id, href: entry.href, tabindex: '-1', 'aria-selected': 'false' }, entry.iconName ? icon(entry.iconName) : null, el('span', { class: 'cs-title' }, entry.label), entry.outOfBar ? el('span', { class: 'cs-tag' }, HIDDEN_TAG) : null);
   }
 
   function render() {
@@ -183,7 +187,9 @@ export function createCommandSearch({ host, read, navigate = null, screens, back
 
   function onKey(ev) {
     if (ev.key === 'Escape') {
+      // ADR-0028: the Escape is this layer's, so it does not climb to the document, where the layer under it would close too.
       ev.preventDefault?.();
+      ev.stopPropagation?.();
       return close();
     }
     if (ev.isComposing) return;
@@ -233,7 +239,7 @@ export function createCommandSearch({ host, read, navigate = null, screens, back
     button.setAttribute('aria-expanded', 'true');
     render();
     input.focus();
-    load();
+    load().catch(reportError);
   }
 
   function close() {
@@ -248,7 +254,7 @@ export function createCommandSearch({ host, read, navigate = null, screens, back
   }
 
   function onChord(ev) {
-    if (!isSearchChord(ev)) return;
+    if (!isSearchChord(ev, platform)) return;
     ev.preventDefault?.();
     open();
   }
