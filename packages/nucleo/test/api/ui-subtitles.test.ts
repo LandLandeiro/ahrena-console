@@ -80,6 +80,11 @@ describe('#766: the sentence of the work board', () => {
     assert.equal(workBoardSub([{ id: 'planning', count: 7, cards: [{ number: 1 }] }]), '7 itens esperam um plano.');
     assert.equal(workBoardSub([{ id: 'review', cards: [{ number: 1 }, { number: 2 }] }]), '2 itens esperam revisão.');
   });
+  test('an item whose plan is already running does not wait for a plan (prototype, #766)', () => {
+    const running = { id: 'planning', count: 3, cards: [{ number: 1, planning: { state: 'running' } }, { number: 2 }, { number: 3, planning: { state: 'failed' } }] };
+    assert.equal(workBoardSub([running, column('review', 1)]), '2 itens esperam um plano e 1 espera revisão.');
+    assert.equal(workBoardSub([{ id: 'planning', count: 1, cards: [{ number: 1, planning: { state: 'running' } }] }]), null);
+  });
   test('nothing waits, or nothing was read: no sentence', () => {
     assert.equal(workBoardSub([column('planning', 0), column('review', 0), column('done', 9)]), null);
     assert.equal(workBoardSub([]), null);
@@ -89,9 +94,9 @@ describe('#766: the sentence of the work board', () => {
 
 describe('#766: the sentence of the cost tab', () => {
   test('today above, below and at the average of the period', () => {
-    assert.equal(costSub({ today: 5.6, average: 5, days: 30 }), 'Gasto de hoje 12% acima da média diária de 30 dias.');
-    assert.equal(costSub({ today: 4, average: 5, days: 7 }), 'Gasto de hoje 20% abaixo da média diária de 7 dias.');
-    assert.equal(costSub({ today: 5.01, average: 5, days: 30 }), 'Gasto de hoje na média diária de 30 dias.');
+    assert.equal(costSub({ today: 5.6, average: 5, days: 30 }), 'O gasto de hoje está 12% acima da média diária de 30 dias.');
+    assert.equal(costSub({ today: 4, average: 5, days: 7 }), 'O gasto de hoje está 20% abaixo da média diária de 7 dias.');
+    assert.equal(costSub({ today: 5.01, average: 5, days: 30 }), 'O gasto de hoje está na média diária de 30 dias.');
   });
   test('no price, no average or no spend today: no sentence, no invented number', () => {
     assert.equal(costSub({ today: null, average: 5, days: 30 }), null);

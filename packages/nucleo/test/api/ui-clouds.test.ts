@@ -334,6 +334,16 @@ describe('issue 277: Conexões, the catalog (C57, C60, C61)', () => {
     assert.deepEqual(m.writes, [], 'the catalog itself writes nothing');
   });
 
+  test('the catalog says in its body, not in the subtitle, that the console never keeps nor shows the credentials (#766)', async () => {
+    const m = await mountScreen(connections, '/ui/connections', async (route) => {
+      if (route === '/api/connectors') return connectorsBody();
+      if (route === '/api/connections') return GITHUB;
+      return [];
+    });
+    const lines = m.area.querySelectorAll('.cl-lock').map((n) => texto(n));
+    assert.ok(lines.some((l) => /o console nunca as guarda nem mostra/.test(l)), lines.join(' | '));
+  });
+
   test('no cloud configured: the dashed "Nenhuma nuvem conectada" card, and AWS under Adicionar with aws configure sso', async () => {
     const m = await mountScreen(connections, '/ui/connections', async (route) => {
       if (route === '/api/connectors') return connectorsBody(aws({ state: 'not-configured', sessions: [], outOfScope: [] }));

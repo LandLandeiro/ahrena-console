@@ -422,7 +422,7 @@ describe('Analytics: Custo', () => {
       assert.match(rotas[0]!, /^\/api\/analytics\/cost\?days=30&tz=[^&]+$/);
       const texto = area.textContent;
       assert.doesNotMatch(texto, /Custo estimado pelo transcript/);
-      assert.match(texto, /Gasto de hoje 9% acima da média diária de 30 dias\./);
+      assert.match(texto, /O gasto de hoje está 9% acima da média diária de 30 dias\./);
       const botoes = porTag(area, 'button').filter((b) => b.getAttribute('data-days'));
       assert.deepEqual(botoes.map((b) => [b.textContent, b.getAttribute('aria-pressed')]), [['7 dias', 'false'], ['30 dias', 'true'], ['90 dias', 'false']]);
       assert.equal(porTag(comClasse(area, 'an-tabs')[0]!, 'a').find((a) => a.getAttribute('aria-current') === 'page')!.textContent, 'Custo');
