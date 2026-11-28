@@ -515,7 +515,7 @@ function errorPairs() {
 test('#749: error text reaches 4.5:1 on the background set in its own rule or in its parent selector\'s rule, and on every background written as a color-mix of an error token, on bg, surface and raised, in both themes', () => {
   const { labels, mixes } = errorPairs()
   const found = new Set(labels.map((l) => `${l.file} ${l.selector}`))
-  const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'sd-s-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
+  const known = ['shell.css .attention-chip-error', 'shell.css .attention-pill-error', 'prj-pill.failed', 'wft-pill-error', 'dev-pill-error']
   for (const needle of known) {
     assert.ok([...found].some((f) => f.includes(needle)), `the guard does not find ${needle}: it would pass with nothing to check`)
   }

@@ -52,7 +52,7 @@ function harness(headBody: unknown, { tasks = plan(2, 5), agentsFail = false }: 
       if (route.includes('after=')) return deltas.shift() ?? { messages: [], cursor: 'k9' };
       return { agents: [{ id: 'main', name: 'principal' }], agent: 'main', total: 2, messages: [you('m1', 'Quero testes do leitor'), bot('m2', 'Entendi, sigo o plano')], cursor: 'k0' };
     }
-    if (route.includes('/messaging')) return { available: false, reason: null, processes: 0 };
+    if (route.includes('/messaging')) return { available: true, reason: null, processes: 1, remoteControl: true, accountId: null };
     if (route.includes('/transcription')) return {};
     throw Object.assign(new Error(`rota não servida: ${route}`), { name: 'ReadError' });
   };
@@ -257,9 +257,9 @@ describe('The plan and the usage numbers (#759)', () => {
       const items = card.querySelectorAll('li');
       assert.equal(items.length, 5);
       const kinds = items.map((li) => li.querySelector('.state-icon')?.getAttribute('class')?.match(/state-icon-(\w+)/)?.[1]);
-      assert.deepEqual(kinds, ['completed', 'working', 'queued', 'queued', 'queued']);
+      assert.deepEqual(kinds, ['completed', 'completed', 'working', 'queued', 'queued']);
       for (const li of items) assert.ok(li.querySelector('.cc-sr-only'), 'the state in words for a reader of the screen');
-      assert.match(texto(items[1]), /Fazendo o passo 2/, 'the step in progress says what it is doing');
+      assert.match(texto(items[2]), /Fazendo o passo 3/, 'the step in progress says what it is doing');
       assert.equal(items.filter((li) => li.getAttribute('aria-current') === 'step').length, 1);
     } finally {
       h.leave.abort();

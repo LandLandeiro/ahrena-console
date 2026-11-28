@@ -550,15 +550,16 @@ describe('Detail: the open action in the header (C70)', () => {
     const w = stubWriter({ ok: true, opened: 'desktop' });
     const { area, leave } = await mountDetail(head(), w.write);
     try {
-      const row = area.querySelector('.sd-row')!;
+      const row = area.querySelector('.sd-actions')!;
       const kids = row.children;
       const action = row.querySelector('.open-action')!;
-      assert.ok(action, 'the action is in the header row');
+      assert.ok(action, 'the action is in the actions of the header, beside the meta line');
       assert.equal(kids[kids.indexOf(action) + 1]!.getAttribute('class'), 'sd-refresh', 'right before Atualizar');
       assert.equal(texto(action.querySelector('button')), 'Abrir no Claude Desktop');
       const idle = area.querySelector('.sd-idle')!;
       assert.ok(idle, 'the idle line is drawn');
-      assert.equal(idle.querySelectorAll('button').length, 0, 'no open button in the idle line');
+      assert.equal(idle.querySelectorAll('.open-action').length, 0, 'no open button in the idle line');
+      assert.deepEqual(idle.querySelectorAll('button').map(texto), ['Responder'], 'only the reply button of the issue 759 (A2 c), which opens no session');
       action.querySelector('button')!.click();
       assert.deepEqual(w.calls, [{ route: `/api/sessions/${UUID}/open`, body: {} }]);
       w.release();
@@ -578,8 +579,9 @@ describe('Detail: the open action in the header (C70)', () => {
     try {
       const band = area.querySelector('.sd-band')!;
       assert.ok(band, 'the band is drawn');
-      assert.equal(band.querySelectorAll('button').length, 0, 'no open button in the band');
-      assert.equal(texto(area.querySelector('.sd-row .open-action button')), 'Abrir no terminal');
+      assert.equal(band.querySelectorAll('.open-action').length, 0, 'no open button in the band');
+      assert.deepEqual(band.querySelectorAll('button').map(texto), ['Responder'], 'the band has the reply button of the issue 759 (A2 b), which opens no session');
+      assert.equal(texto(area.querySelector('.sd-actions .open-action button')), 'Abrir no terminal');
       assert.equal(area.querySelectorAll('.open-action').length, 1, 'one action on the page');
     } finally {
       leave?.();

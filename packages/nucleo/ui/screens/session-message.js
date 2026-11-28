@@ -522,7 +522,7 @@ export function createComposeBox(ctx, sessionId, { head = () => null, openContro
   function sendButton(label = 'Enviar', { busy = false, iconName = 'your-turn', enabled = sendable() } = {}) {
     return el(
       'button',
-      { type: 'button', class: 'btn filled sm-send', disabled: !enabled, 'aria-busy': busy ? 'true' : null, onClick: () => send() },
+      { type: 'button', class: 'btn primary sm-send', disabled: !enabled, 'aria-busy': busy ? 'true' : null, onClick: () => send() },
       icon(iconName),
       label,
       label === 'Enviar' ? el('span', { class: 'sm-kbd mono' }, kbd) : null,
@@ -631,7 +631,7 @@ export function createComposeBox(ctx, sessionId, { head = () => null, openContro
     if (voiceState === 'recording') {
       actions.replaceChildren(
         el('button', { type: 'button', class: 'btn outline sm-cancel', onClick: () => cancelDictation() }, icon('x'), 'Cancelar'),
-        el('button', { type: 'button', class: 'btn filled sm-stop', onClick: () => void finishDictation() }, icon('stop'), 'Parar e transcrever'),
+        el('button', { type: 'button', class: 'btn primary sm-stop', onClick: () => void finishDictation() }, icon('stop'), 'Parar e transcrever'),
       );
     } else actions.replaceChildren(...commandButtons(a.remoteControl).filter(Boolean), micButton(), ...send);
     if (wantFocus && !textarea.disabled) {

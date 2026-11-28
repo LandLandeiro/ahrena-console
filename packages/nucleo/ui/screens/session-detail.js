@@ -15,9 +15,10 @@ import { create as workflowTab } from './session-detail-workflow.js';
 import { create as decisionsTab } from './session-detail-decisions.js';
 import { createComposeBox } from './session-message.js';
 import { messageBody } from './chat-text.js';
-import { downNotice, downText, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
-import { attentionOf, attentionPill, isBlocked, isIdle, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
-import { needsOrIdleLabel, stateLabel, stateLabels } from '../state-labels.js';
+import { downNotice, downText, isMachineUnreachable, LOCAL, LOCAL_LABEL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
+import { attentionOf, isBlocked, isIdle, reasonLabel, attentionDot } from '../attention.js';
+import { kindLabel, needsOrIdleLabel, stateLabel, stateLabels } from '../state-labels.js';
+import { stateIcon, stateOfSession, stateTag } from '../state-icon.js';
 
 // ---------- Formatos ----------
 
@@ -74,18 +75,15 @@ function when(iso, now = new Date()) {
   return `${prefix}, ${HOUR.format(d)}`;
 }
 
-/* ADR-0028: a waiting session, agent or event is drawn by its attention ("Precisa de você" or "Em pausa", issue 245).
-   The words are in state-labels.js; the maps read the mode when they are read. */
-const STATUS = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' });
-const COLOR = { active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned' };
+/* ADR-0028: a session, agent or event is drawn by the state tag (icon and words); the words are in state-labels.js and
+   the maps read the mode when they are read. */
 /** The timeline's status filter: the core's `waiting` takes both the blocked and the idle events. */
 const STATUS_FILTER = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned', waiting: needsOrIdleLabel });
 
-/** The pill: the attention when there is one; a waiting one without it is active; the rest by status. */
-function statusPill(status, attention = null) {
-  if (attentionOf(attention)) return attentionPill(attention);
-  const st = statusWithoutAttention(status);
-  return el('span', { class: `sd-status sd-s-${COLOR[st] ?? 'abandoned'}` }, STATUS[st] ?? '—');
+/** The tag of a state: the attention when there is one; a waiting one without it is active; the rest by status. */
+function statusPill(status, attention = null, { fraction = 0 } = {}) {
+  const { kind, label } = stateOfSession({ attention, status });
+  return stateTag({ kind, label, fraction });
 }
 
 /** The idle line (issue 245): no band, only what happened and since when. */
@@ -132,11 +130,11 @@ function pill(iconName, ...children) {
 // - `rotular(texto)` põe o "(…)" ao lado do nome da aba; `null` tira.
 // A aba carrega o próprio CSS, se tiver.
 const TABS_LIST = [
-  { id: 'agents', rotulo: 'Agentes', icone: 'robot', create: agentsTab },
-  { id: 'conversation', rotulo: 'Conversa', icone: 'conversation', create: conversationTab },
-  { id: 'timeline', rotulo: 'Linha do tempo', icone: 'list', create: timelineTab },
-  { id: 'workflow', rotulo: 'Workflow', icone: 'graph', create: workflowTab },
-  { id: 'decisions', rotulo: 'Decisões', icone: 'decision', create: decisionsTab },
+  { id: 'conversation', rotulo: 'Conversa', create: conversationTab },
+  { id: 'agents', rotulo: 'Agentes', create: agentsTab },
+  { id: 'timeline', rotulo: 'Linha do tempo', create: timelineTab },
+  { id: 'workflow', rotulo: 'Workflow', create: workflowTab },
+  { id: 'decisions', rotulo: 'Decisões', create: decisionsTab },
 ];
 
 let cssLoaded = false;
@@ -234,11 +232,39 @@ export async function mount(area, ctx) {
   area.replaceChildren(loading({ label: 'Carregando a sessão' }));
 
   let headData = null;
-  let tab = (location.hash.slice(1) && TABS_LIST.some((a) => a.id === location.hash.slice(1))) ? location.hash.slice(1) : null;
+  // The plan the Agentes read already gives (`/agents`, `tasks`): the header says "2 de 5" and the Conversa draws the plan beside it.
+  let plan = null;
+  // `#responder` (A2 c): the Conversa with the reply field focused, where "Sua vez" and the card of the question lead.
+  const wantsReply = location.hash === '#responder';
+  let tab = wantsReply ? 'conversation' : (location.hash.slice(1) && TABS_LIST.some((a) => a.id === location.hash.slice(1))) ? location.hash.slice(1) : null;
   const labels = {};
   const tabScreens = Object.fromEntries(
-    TABS_LIST.map((a) => [a.id, a.create(ctx, base, { head: () => headData, setLabel: (t) => ((labels[a.id] = t ?? undefined), drawTabs()), remote: remoteId ? { id: remoteId } : null })]),
+    TABS_LIST.map((a) => [a.id, a.create(ctx, base, { head: () => headData, plan: () => plan, setLabel: (t) => ((labels[a.id] = t ?? undefined), drawTabs()), remote: remoteId ? { id: remoteId } : null })]),
   );
+
+  /** What the card of the question and "Sua vez" do: the Conversa, with the reply field focused. */
+  async function reply() {
+    if (tab !== 'conversation') await switchTo('conversation');
+    tabScreens.conversation.focusReply();
+  }
+  function drawHead() {
+    if (!headData) return;
+    const keepFocus = String(document.activeElement?.getAttribute?.('class') ?? '').includes('sd-ask-action');
+    top.replaceChildren(...drawTop(headData, { refresh: refreshAll, write: ctx.write, source: remoteId ? sourceLine : null, plan, reply }));
+    if (keepFocus) top.querySelector('.sd-ask-action')?.focus?.();
+  }
+  async function readPlan() {
+    try {
+      const a = await ctx.read(`${base}/agents`);
+      const fresh = a?.tasks?.total ? a.tasks : null;
+      if (JSON.stringify(fresh) === JSON.stringify(plan)) return;
+      plan = fresh;
+    } catch {
+      return; // the fraction and the plan are an extra: a read that fails leaves what was there
+    }
+    drawHead();
+    tabScreens.conversation.drawAside?.();
+  }
 
   function drawTabs() {
     tabs.replaceChildren(
@@ -246,8 +272,8 @@ export async function mount(area, ctx) {
         // Até a aba dizer o dela, Agentes e Linha do tempo usam as contagens do topo.
         const fallback = { agents: headData?.counts.agents, timeline: headData ? num(headData.counts.events) : null }[a.id];
         const label = labels[a.id] ?? fallback;
-        const suffix = label === undefined || label === null ? '' : ` (${label})`;
-        const b = el('button', { type: 'button', role: 'tab', class: `sd-tab${a.id === tab ? ' on' : ''}`, 'aria-selected': a.id === tab ? 'true' : 'false', 'data-tab': a.id }, icon(a.icone), `${a.rotulo}${suffix}`);
+        const count = label === undefined || label === null ? '' : String(label);
+        const b = el('button', { type: 'button', role: 'tab', class: `sd-tab${a.id === tab ? ' on' : ''}`, 'aria-selected': a.id === tab ? 'true' : 'false', 'data-tab': a.id }, a.rotulo, ...(count ? [' ', el('span', { class: 'sd-tab-count' }, count)] : []));
         b.addEventListener('click', () => switchTo(a.id));
         return b;
       }),
@@ -255,20 +281,20 @@ export async function mount(area, ctx) {
   }
 
   function switchTo(fresh) {
-    if (fresh === tab) return;
+    if (fresh === tab) return Promise.resolve();
     tabScreens[tab]?.hide();
     tab = fresh;
     history.replaceState(null, '', `${location.pathname}${location.search}#${tab}`);
     drawTabs();
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
-    tabScreens[tab].show(body);
+    return tabScreens[tab].show(body);
   }
 
   async function readHead() {
     try {
       headData = await ctx.read(base);
       ctx.title(headData.session.title);
-      top.replaceChildren(...drawTop(headData, refreshAll, ctx.write, remoteId ? sourceLine : null));
+      drawHead();
       drawSource();
       drawTabs();
       return true;
@@ -297,8 +323,7 @@ export async function mount(area, ctx) {
   function paintSeed() {
     const seed = headData ? null : seedOf(id);
     if (!seed) return area.replaceChildren(loading({ label: 'Carregando a sessão' }));
-    const back = el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'));
-    top.replaceChildren(el('div', { class: 'sd-row' }, back, el('h1', {}, seed.title), statusPill(seed.status, seed.attention), reasonChip(seed.attention)));
+    top.replaceChildren(backLink(), el('div', { class: 'sd-head-row' }, el('div', { class: 'sd-meta' }, statusPill(seed.status, seed.attention))), el('h1', {}, seed.title));
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
     area.replaceChildren(noticeSlot, top, body);
   }
@@ -307,16 +332,24 @@ export async function mount(area, ctx) {
     // C49: while the remote is down and nothing was read, a retry keeps the notice on screen.
     if (!(remoteId && down)) paintSeed();
     if (!(await readHead())) return;
-    tab ??= attentionOf(headData.session.attention) ? 'conversation' : 'agents';
+    tab ??= 'conversation';
     area.replaceChildren(noticeSlot, top, tabs, body);
     drawTabs();
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
-    tabScreens[tab].show(body);
+    void readPlan();
+    // A5: the screen opens at the top; a session that needs you gives the focus to the button of its card.
+    if (isBlocked(headData.session.attention)) top.querySelector('.sd-ask-action')?.focus?.();
+    await tabScreens[tab].show(body);
+    if (wantsReply) {
+      history.replaceState(null, '', `${location.pathname}${location.search}#conversation`);
+      tabScreens.conversation.focusReply();
+    }
   }
 
   async function refreshAll() {
     if (!headData) return first();
     await readHead();
+    void readPlan();
     tabScreens[tab].refresh();
   }
 
@@ -355,17 +388,41 @@ export async function mount(area, ctx) {
 
 // ---------- Topo (A5) ----------
 
-function drawTop(c, refresh, write, source = null) {
+function backLink() {
+  return el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'), el('span', {}, 'Sessões'));
+}
+
+/** "às 15:31" today, "em 18/10, 09:10" another day. */
+function startedAt(iso, now = new Date()) {
+  const d = new Date(iso);
+  return d.toDateString() === now.toDateString() ? `às ${HOUR.format(d)}` : `em ${DAY.format(d)}, ${HOUR.format(d)}`;
+}
+
+/**
+ * The header in two lines (M10): the meta line (the state tag with the plan fraction when the screen reads one, the
+ * machine, the start and the link of the configuration) with the actions beside it, and the title under it. Under 640 px
+ * the row stacks, so the state never runs under the button.
+ */
+function drawTop(c, { refresh, write, source = null, plan = null, reply }) {
   const s = c.session;
   const now = Date.now();
   const end = s.status === 'active' || s.status === 'waiting' ? now : Date.parse(c.endedAt ?? s.since);
-  const row1 = el(
+  const { kind } = stateOfSession({ attention: s.attention, status: s.status });
+  const fraction = kind === 'working' && plan?.total ? plan.done / plan.total : 0;
+  const machineLabel = c.machine?.label ?? LOCAL_LABEL;
+  const config = el('a', { class: 'sd-config', href: `/ui/agent-config?tab=settings&provider=${s.identity?.provider === 'codex' ? 'codex' : 'claude'}&session=${encodeURIComponent(s.id)}${source ? '&machine=remote' : ''}` }, 'Configuração em vigor');
+  const meta = el(
     'div',
-    { class: 'sd-row' },
-    el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back')),
-    el('h1', {}, s.title),
-    statusPill(s.status, s.attention),
-    reasonChip(s.attention),
+    { class: 'sd-meta' },
+    statusPill(s.status, s.attention, { fraction }),
+    kind === 'working' && plan?.total ? el('span', { class: 'sd-plan-count' }, `${num(plan.done)} de ${num(plan.total)}`) : null,
+    el('span', { class: 'sd-where' }, icon(c.machine?.label ? 'server' : 'laptop'), machineLabel),
+    el('span', { class: 'sd-since' }, `começou ${startedAt(s.startedAt)}`),
+    config,
+  );
+  const actions = el(
+    'div',
+    { class: 'sd-actions' },
     // C70 (issue 285): the open action beside Atualizar, whether the session needs you or not.
     // A remote session (C49) gets the "outra máquina" case of C70: off, with where it runs.
     openAction({ id: s.id, open: c.open, machine: c.machine }, { size: 'full', className: 'sd-open', write, machine: c.machine?.label ?? null }),
@@ -375,23 +432,22 @@ function drawTop(c, refresh, write, source = null) {
     'div',
     { class: 'sd-pills' },
     pill(null, s.id.slice(0, 12), copyButton(s.id, 'o id da sessão')),
-    s.model ? pill('port', modelName(s.model)) : null,
-    pill('clock', `${when(s.startedAt)} (${duration(end - Date.parse(s.startedAt))})`),
-    c.cost ? el('span', { class: 'sd-pill mono sd-cost', title: 'Estimativa' }, usd(c.cost.usd)) : null,
-    c.branch ? pill('branch', c.branch) : null,
-    // C49: the machine chip of a remote session.
-    source && c.machine?.label ? pill('server', c.machine.label) : null,
+    pill('clock', duration(end - Date.parse(s.startedAt))),
   );
   const folder = s.cwd ? el('div', { class: 'sd-folder mono' }, icon('folder'), el('span', {}, s.cwd), copyButton(s.cwd, 'a pasta')) : null;
-  // The yellow band only when the session is stuck (or stopped by an error); idle gets one muted line.
+  // The card only when the session is stuck (or stopped by an error); idle gets one muted line. Both lead to the reply field.
   const blocked = isBlocked(s.attention) || s.status === 'error';
-  const notice = s.banner && blocked ? band(c) : isIdle(s.attention) ? idleLine(c) : null;
-  const config = el('a', { class: 'btn outline', href: `/ui/agent-config?tab=settings&provider=${s.identity?.provider === 'codex' ? 'codex' : 'claude'}&session=${encodeURIComponent(s.id)}${source ? '&machine=remote' : ''}` }, 'Configuração em vigor');
-  return [row1, pills, folder, source, config, notice].filter(Boolean);
+  const notice = s.banner && blocked ? band(c, reply) : isIdle(s.attention) ? idleLine(c, reply) : null;
+  return [backLink(), el('div', { class: 'sd-head-row' }, meta, actions), el('h1', {}, s.title), pills, folder, source, notice].filter(Boolean);
 }
 
-function idleLine(c) {
-  return el('section', { class: 'sd-idle', role: 'status' }, attentionDot('idle'), el('p', {}, idleNote(c.session.attention, c.session.since)));
+/** The primary button of the card and of the idle line (A2 b and c): the dark one of the system, to the reply field. */
+function replyButton(reply) {
+  return el('button', { type: 'button', class: 'btn primary sd-ask-action', onClick: () => reply() }, 'Responder');
+}
+
+function idleLine(c, reply) {
+  return el('section', { class: 'sd-idle', role: 'status' }, attentionDot('idle'), el('p', {}, idleNote(c.session.attention, c.session.since)), replyButton(reply));
 }
 
 /** O texto da faixa com o comando que pede permissão em `<code>`, montado pelo DOM. */
@@ -409,13 +465,14 @@ export function bandTitle(session) {
   return reason ? `${stateLabel('blocked')} · ${reason}.` : `${stateLabel('blocked')}.`;
 }
 
-function band(c) {
+function band(c, reply) {
   const f = c.session.banner;
   return el(
     'section',
     { class: `sd-band sd-t-${f.type}`, role: f.type === 'error' ? 'alert' : 'status' },
     icon(f.type === 'error' ? 'error' : 'shield'),
     el('p', {}, el('b', {}, bandTitle(c.session)), ' ', ...withCommand(f.text, c.command), `. Há ${ago(f.since).replace('agora', 'menos de 1 min')}.`),
+    replyButton(reply),
   );
 }
 
@@ -542,14 +599,46 @@ function progress(t) {
       el('span', { class: 'sd-l-progress' }, 'Em andamento ', el('b', {}, num(inProgress))),
       el('span', { class: 'sd-l-pending' }, 'Pendentes ', el('b', {}, num(pending))),
     ),
-    el(
-      'ul',
-      { class: 'sd-steps' },
-      ...steps.map((p, i) =>
-        el('li', { class: `sd-p-${p.state}` }, icon(p.state === 'completed' ? 'done' : 'circle'), p.state === 'in_progress' ? (p.activeText ?? p.text) : p.text, i === steps.length - 1 && rest > 0 ? el('span', { class: 'sd-more' }, ` · +${rest}`) : null),
-      ),
-    ),
+    planSteps(steps, rest),
   );
+}
+
+/** The kind of the icon of a plan step: done, working, next (the state icon, ADR-0028); the word follows for a reader of the screen. */
+const STEP_KIND = { completed: 'completed', in_progress: 'working', pending: 'queued' };
+
+/** The steps of a plan, each with its state icon and its state in words, never by colour alone; `rest` is what a cut left out. */
+function planSteps(steps, rest = 0) {
+  return el(
+    'ul',
+    { class: 'sd-steps' },
+    ...steps.map((p, i) => {
+      const kind = STEP_KIND[p.state] ?? 'queued';
+      return el(
+        'li',
+        { class: `sd-p-${p.state}`, 'aria-current': p.state === 'in_progress' ? 'step' : null },
+        stateIcon(kind, { fraction: 0.5 }),
+        el('span', { class: 'cc-sr-only' }, `${kindLabel(kind)}: `),
+        p.state === 'in_progress' ? (p.activeText ?? p.text) : p.text,
+        i === steps.length - 1 && rest > 0 ? el('span', { class: 'sd-more' }, ` · +${rest}`) : null,
+      );
+    }),
+  );
+}
+
+/** The plan beside the conversation: every step with its icon, and the count in the title. */
+function planCard(t) {
+  return el('section', { class: 'card sd-plan' }, el('header', {}, el('b', {}, 'Plano'), el('span', { class: 'sd-plan-count' }, `${num(t.done)} de ${num(t.total)}`)), planSteps(t.steps));
+}
+
+/** The numbers of use beside the conversation, only the ones the screen reads: what was spent, the model and the branch. */
+function usageCard(c) {
+  const rows = [
+    c.cost ? ['Gasto até agora', usd(c.cost.usd), false] : null,
+    c.session.model ? ['Modelo', modelName(c.session.model), false] : null,
+    c.branch ? ['Branch', c.branch, true] : null,
+  ].filter(Boolean);
+  if (!rows.length) return null;
+  return el('dl', { class: 'card sd-usage' }, ...rows.map(([name, value, code]) => el('div', { class: 'sd-kv' }, el('dt', {}, name), el('dd', { class: code ? 'mono' : '' }, value))));
 }
 
 function tokenFlow(k) {
@@ -618,7 +707,7 @@ const TOOL_STATE = {
 /** "mcp__ccd_turn__update_plan" → "update_plan"; the full name stays in the tooltip. */
 const shortTool = (name) => String(name ?? '').replace(/^mcp__.+__/, '');
 
-function conversationTab(ctx, base, { head, remote = null } = {}) {
+function conversationTab(ctx, base, { head, plan = () => null, remote = null } = {}) {
   let target = null;
   // `?agent=<id>` (the Workflow tab's steps, issue 332) opens the conversation of that subagent.
   let agent = new URLSearchParams(location.search).get('agent');
@@ -649,6 +738,15 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
   // A re-draw replaces only this wrapper: the compose box is placed once per show and never moved, so a
   // live change does not take the focus, the caret or an IME composition away from the person typing.
   const content = el('div', { class: 'sd-conversation' });
+  // The plan and the numbers of use beside the conversation (the wireframe); empty, the column is not there.
+  const aside = el('aside', { class: 'sd-aside', 'aria-label': 'Plano e uso' });
+  const layout = el('div', { class: 'sd-conv' }, el('div', { class: 'sd-conv-main' }), aside);
+  function drawAside() {
+    const h = head?.() ?? null;
+    const t = plan?.() ?? null;
+    aside.replaceChildren(...[t?.total ? planCard(t) : null, h ? usageCard(h) : null].filter(Boolean));
+    aside.hidden = aside.childNodes.length === 0;
+  }
 
   // issue 414 (L5): the conversation is a growing model keyed by `message.id`. A live update reads only the
   // delta (`?after=<cursor>`) and upserts by id — a new id appends at the end, a seen id replaces its node
@@ -662,8 +760,9 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
   const newPill = el('button', { type: 'button', class: 'sd-newpill', hidden: true });
   newPill.addEventListener('click', () => landAtBottom());
 
-  // The scroll container is the shell's main column (`.cc-main`, the only overflow box around the tab).
-  const scroller = () => list.closest?.('.cc-main') ?? null;
+  // A5: only the list of the conversation sticks to its end. It scrolls by itself (`.sd-messages`), so the page keeps the
+  // header and the card of the question at the top.
+  const scroller = () => list;
   function atBottom() {
     const s = scroller();
     if (!s) return true;
@@ -970,10 +1069,11 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
       target = node;
       await draw();
       if (target !== node) return;
-      node.replaceChildren(content, composeBox().node);
-      // Opening the tab lands on the latest message and the compose box, like a chat; a live update does
+      layout.firstChild.replaceChildren(content, composeBox().node);
+      drawAside();
+      node.replaceChildren(layout);
+      // A5: opening the tab leaves the page at the top and lands the list on its latest message; a live update does
       // not scroll when the reader is up the list, so someone reading further up is not pulled down.
-      composeBox().node.scrollIntoView?.({ block: 'end' });
       listen();
       landAtBottom();
       // "Mandar mensagem" from a list opens here with `?focus=message`: the box takes the focus once.
@@ -986,7 +1086,10 @@ function conversationTab(ctx, base, { head, remote = null } = {}) {
       target = null;
       stopListening();
     },
-    refresh: () => (compose?.refresh(), live()),
+    refresh: () => (compose?.refresh(), drawAside(), live()),
+    drawAside: () => (target ? drawAside() : undefined),
+    /** "Responder": the reply field takes the focus once it can (a box with no live process says why and offers the open action). */
+    focusReply: () => composeBox().focus(),
   };
 }
 
