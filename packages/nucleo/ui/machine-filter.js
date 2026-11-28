@@ -630,6 +630,8 @@ export function createMachineFilter(ctx, { onChange = () => {}, reread = onChang
     wait = setTimeout(() => reread(), CHANGE_WAIT_MS);
     wait?.unref?.();
   });
+  // #754: the band depends on the mode (in Projeto it covers every remote), so a switch draws it again where the screen redraws in place.
+  ctx.onModeChange?.(() => draw());
   ctx.signal?.addEventListener?.('abort', () => {
     clearInterval(timer);
     clearTimeout(wait);
