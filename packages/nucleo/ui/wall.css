@@ -82,7 +82,8 @@
 .wall-list > .wall-row:first-child { border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0; }
 .wall-list > .wall-row:last-child { border-bottom: 0; border-radius: 0 0 calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px); }
 .wall-list > .wall-row:only-child { border-radius: calc(var(--radius-card) - 1px); }
-.wall-row:hover { background: var(--raised); }
+/* ADR-0028, issue 758: the hover is the light line in --bg; no shadow. */
+.wall-row:hover { background: var(--bg); }
 .wall-row:has(.wall-act [role="status"]:not(:empty)) { z-index: 3; }
 .wall-filler { display: none; }
 /* ADR-0028: the text and the side each have a basis of their own, so every row of a list wraps or not together and the state starts at the same x; the title cuts. */
@@ -175,3 +176,41 @@
 /* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
 button.wall-kid-toggle { position: relative; }
 button.wall-kid-toggle::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }
+
+/* ---------- ADR-0028, issue 758: loading, error, live change, the notice and the keys ---------- */
+/* The skeleton: the shape of one card and three rows, still. Nothing in it moves, so there is nothing to turn off. */
+.wall-skel { display: flex; flex-direction: column; gap: 16px; }
+.wall-skel-card { display: flex; flex-direction: column; gap: 10px; min-height: 140px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.wall-skel-rows { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
+.wall-skel-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.wall-skel-row:last-child { border-bottom: 0; }
+.wall-skel-bone { height: 10px; width: 80%; border-radius: 99px; background: var(--raised); }
+.wall-skel-bone.short { width: 54%; height: 13px; }
+.wall-skel-bone.medium { width: 36%; }
+.wall-skel-row .wall-skel-bone { width: 40%; }
+.wall-skel-row .wall-skel-bone.medium { width: 20%; margin-left: auto; }
+
+/* The failed read keeps the wall under it: the band in the wall's own style, on --surface with the error border. */
+.wall-error-band { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--status-error-dot); border-radius: var(--radius-card); background: var(--surface); color: var(--text); font-size: var(--text-sm); }
+.wall-error-band > .icon { color: var(--status-error-text); }
+.wall-error-band b { color: var(--status-error-text); font-weight: var(--weight-semibold); }
+
+/* A session that changed section: a short highlight, and the entrance only when the person did not ask for less motion. */
+.wall-moved { background: var(--status-waiting-badge); }
+
+/* The notice in the corner: a polite status region; each notice leaves by itself after 6 s (wall-notices.js). */
+.wall-notices { position: fixed; right: 20px; bottom: 20px; z-index: 50; display: flex; flex-direction: column; gap: 8px; max-width: min(400px, calc(100vw - 32px)); pointer-events: none; }
+.wall-notice { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); color: var(--text); font-size: var(--text-sm); pointer-events: auto; }
+.wall-notice-text { min-width: 0; overflow-wrap: anywhere; }
+.wall-notice-link { margin-left: auto; flex: none; padding-left: 8px; color: var(--text); font-weight: var(--weight-semibold); white-space: nowrap; }
+.wall-notice-link:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+
+/* The list of the keys: the key in a small box, then what it does. */
+.wall-key { display: inline-block; min-width: 24px; padding: 1px 6px; border: 1px solid var(--border-control); border-radius: 4px; background: var(--segment); color: var(--text); font-family: var(--font-mono); font-size: var(--text-xs); text-align: center; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .wall-moved { animation: wall-moved-fade var(--motion-move) var(--ease-out); }
+  .wall-notice { animation: wall-notice-in var(--motion-base) var(--ease-out); }
+}
+@keyframes wall-moved-fade { from { background: var(--raised); } }
+@keyframes wall-notice-in { from { opacity: 0; transform: translateY(8px); } }

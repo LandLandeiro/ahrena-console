@@ -4,7 +4,7 @@
 // As funções sem DOM (formatação e o que cada card mostra) saem exportadas para o teste.
 
 import { el, icon } from '../dom.js';
-import { loading, error, errorBand, empty } from '../states.js';
+import { error, errorBand, empty } from '../states.js';
 import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
 import { stateLabel } from '../state-labels.js';
@@ -15,12 +15,19 @@ import { displayButton } from '../display-panel.js';
 import { displayMode, getDisplay, onDisplayChange } from '../display.js';
 import { machineShown, techLine } from '../wall-display.js';
 import { clockOf, countsOf, duoCells, sectionOf, sectionsOf, summaryOf, summaryText } from '../wall-sections.js';
+import { liveChanges, snapshotOf } from '../wall-live.js';
+import { createNotices } from '../wall-notices.js';
+import { shortcutOf, shortcutsButton, stepIndex } from '../wall-keys.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineMark, sinceText, whereText } from '../machine-filter.js';
 
 const STYLE = '/ui/wall.css';
 export const WALL_ROUTE = '/api/wall';
 /** Wait before re-reading after a burst of changes that need no attention. */
 export const THROTTLE_MS = 120;
+// ADR-0028, issue 758: "há N min" is written again this often, with no read of the route (the issue 750 measured 0 recalculations on a still screen).
+export const SINCE_TICK_MS = 30_000;
+// ADR-0028, issue 758: how long a session that changed section keeps its highlight.
+export const MOVED_MS = 2400;
 // ADR-0028: the usage is red from this percentage on (`>=`); the kit says "above 90%", the person asked for "from 90%".
 export const HIGH_CONTEXT = 90;
 // ADR-0029, issue 754: in Projeto the use of the conversation is hidden below this percentage and, from it, says "Conversa quase cheia".
@@ -180,7 +187,7 @@ function bar({ valor: value, max, rotulo: label, alto: high = false, tipo: type 
 
 /** The monogram (only where agents differ on screen, issue 751), the name and since when, with the state on the right (ADR-0028). */
 function who(tag, since, agent, mono, show) {
-  return el('div', { class: 'wall-who' }, mono && show.agent ? agentMonogram(agent) : null, show.agent ? el('b', { class: 'wall-name' }, agent) : null, el('span', { class: 'wall-age' }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
+  return el('div', { class: 'wall-who' }, mono && show.agent ? agentMonogram(agent) : null, show.agent ? el('b', { class: 'wall-name' }, agent) : null, el('span', { class: 'wall-age', 'data-since': since }, sinceText(since)), el('span', { class: 'wall-state' }, tag));
 }
 
 // ADR-0029, issue 754, M7: a remote machine says its name; this one on a card once a remote is known, on a row only in the Dev compact. `view` is the Exibir choice and the mode it is read in.
@@ -227,7 +234,7 @@ function card(c, write, nest, known, mono, view) {
   spotsOf(nest, v.key, link, action, see);
   const node = el(
     'div',
-    { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
+    { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${view.moved.has(v.key) ? ' wall-moved' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono, view.show),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), el('p', { class: 'wall-ask', title: v.ask }, v.ask)),
     action || see ? el('div', { class: 'wall-act' }, action ?? see) : null,
@@ -250,7 +257,7 @@ function row(c, write, nest, known, mono, view, place = '') {
   spotsOf(nest, v.key, link, action);
   const node = el(
     'div',
-    { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${place}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
+    { class: `wall-row${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${view.moved.has(v.key) ? ' wall-moved' : ''}${place}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     el(
       'div',
       { class: `wall-main${showMono ? '' : ' wall-main-solo'}` },
@@ -260,7 +267,7 @@ function row(c, write, nest, known, mono, view, place = '') {
         'div',
         { class: 'wall-side' },
         tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: view.show.plan ? v.fraction : 0 }), link),
-        v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
+        v.idle ? el('span', { class: 'wall-since', 'data-since': v.since }, sinceText(v.since)) : null,
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         view.show.plan && v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
         machineOf(c, known, view, 'row'),
@@ -298,7 +305,7 @@ function kidRows(nodes, depth, leader, nest) {
       kidLink,
       pill,
       k.parked ? el('span', { class: 'wall-muted' }, 'parada') : null,
-      el('span', { class: 'wall-muted wall-kid-age' }, k.since),
+      el('span', { class: 'wall-muted wall-kid-age', 'data-since': node.since }, k.since),
     );
     return [row, ...(opened ? kidRows(k.children, depth + 1, leader, nest) : [])];
   });
@@ -342,7 +349,7 @@ function parkedBand(parked, opened, { toggle, more, spot }) {
           link,
           el('span', { class: 'wall-origin wall-trunc' }, [c.project, c.branch].filter(Boolean).join(' · ') || '—'),
           el('span', { class: 'wall-chip' }, clean(c.activity?.text) || (attentionOf(c.attention) ? stateLabel('turn_ended') : '—')),
-          el('span', { class: 'wall-muted wall-kid-age' }, sinceText(c.since)),
+          el('span', { class: 'wall-muted wall-kid-age', 'data-since': c.since }, sinceText(c.since)),
           openLink,
         );
       });
@@ -368,6 +375,17 @@ function foot(v, machine, show) {
   return parts.length ? el('div', { class: 'wall-foot' }, ...parts) : null;
 }
 
+/** ADR-0028, issue 758: while the first read has not come back, the shape of one card and three rows; it does not move. */
+function skeleton() {
+  const bones = (...kinds) => kinds.map((k) => el('div', { class: `wall-skel-bone${k ? ` ${k}` : ''}` }));
+  return el(
+    'section',
+    { class: 'wall-skel', 'aria-busy': 'true', 'aria-label': 'Lendo o mural' },
+    el('div', { class: 'wall-skel-card' }, ...bones('short', '', 'medium')),
+    el('div', { class: 'wall-skel-rows' }, ...[0, 1, 2].map(() => el('div', { class: 'wall-skel-row' }, ...bones('short', 'medium')))),
+  );
+}
+
 // ---------- A tela ----------
 
 export async function mount(area, ctx) {
@@ -383,6 +401,12 @@ export async function mount(area, ctx) {
   let parkedLimit = PARKED_PAGE;
   // ADR-0028: the parked keys on screen when "Mostrar mais" was pressed; the first row beyond them gets the focus.
   let moreFrom = null;
+  // ADR-0028, issue 758: what the last read looked like, the keys that changed section (highlighted for MOVED_MS) and the notices in the corner.
+  let seen = null;
+  const moved = new Set();
+  let movedTimer = null;
+  const notices = createNotices({ linkLabel: SEE_SESSION });
+  const shortcuts = shortcutsButton();
 
   // ADR-0028: the state filter, persistent buttons (label and number) so a redraw never replaces the one with the focus.
   const buttons = new Map();
@@ -411,9 +435,9 @@ export async function mount(area, ctx) {
     lead.textContent = parts.lead;
     rest.textContent = parts.rest ? ` ${parts.rest}` : '';
   }
-  const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, displayButton({ onChange: () => draw() }), newSessionButton({ read: ctx.read, write: ctx.write })));
+  const head = el('div', { class: 'wall-top' }, el('div', { class: 'wall-top-text' }, el('h1', { class: 'wall-title' }, 'Mural ao vivo'), summary), el('div', { class: 'wall-top-act' }, shortcuts.node, displayButton({ onChange: () => draw() }), newSessionButton({ read: ctx.read, write: ctx.write })), notices.node);
   // Issue 243 (C46), ADR-0028: the machine menu sits at the end of the row of the state filter.
-  const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), draw(), read()), reread: () => read(), onLayout: () => draw(), menu: { itemsOf: (b) => b.cards ?? [] }, fallbackFocus: () => buttons.get(filter) });
+  const machines = createMachineFilter(ctx, { onChange: () => ((wall = null), (seen = null), draw(), read()), reread: () => read(), onLayout: () => draw(), menu: { itemsOf: (b) => b.cards ?? [] }, fallbackFocus: () => buttons.get(filter) });
   const segs = el('div', { class: 'wall-segs' }, selector, machines.row);
 
   function choose(id) {
@@ -518,7 +542,7 @@ export async function mount(area, ctx) {
     if (!wall) {
       say(null);
       for (const n of numbers.values()) n.textContent = '';
-      const shown = failure ? error({ text: failure.message, retry: () => read() }) : loading({ label: 'Lendo o mural' });
+      const shown = failure ? error({ text: failure.message, retry: () => read() }) : skeleton();
       keepRetry(shown, fresh);
       return [head, segs, ...machines.parts(), shown];
     }
@@ -533,7 +557,7 @@ export async function mount(area, ctx) {
     numbers.get('blocked').setAttribute('class', `wall-seg-n${counts.blocked > 0 ? ' wall-seg-need' : ''}`);
     const f = FILTERS.find((x) => x.id === filter);
     const cards = all.filter(f.passa);
-    const band = failure ? errorBand({ title: 'O mural não atualizou.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() } }) : null;
+    const band = failure ? errorBand({ title: 'O mural não atualizou.', text: failure.message, action: { label: 'Tentar de novo', onClick: () => read() }, className: 'wall-error-band' }) : null;
     keepRetry(band, fresh);
     const nest = {
       isOpen: (id) => opened.has(id),
@@ -546,7 +570,7 @@ export async function mount(area, ctx) {
     };
     const known = machines.hasRemotes();
     // ADR-0029, issue 754: the Exibir choice of the current mode, read at every draw.
-    const view = { ...getDisplay(), mode: displayMode() };
+    const view = { ...getDisplay(), mode: displayMode(), moved };
     // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn, in every section, have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
     const by = sectionsOf(cards);
@@ -583,6 +607,26 @@ export async function mount(area, ctx) {
     return [head, segs, ...machines.parts(), band, body, parked].filter(Boolean);
   }
 
+  // ADR-0028, issue 758: what this read changed against the last one: highlight the sessions that moved, say the two things that matter.
+  function follow(cards) {
+    const { moved: now, notices: news } = liveChanges(seen, cards);
+    seen = snapshotOf(cards);
+    for (const key of now) moved.add(key);
+    if (now.size) {
+      clearTimeout(movedTimer);
+      movedTimer = setTimeout(() => {
+        movedTimer = null;
+        moved.clear();
+        // Only the class leaves: no redraw, so the focus and the scroll are never touched by the end of a highlight.
+        for (const node of [...area.querySelectorAll('.wall-moved')]) node.classList.remove('wall-moved');
+      }, MOVED_MS);
+    }
+    for (const { kind, card } of news) {
+      const title = titled(card.title);
+      notices.push({ kind, text: kind === 'request' ? `Pedido novo: ${title}` : `${stateLabel('completed')}: ${title}`, href: itemHref(card) });
+    }
+  }
+
   async function read() {
     const mine = ++request;
     try {
@@ -592,6 +636,7 @@ export async function mount(area, ctx) {
       machines.update(fresh);
       wall = fresh;
       failure = null;
+      follow(fresh.cards ?? []);
     } catch (e) {
       if (e?.name === 'AbortError' || mine !== request) return;
       if (machines.recover(e)) return;
@@ -622,10 +667,55 @@ export async function mount(area, ctx) {
     }, THROTTLE_MS);
   });
 
+  // ADR-0028, issue 758: "há N min" is written again every SINCE_TICK_MS, only its text; no timer runs on a hidden tab.
+  const doc = globalThis.document;
+  function tick() {
+    for (const node of area.querySelectorAll('[data-since]')) {
+      const text = sinceText(node.getAttribute('data-since'));
+      if (node.textContent !== text) node.textContent = text;
+    }
+  }
+  let ticker = null;
+  const startTicker = () => {
+    if (ticker || doc?.hidden) return;
+    ticker = setInterval(tick, SINCE_TICK_MS);
+    // Issue 758: in node (the tests mount the screen and leave it mounted) the timer must not keep the process alive; in the browser the id is a number.
+    ticker?.unref?.();
+  };
+  const stopTicker = () => {
+    clearInterval(ticker);
+    ticker = null;
+  };
+  const onVisibility = () => {
+    if (doc?.hidden) return stopTicker();
+    tick();
+    startTicker();
+  };
+  doc?.addEventListener?.('visibilitychange', onVisibility);
+
+  // ADR-0028, issue 758: J and K move the focus between the cards and the rows, ? shows the list; typing and the modifiers are left alone.
+  const onKey = (ev) => {
+    const act = shortcutOf(ev);
+    if (!act) return;
+    ev.preventDefault?.();
+    if (act === 'help') return shortcuts.toggle();
+    const items = [...area.querySelectorAll('.wall-card[data-key], .wall-row[data-key]')];
+    const at = items.findIndex((n) => n.contains(doc.activeElement));
+    items[stepIndex(items.length, at, act === 'next' ? 1 : -1)]?.querySelector('a.wall-link')?.focus();
+  };
+  doc?.addEventListener?.('keydown', onKey);
+
   draw();
+  startTicker();
   await read();
   return () => {
     clearTimeout(wait);
+    clearTimeout(movedTimer);
+    stopTicker();
+    doc?.removeEventListener?.('visibilitychange', onVisibility);
+    doc?.removeEventListener?.('keydown', onKey);
+    notices.clear();
+    shortcuts.close();
     stopDisplay();
     area.removeAttribute('data-wall-density');
   };
