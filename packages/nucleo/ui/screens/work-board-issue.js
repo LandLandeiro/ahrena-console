@@ -102,7 +102,7 @@ function createIssueView({ area, state, apply, cardFor, retry, reconnect, confir
     if (!entry || !POPUP_PHASES.has(entry.phase)) return null;
     const base = cardFor(card.key) ?? card;
     const where = () => ({ kind: 'plan-button', key: card.key });
-    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise (issue 762).
+    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise (#762).
     const trigger = () => {
       const k = `${hostedInPanel(card) ? 'panel:' : ''}${card.key}`;
       return area.querySelector(`button[data-action="plan"][data-key="${k}"]`) ?? area.querySelector(`button[data-action="replan"][data-key="${k}"]`);

@@ -6,8 +6,8 @@
 // (Claude Desktop | Terminal, remembered) and a primary that names the verb and the destination, "Abrir no Terminal".
 // The primary is `write('/api/new-session', { folder, target })`; beside it come "Abrindo…", the success (it stays
 // open: the person closes it) or the core's pt-BR error with "Copiar comando". The answer of the core carries no
-// session id (`{ ok, opened }`), so the success has no "Ir para a sessão" link: that is for a separate issue, to be opened by Fernando, that makes the answer of
-// `POST /api/new-session` carry the id of the session it opened (#762). The styles are in `popover.css` and `new-session.css`.
+// session id (`{ ok, opened }`), so the success has no "Ir para a sessão" link. The link to the session needs the core to
+// return the id of the opened session; that is a separate issue (#762). The styles are in `popover.css` and `new-session.css`.
 
 import { el, icon } from './dom.js';
 import { read as defaultRead, write as defaultWrite } from './api.js';
