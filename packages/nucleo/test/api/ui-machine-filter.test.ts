@@ -665,13 +665,21 @@ describe('Histórico, Feed and Dashboard with every machine (C47)', () => {
     }
   });
 
-  test('Dashboard: with Todas, the numbers say how many are the remote\'s; with one machine chosen, they do not', () => {
-    const numbers = { sessions: { total: 15, active: 3, blocked: 5, idle: 0 }, agents: { active: 4, sessions: 4 }, subagents: { active: 0, sessions: 0 }, events: { today: 0, lastHour: 0, total: 0 }, cost: { usd: 1, days: 30, unpriced: [] } };
-    const byMachine = [{ id: 'local', numbers: { sessions: { total: 12 }, agents: { active: 3 } } }, { id: 'ws', numbers: { sessions: { total: 3 }, agents: { active: 1 } } }];
-    const c = dashboard.cards(numbers, { byMachine, machines: mf.normalizeMachines(machinesUp) });
-    assert.equal(c[0].sub, '3 na Workstation · 5 precisam de você');
-    assert.equal(c[1].sub, 'em 4 sessões · 1 na Workstation');
-    assert.equal(dashboard.cards(numbers)[0].sub, '5 precisam de você');
+  test('Dashboard: with Todas, "Trabalhando agora" says how many are the remote\'s; with one machine chosen, it does not', async () => {
+    setUrl('/ui');
+    const numbers = { sessions: { total: 15, active: 4, blocked: 5, idle: 0 }, agents: { active: 4, sessions: 4 }, subagents: { active: 0, sessions: 0 }, events: { today: 0, lastHour: 0, total: 0 }, cost: { usd: 1, days: 30, unpriced: [] } };
+    const byMachine = [{ id: 'local', numbers: { sessions: { total: 12, active: 3 } } }, { id: 'ws', numbers: { sessions: { total: 3, active: 1 } } }];
+    assert.equal(dashboard.workingNote(byMachine, mf.normalizeMachines(machinesUp)), '1 na Workstation');
+    assert.equal(dashboard.workingNote([], mf.normalizeMachines(machinesUp)), '');
+    const f = context((route) => (route.startsWith('/api/dashboard') ? { numbers, agents: [], activity: [], machines: machinesUp, byMachine } : { items: [] }));
+    const area = new ElementoFalso('main');
+    const cleanup = await dashboard.mount(area, f.ctx);
+    try {
+      assert.equal(texto(one(area, '[data-card="working-now"]')), 'Trabalhando agora 4 sessões 1 na Workstation');
+    } finally {
+      cleanup();
+      f.leave.abort();
+    }
   });
 
   test('Dashboard: the recent activity row of a remote session has only the icon, and opens the remote Detail', async () => {

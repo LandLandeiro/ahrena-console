@@ -13,7 +13,7 @@ const many = (n, cls) => Array.from({ length: n }, () => el('div', { class: cls 
 
 const BODIES = {
   cards: () => [el('div', { class: 'sk-bar' }), el('div', { class: 'sk-grid' }, ...many(6, 'sk-card'))],
-  stats: () => [el('div', { class: 'sk-grid sk-grid-stats' }, ...many(6, 'sk-stat')), el('div', { class: 'sk-card' }), el('div', { class: 'sk-grid sk-grid-two' }, ...many(2, 'sk-card'))],
+  stats: () => [el('div', { class: 'sk-grid sk-grid-stats' }, ...many(3, 'sk-stat')), el('div', { class: 'sk-card' }), el('div', { class: 'sk-grid sk-grid-two' }, ...many(2, 'sk-card'))],
   columns: () => [el('div', { class: 'sk-columns' }, ...many(4, 'sk-column'))],
   detail: () => [el('div', { class: 'sk-head' }), el('div', { class: 'sk-notice' }), ...many(4, 'sk-block')],
   rows: () => [el('div', { class: 'sk-bar' }), ...many(8, 'sk-row')],

@@ -63,7 +63,6 @@ const OLD_WORD = /(?<![\p{L}\p{N}_-])(?:ativ[ao]s?|ocios[ao]s?)(?![\p{L}\p{N}_-]
 const NOT_SESSION_STATES: { file: string; text: string; why: string }[] = [
   { file: 'state-labels.js', text: "['Ativo']", why: 'the label of an agent or a step of a workflow run (masculine, as "Rodando" and "Esperando"), not of a session' },
   { file: 'screens/dashboard.js', text: 'Agentes ativos', why: 'agents, not sessions: the card and the column title of the active agents' },
-  { file: 'screens/dashboard.js', text: 'Subagentes ativos', why: 'subagents, not sessions: the card of the active subagents' },
   { file: 'screens/dashboard.js', text: 'Nenhum agente ativo', why: 'agents, not sessions: the empty column of the active agents' },
   { file: 'screens/dashboard.js', text: "'ativo' : 'ativos'", why: 'the active subagents of an agent row, not a session' },
   { file: 'screens/analytics.js', text: "'ativo', 'ativos'", why: 'the active agents of the Agentes figure, not a session' },

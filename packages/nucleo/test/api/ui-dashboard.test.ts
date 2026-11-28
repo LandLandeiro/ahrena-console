@@ -37,6 +37,18 @@ class No {
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
   }
+  set textContent(v: string) {
+    this.filhos = [];
+    this.append(v);
+  }
+  // Issue 759: the screen writes the greeting and the sentence in its own header (dom.js `setHeaderSub`).
+  get parentNode(): No | null {
+    return this.pai;
+  }
+  querySelector(seletor: string): Elemento | null {
+    const [primeiro] = this.todos((e) => (seletor.startsWith('.') ? e.classes.includes(seletor.slice(1)) : e.tag === seletor));
+    return primeiro ?? null;
+  }
   contains(outro: unknown): boolean {
     return outro === this || this.filhos.some((f) => f.contains(outro));
   }
@@ -215,7 +227,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
         ['working-now', 'spend-today', 'completed-today'],
       );
-      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Trabalhando agora3 sessões$/);
+      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Trabalhando agora1 sessão$/);
 
       const inbox = comClasse(area, 'inbox')[0]!;
       assert.match(inbox.textContent, /1 precisa de você/);
@@ -238,13 +250,13 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       assert.match(agentes[0]!.textContent, /Agente principal · Kanban de sessões no artefato.*ahrena-demo · 2 subagentes · 18 turnos.*Trabalhando/);
       assert.match(agentes[0]!.textContent, /Opus 5\.5.*~US\$ 1,84.*Rodar a bateria/);
       assert.ok(agentes[1]!.classes.includes('dash-st-blocked'));
-      assert.match(agentes[1]!.textContent, /Precisa de você/);
+      assert.match(agentes[1]!.textContent, /Pede permissão/, 'the tag says the reason, as the Mural does');
       assert.ok(agentes[2]!.classes.includes('dash-st-idle'));
       assert.match(agentes[2]!.textContent, /Em pausa/);
 
       const linhas = comClasse(area, 'row');
       assert.deepEqual(linhas.map((l) => l.getAttribute('href')), ['/ui/sessions/sim-panel-motor-de-regras', '/ui/sessions/sim-panel-app-receitas']);
-      assert.match(linhas[0]!.textContent, /Precisa de você.*Pede permissão: Bash npm run migrate.*motor-de-regras/);
+      assert.match(linhas[0]!.textContent, /Pede permissão.*Pede permissão: Bash npm run migrate.*motor-de-regras/);
       assert.match(linhas[1]!.textContent, /Em pausa.*Interrompida \(Esc\).*app-receitas/);
       assert.doesNotMatch(area.textContent, /Esperando/);
       assert.ok(comClasse(area, 'ttl').some((t) => t.todos((e) => e.getAttribute('href') === '/ui/sessions').length > 0), 'Ver tudo leva às Sessões');

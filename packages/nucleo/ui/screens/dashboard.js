@@ -1,29 +1,38 @@
-// Dashboard (C1, #27): os seis números, "precisam de você" em destaque, os agentes ativos com os
-// subagentes e a atividade recente. Lê `GET /api/dashboard` e `GET /api/attention` (#87).
+// O Início (C1, #27): a saudação e a frase do dia, os três números e as barras por hora, "precisam de você" em destaque,
+// os agentes ativos com os subagentes e a atividade recente. Lê `GET /api/dashboard` e `GET /api/attention` (#87); para
+// o dia lê também `GET /api/sessions` e `GET /api/analytics/cost`, as rotas que o Sessões e o Custo já leem (issue 759).
 // issue 245: the inbox counts only the blocked sessions (`blocked` of the attention, the menu bar number);
 // the idle ones go to a neutral row below it, with the reason in a light chip.
 //
 // As funções sem DOM (formatação e o que cada parte mostra) saem exportadas para o teste.
 
-import { header, el, icon } from '../dom.js';
+import { header, el, icon, setHeaderSub } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
 import { lastAvailability, loadAvailability, messageAction, useMessageStyle } from './session-message.js';
-import { attentionOf, attentionOfItem, attentionPill, attentionTone, attentionDot, isBlocked, isIdle, reasonChip, statusWithoutAttention } from '../attention.js';
+import { attentionOfItem, attentionTone, attentionDot, isBlocked, isIdle, reasonChip, statusWithoutAttention } from '../attention.js';
 import { openAction } from '../open-action.js';
 import { stateLabel, stateLabels } from '../state-labels.js';
 import { newSessionButton } from '../new-session.js';
 import { attentionForChoice, createMachineFilter, isRemote, itemHref, itemKey, machineTag, remoteParts, sessionHref } from '../machine-filter.js';
+import { stateOfSession, stateTag } from '../state-icon.js';
+import { greeting, summarySentence, todayFigures, usd } from '../home-today.js';
+import { hero } from '../home-hero.js';
 
 const STYLE = '/ui/dashboard.css';
 // As rotas do núcleo, num lugar só. A da atenção é a `ATTENTION_ROUTE` de src/api/attention-route.ts (#87):
 // se o nome mudar lá, muda aqui.
 export const DASHBOARD_ROUTE = '/api/dashboard';
 export const ATTENTION_ROUTE = '/api/attention';
+// issue 759: the day of the sessions (newest activity first, the most one page holds) and the spend of today: the routes of the Sessões and the Custo.
+export const SESSIONS_ROUTE = '/api/sessions?order=activity&direction=desc&perPage=100';
+export const COST_ROUTE = '/api/analytics/cost?days=2';
 /** Releitura depois de uma rajada de mudanças, e a releitura de fundo das idades ("2 min"). */
 const DEBOUNCE_MS = 400;
 const BACKGROUND_MS = 30_000;
 const IN_INBOX = 5;
 const IN_IDLE_ROW = 3;
+/** The sessions of the day and the spend are read again after this long, not at every redraw. */
+const DAY_MS = BACKGROUND_MS;
 
 // The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
 export const STATUS_LABEL = stateLabels(['active', 'completed', 'error', 'abandoned']);
@@ -68,40 +77,9 @@ export function modelName(id) {
 }
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-const inSessions = (n) => `em ${plural(n, 'sessão', 'sessões')}`;
 
-/**
- * Os seis cards, na ordem do C1. Issue 243 (C47): with Todas and a remote, `byMachine` and `machines` say how
- * many are the remote's: "3 na Workstation · 5 precisam de você", "em 4 sessões · 1 na Workstation".
- */
-export function cards(numbers, { byMachine = null, machines = [] } = {}) {
-  const { sessions, agents, subagents, events, cost: c } = numbers;
-  const remoteSessions = remoteParts(byMachine, machines, (b) => b.numbers?.sessions?.total);
-  const remoteAgents = remoteParts(byMachine, machines, (b) => b.numbers?.agents?.active);
-  return [
-    { id: 'sessions', rotulo: 'Sessões', icone: 'sessions', cor: 'accent', valor: integer.format(sessions.total), extra: `${sessions.active} trabalhando`, sub: [...remoteSessions, sessionsDetail(sessions)].join(' · ') },
-    { id: 'agents', rotulo: 'Agentes ativos', icone: 'bot', cor: 'active', valor: integer.format(agents.active), sub: [inSessions(agents.sessions), ...remoteAgents].join(' · ') },
-    { id: 'subagents', rotulo: 'Subagentes ativos', icone: 'subagent', cor: 'accent', valor: integer.format(subagents.active), sub: inSessions(subagents.sessions) },
-    { id: 'events-today', rotulo: 'Eventos hoje', icone: 'events', cor: 'waiting', valor: quantity(events.today), sub: `+${quantity(events.lastHour)} na última hora` },
-    { id: 'events-total', rotulo: 'Eventos no total', icone: 'activity', cor: 'muted', valor: quantity(events.total), sub: 'desde a importação' },
-    {
-      id: 'cost',
-      rotulo: 'Custo',
-      icone: 'cost',
-      cor: 'completed',
-      valor: cost(c.usd),
-      sub: c.usd === null ? `sem preço para ${c.unpriced.join(', ')}` : `estimativa · ${c.days} dias`,
-    },
-  ];
-}
-
-/** "5 precisam de você · 3 em pausa"; without either, "ninguém precisa de você". */
-export function sessionsDetail(sessions) {
-  const blocked = Number(sessions.blocked) || 0;
-  const idle = Number(sessions.idle) || 0;
-  const parts = [blocked ? `${blocked} ${blocked === 1 ? 'precisa' : 'precisam'} de você` : null, idle ? `${idle} em pausa` : null].filter(Boolean);
-  return parts.length ? parts.join(' · ') : 'ninguém precisa de você';
-}
+/** C47: with Todas and a remote, how many of the sessions at work are the remote's: "1 na Workstation". Empty without one. */
+export const workingNote = (byMachine, machines) => remoteParts(byMachine, machines, (b) => b.numbers?.sessions?.active).join(' · ');
 
 /** The blocked items of `/api/attention`, in its order (the oldest wait first). */
 export const blockedItems = (attention) => (attention?.items ?? []).filter((i) => isBlocked(attentionOfItem(i)));
@@ -151,15 +129,13 @@ export function idleChips(attention) {
 
 // ---------- Peças ----------
 
-const badge = (status) => el('span', { class: `badge b-${status}` }, el('span', { class: 'p' }), STATUS_LABEL[status] ?? '');
-
 /**
- * ADR-0028: the pill of a card or a row: the attention when there is one (Precisa de você, Em pausa, Com erro);
- * a waiting one without it does not wait on the person and is working ("Trabalhando"); the rest by status.
+ * ADR-0028, issue 759: the state of a card or a row, as the Mural writes it: the icon and the words, no pill. The attention
+ * when there is one (Precisa de você, Em pausa, Com erro); a waiting one without it does not wait on the person and is
+ * working ("Trabalhando"); the rest by status.
  */
 export function statusPill(status, attention) {
-  if (attentionOf(attention)) return attentionPill(attention);
-  return badge(statusWithoutAttention(status));
+  return stateTag(stateOfSession({ attention, status }));
 }
 
 /** The edge color of an agent card: the attention tone, or the status (waiting without attention is active). */
@@ -169,17 +145,6 @@ const cardTone = (status, attention) => attentionTone(attention) ?? statusWithou
 export function cardToneClass(status, attention) {
   const tone = cardTone(status, attention);
   return tone === 'blocked' || tone === 'idle' ? `dash-st-${tone}` : `st-${tone}`;
-}
-
-function numberCard(c) {
-  return el(
-    'div',
-    { class: 'card stat', 'data-card': c.id },
-    el('span', { class: 'label' }, c.rotulo),
-    el('span', { class: `ic color-${c.cor}` }, icon(c.icone)),
-    el('span', { class: 'v' }, c.valor, c.extra ? el('small', {}, c.extra) : null),
-    el('span', { class: 's' }, c.sub),
-  );
 }
 
 function inbox(attention, agents, write, navigate = () => {}) {
@@ -351,8 +316,9 @@ function useStyle() {
 export async function mount(area, ctx) {
   useStyle();
   useMessageStyle();
-  const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw() }, icon('refresh'), 'Atualizar');
-  const head = header({ icon: 'dashboard', title: 'Dashboard', sub: null, actions: [refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
+  const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw(true) }, icon('refresh'), 'Atualizar');
+  // issue 759: the greeting is the title and the sentence of the day is the subtitle; both are written in the same header node, never a new one.
+  const head = header({ icon: 'dashboard', title: greeting(Date.now()), sub: null, actions: [refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
   // Issue 243 (C47): the machine filter on its own row under the header. The Dashboard's own background
   // re-read (BACKGROUND_MS) and its re-read on every change already cover the remotes: the filter adds no
   // timer and no debounce of its own (the slow /api/dashboard is never read twice for one tick).
@@ -391,9 +357,22 @@ export async function mount(area, ctx) {
     if (last) paint(last);
   }
 
+  // issue 759: the sessions of the day and the spend of today, read at most once in DAY_MS; a read that fails keeps what was known.
+  let day = null;
+
+  /** What the day says, only for this machine's view: a remote's own day is not read here. */
+  function dayFor(attention) {
+    const own = machines.choice === 'all' || machines.choice === 'local';
+    const figures = own && day ? todayFigures(day.sessions, Date.now()) : todayFigures(null);
+    const spend = own && Number.isFinite(day?.spend) ? day.spend : null;
+    return { figures, spend, waiting: attention.ok ? blockedCount(attentionForChoice(attention.valor, machines.choice)) : null };
+  }
+
   function paint({ dashboard, atencao: attention }) {
-    const all = machines.choice === 'all';
-    const parts = [head, ...machines.parts(), el('div', { class: 'stats' }, ...cards(dashboard.numbers, all ? { byMachine: dashboard.byMachine, machines: machines.machines() } : {}).map(numberCard))];
+    const { figures, spend, waiting } = dayFor(attention);
+    head.querySelector('h1').textContent = greeting(Date.now());
+    setHeaderSub(head, summarySentence({ today: figures.today, yesterday: figures.yesterday, waiting, spend }));
+    const parts = [head, ...machines.parts(), hero({ working: Number(dashboard.numbers?.sessions?.active) || 0, workingNote: machines.choice === 'all' ? workingNote(dashboard.byMachine, machines.machines()) : '', spend: spend === null ? null : usd(spend), completed: figures.completed, hours: figures.hours })];
     // `/api/attention` covers every machine: the inbox keeps the chosen one's.
     const chosen = attention.ok ? attentionForChoice(attention.valor, machines.choice) : null;
     if (attention.ok) parts.push(inbox(chosen, dashboard.agents, ctx.write, ctx.navigate), idleRow(chosen));
@@ -402,9 +381,16 @@ export async function mount(area, ctx) {
     place(parts.filter(Boolean));
   }
 
-  async function draw() {
+  async function draw(force = false) {
     const mine = ++request;
-    const [d, a] = await Promise.allSettled([ctx.read(machines.route(DASHBOARD_ROUTE)), ctx.read(ATTENTION_ROUTE)]);
+    const stale = force === true || !day || Date.now() - day.at >= DAY_MS - 500;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const [d, a, sessions, spend] = await Promise.allSettled([
+      ctx.read(machines.route(DASHBOARD_ROUTE)),
+      ctx.read(ATTENTION_ROUTE),
+      stale ? ctx.read(SESSIONS_ROUTE) : null,
+      stale ? ctx.read(`${COST_ROUTE}${timeZone ? `&tz=${encodeURIComponent(timeZone)}` : ''}`) : null,
+    ]);
     if (mine !== request || ctx.signal.aborted) return;
     if (d.status === 'rejected') {
       if (d.reason?.name === 'AbortError') return;
@@ -414,6 +400,13 @@ export async function mount(area, ctx) {
       return;
     }
     if (a.status === 'rejected' && a.reason?.name === 'AbortError') return;
+    if (stale) {
+      day = {
+        at: Date.now(),
+        sessions: sessions.status === 'fulfilled' ? sessions.value : (day?.sessions ?? null),
+        spend: spend.status === 'fulfilled' ? (spend.value?.todaySummary?.usd ?? null) : (day?.spend ?? null),
+      };
+    }
     const attention = a.status === 'fulfilled' ? { ok: true, valor: a.value } : { ok: false, erro: a.reason };
     machines.update(d.value);
     last = { dashboard: d.value, atencao: attention };

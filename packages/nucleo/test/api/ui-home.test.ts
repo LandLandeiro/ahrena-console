@@ -222,7 +222,7 @@ describe('issue 759: the Início mounted', () => {
       assert.equal(r.querySelectorAll('.state-tag').length, 1);
       assert.equal(r.querySelectorAll('.state-icon').length, 1);
     }
-    assert.deepEqual(rows.map((r) => texto(r.querySelector('.state-tag-label'))), ['Trabalhando', 'Concluída', 'Precisa de você']);
+    assert.deepEqual(rows.map((r) => texto(r.querySelector('.state-tag-label'))), ['Trabalhando', 'Concluída', 'Pede permissão']);
     assert.equal(area.querySelectorAll('.badge').length, 0);
     leave.abort();
   });
@@ -230,7 +230,7 @@ describe('issue 759: the Início mounted', () => {
   test('the sections keep their h2: the inbox, the active agents and the recent activity', async () => {
     const { ctx, area, leave } = rig({});
     stops.push(await dashboard.mount(area, ctx));
-    assert.deepEqual(area.querySelectorAll('h2').map((h) => texto(h).replace(/\s+/g, ' ').slice(0, 14)), ['1 precisa de v', 'Agentes ativos', 'Atividade rece']);
+    assert.deepEqual(area.querySelectorAll('h2.ttl').map((h) => texto(h).replace(/\s+/g, ' ').slice(0, 14)), ['1 precisa de v', 'Agentes ativos', 'Atividade rece']);
     leave.abort();
   });
 
