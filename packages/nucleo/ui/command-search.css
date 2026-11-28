@@ -1,0 +1,39 @@
+/* The search of the sidebar (ADR-0028): the field at the top of the bar and the modal dialog it opens. Loaded once by index.html;
+   every class carries `cc-search` or `cs-`. Every value comes from brand.css. */
+
+.cc-search-host { flex: none; padding: 0 8px 8px; }
+.cc-search { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 0 8px 0 10px; font: inherit; font-size: var(--text-sm); text-align: left; color: var(--muted); background: var(--surface); border: 1px solid var(--border-control); border-radius: var(--radius-control); cursor: pointer; }
+.cc-search .icon { font-size: 15px; }
+.cc-search:hover { color: var(--text); background: var(--raised); }
+.cc-search:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.cc-search-label { flex: 1; min-width: 0; }
+.cc-search-key, .cs-enter { flex: none; padding: 0 5px; font-family: var(--font-mono); font-size: 11px; line-height: 18px; color: var(--subtle); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-tag); }
+
+.cs-scrim { position: fixed; inset: 0; z-index: 60; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px; background: color-mix(in srgb, var(--mono-black) 30%, transparent); }
+.cs-dialog { display: flex; flex-direction: column; width: 560px; max-width: 100%; max-height: min(520px, 100%); overflow: hidden; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); font-size: var(--text-sm); animation: cs-in var(--motion-fast) var(--ease-out) both; }
+@keyframes cs-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .cs-dialog { animation: none; } }
+
+.cs-head { display: flex; align-items: center; gap: 10px; padding: 0 8px 0 14px; border-bottom: 1px solid var(--border); color: var(--muted); }
+.cs-head > .icon { font-size: 16px; }
+.cs-input { flex: 1; min-width: 0; height: 44px; padding: 0; font: inherit; font-size: var(--text-md); color: var(--text); background: transparent; border: 0; border-radius: var(--radius-control); }
+.cs-input::placeholder { color: var(--subtle); }
+.cs-input:focus-visible, .cs-close:focus-visible, .cs-row:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.cs-close { flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: var(--muted); background: transparent; border: 0; border-radius: var(--radius-control); font-size: 16px; }
+.cs-close:hover { color: var(--text); background: var(--raised); }
+
+.cs-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 6px; }
+.cs-group-title { margin: 8px 0 2px; padding: 0 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--subtle); font-weight: var(--weight-semibold); }
+.cs-row { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 32px; padding: 0 8px; color: var(--text); border: 1px solid transparent; border-radius: var(--radius-control); }
+.cs-row.on { background: var(--raised); border-color: var(--border-control); }
+.cs-row .icon { font-size: 16px; color: var(--muted); }
+.cs-state { display: inline-flex; flex: none; }
+.cs-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-where { flex: none; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-xs); color: var(--muted); }
+.cs-tag { flex: none; padding: 0 6px; font-size: 11px; line-height: 16px; color: var(--muted); border: 1px solid var(--border-control); border-radius: var(--radius-tag); white-space: nowrap; }
+.cs-status { padding: 7px 14px; font-size: var(--text-xs); color: var(--muted); border-top: 1px solid var(--border); }
+
+@media (max-width: 599px) {
+  .cs-scrim { padding-top: 8px; }
+  .cs-where { display: none; }
+}

@@ -42,15 +42,13 @@ function respostaFalsa() {
 }
 
 describe('Histórico: registro e arquivo', () => {
-  test('está na barra na ordem do wireframe (depois de Sessões e Analytics), em /ui/history, com o arquivo da tela', () => {
+  test('não tem item e acende Sessões, em /ui/history, com o arquivo da tela', () => {
     const telas = SCREENS as Screen[];
-    const naBarra = telas.filter((t) => t.item).map((t) => t.id);
-    for (const antes of ['dashboard', 'sessions', 'analytics', 'workflows']) {
-      if (naBarra.includes(antes)) assert.ok(naBarra.indexOf(antes) < naBarra.indexOf('history'), antes);
-    }
     const h = telas.find((t) => t.id === 'history')!;
     assert.equal(h.route, '/ui/history');
-    assert.deepEqual(h.item, { label: 'Histórico', icon: 'history', section: 'main' });
+    // #754: o Histórico não tem item; acende Sessões e é a aba "Encerradas".
+    assert.equal(h.item, undefined);
+    assert.equal((h as unknown as { highlights: string }).highlights, 'sessions');
     assert.equal(h.file, '/ui/screens/history.js');
   });
 

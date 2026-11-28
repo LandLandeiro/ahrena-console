@@ -64,7 +64,7 @@ export function queueParts(parts, card, { queued = false, offer = false, stopped
   if (queued && stoppedReason) {
     const retry = el(
       'button',
-      { type: 'button', class: 'btn filled sm wb-plan-act', 'data-action': 'queue-retry', 'aria-label': `Tentar de novo (fila parada na ${number})`, 'aria-busy': retrying ? 'true' : null, disabled: retrying, onClick: () => onRetry?.() },
+      { type: 'button', class: 'btn outline sm wb-plan-act', 'data-action': 'queue-retry', 'aria-label': `Tentar de novo (fila parada na ${number})`, 'aria-busy': retrying ? 'true' : null, disabled: retrying, onClick: () => onRetry?.() },
       icon('refresh'),
       'Tentar de novo',
     );

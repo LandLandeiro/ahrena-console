@@ -12,9 +12,10 @@
 //
 // Everything from the núcleo goes in through `textContent` (`el()`), never as HTML.
 
-import { el, header as screenHeader, icon } from '../dom.js';
+import { el, header as screenHeader, icon, setHeaderSub } from '../dom.js';
 import { empty, error, errorBand, loading as loadingState } from '../states.js';
 import { attentionOf, isBlocked, isIdle, reasonChip } from '../attention.js';
+import { boardColumnLabel, stateLabel } from '../state-labels.js';
 import { connectEmptyFor, connectionChanged, isGithubNotConnected } from '../github-connect.js';
 
 const RELOAD_MS = 30_000;
@@ -31,7 +32,7 @@ export const DEV_COLUMNS = [
   { id: 'todo', label: 'A fazer', criterion: 'aberta, sem branch nem sessão', tone: 'abandoned' },
   { id: 'delegated', label: 'Delegada', criterion: 'sessão aberta no branch da issue, sem push', tone: 'waiting' },
   { id: 'in-progress', label: 'Em desenvolvimento', criterion: 'o branch da issue está no remoto', tone: 'active' },
-  { id: 'in-review', label: 'Em revisão', criterion: 'tem PR aberto que fecha a issue', tone: 'active' },
+  { id: 'in-review', get label() { return boardColumnLabel('review'); }, criterion: 'tem PR aberto que fecha a issue', tone: 'active' },
   { id: 'blocked', label: 'Bloqueada', criterion: 'etiqueta blocked na issue', tone: 'error' },
   { id: 'done', label: 'Feita', criterion: 'fechada nas últimas 24 h', tone: 'completed' },
 ];
@@ -153,11 +154,11 @@ export function scoreboardCards(view) {
       tone: 'error',
       alert: s.ciFailingOrConflict > 0,
     },
-    { id: 'working', label: 'Trabalhando', value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão ativa' : 'sessões ativas', icon: 'bot', tone: 'accent', alert: false },
+    { id: 'working', label: stateLabel('active', { plural: true }), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão trabalhando' : 'sessões trabalhando', icon: 'bot', tone: 'accent', alert: false },
     {
       // issue 245: only what blocks (sessions and decisions); the idle ones of the context stay apart.
       id: 'blocked',
-      label: 'Precisam de você',
+      label: stateLabel('blocked', { plural: true }),
       value: s.waitingOnYou,
       sub: blockedSub(sessions, decisions, s.idle),
       icon: 'hand',
@@ -167,11 +168,11 @@ export function scoreboardCards(view) {
   ];
 }
 
-/** "2 sessões, 1 decisão · 1 ociosa fora"; nothing blocked is "ninguém". */
+/** "2 sessões, 1 decisão · 1 em pausa fora"; nothing blocked is "ninguém". */
 export function blockedSub(sessions, decisions, idle) {
   const blocked = [sessions ? plural(sessions, 'sessão', 'sessões') : null, decisions ? plural(decisions, 'decisão', 'decisões') : null].filter(Boolean).join(', ') || 'ninguém';
   const n = Number.isInteger(idle) ? idle : 0;
-  return n ? `${blocked} · ${n} ${n === 1 ? 'ociosa' : 'ociosas'} fora` : blocked;
+  return n ? `${blocked} · ${n} em pausa fora` : blocked;
 }
 
 /** The attention of a board card's session: its `attention`, or `waitingOnYou` from an older core. */
@@ -337,7 +338,7 @@ function boardCard(card, column) {
   const attention = cardAttention(card.session);
   const blocked = isBlocked(attention);
   const idle = isIdle(attention);
-  const chip = blocked ? el('span', { class: 'attention-chip dev-card-chip' }, 'precisa de você') : idle ? el('span', { class: 'attention-chip attention-chip-light dev-card-chip' }, 'ociosa') : null;
+  const chip = blocked ? el('span', { class: 'attention-chip dev-card-chip' }, 'precisa de você') : idle ? el('span', { class: 'attention-chip attention-chip-light dev-card-chip' }, 'em pausa') : null;
   return el(
     'div',
     { class: `card dev-card${blocked ? ' dev-card-waiting' : idle ? ' dev-card-idle' : ''}${column === 'blocked' ? ' dev-card-blocked' : ''}` },
@@ -451,8 +452,7 @@ export async function mount(area, ctx) {
   ctx.signal.addEventListener('abort', () => (stop(), sheet?.remove()));
 
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => read() }, icon('refresh'), 'Atualizar');
-  const header = screenHeader({ icon: 'gauge', title: 'Dev Console', sub: 'PRs, issues e sessões dos repositórios do contexto', actions: [refresh] });
-  const sub = header.querySelector('.sub');
+  const header = screenHeader({ icon: 'gauge', title: 'Dev Console', sub: null, actions: [refresh] });
 
   area.replaceChildren(header, loadingState({ label: 'Lendo o Dev Console' }));
 
@@ -515,7 +515,7 @@ export async function mount(area, ctx) {
     const focusedIndex = focused ? focusables(area).filter((n) => focusKey(n) === focused).indexOf(active) : -1;
 
     const shown = state.tab === MERGE_QUEUE_TAB ? overview : view;
-    if (sub) sub.textContent = `PRs, issues e sessões dos repositórios do contexto${shown?.readAt ? ` · GitHub lido ${ago(shown.readAt, now)}` : ''}`;
+    setHeaderSub(header, shown?.readAt ? `GitHub lido ${ago(shown.readAt, now)}` : null);
     const failureBand = band('failure', failure, (t) => errorBand({ title: 'Não deu para atualizar.', text: t, action: { label: 'Tentar de novo', onClick: () => read() } }));
     const stale = band('stale', staleText(shown), (t) => {
       const node = errorBand({ title: 'Sem conexão com o GitHub.', text: t });

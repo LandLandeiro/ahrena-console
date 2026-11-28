@@ -752,7 +752,7 @@ export async function mount(area, ctx) {
         conditionParts(machine, data.reading, { retry: () => draw(), ownerProofRetry: () => retryOwnerProof(), version: data.version, now }));
     const condition = conn?.view(data, legacy, now) ?? legacy;
     const line = headerLine(data.reading, machine, { local, offline: condition.faded, now });
-    if (sub) sub.textContent = (conn ? conn.headerLine(line) : line) || (local ? 'A telemetria medida pelo núcleo daqui' : 'Máquina remota');
+    if (sub) sub.textContent = (conn ? conn.headerLine(line) : line) || ' ';
     // The owner proof (issue 388) says its reason on the pill, over the connection's "Sem conexão": the tunnel is up.
     if (!local && machine) pillSlot.replaceChildren(pill((ownerAuthReason(machine) && machine.reconnect?.state !== 'running' ? statePill(machine) : null) ?? conn?.pill() ?? statePill(machine)));
     const ownPort = Number(globalThis.location?.port) || null;

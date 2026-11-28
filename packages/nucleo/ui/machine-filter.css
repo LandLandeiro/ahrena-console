@@ -5,18 +5,21 @@
 .mf-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .mf-filter { display: inline-flex; gap: 8px; align-items: center; min-width: 0; flex-wrap: wrap; }
 .mf-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.mf-seg { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; min-width: 0; }
+.mf-seg { display: inline-flex; flex-wrap: wrap; padding: 3px; gap: 2px; background: var(--bg); border: 1px solid var(--border-control); border-radius: 9px; min-width: 0; }
 .mf-seg button { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: var(--text-xs); color: var(--muted); background: none; border: 0; padding: 4px 10px; border-radius: 6px; white-space: nowrap; cursor: pointer; }
 .mf-seg button .icon { width: 13px; height: 13px; }
 .mf-seg button:hover { color: var(--text); }
 .mf-seg button[aria-pressed="true"] { background: var(--raised); color: var(--text); }
-.mf-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mf-seg button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 /* A remote that is down: grey, with the wifi-off icon (C48). */
 .mf-seg button.mf-off { color: var(--status-abandoned-text); opacity: .75; }
 
 /* The tag of a remote item: muted, never truncated (the text beside it shrinks instead). */
 .mf-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; color: var(--muted); font-family: var(--font-sans); font-size: 11px; font-weight: var(--weight-regular); white-space: nowrap; }
 .mf-tag .icon { width: 12px; height: 12px; flex: none; }
+.mf-mach { display: inline-flex; align-items: center; gap: 6px; min-width: 0; max-width: 100%; white-space: nowrap; }
+.mf-mach > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mf-mach .icon { width: 14px; height: 14px; flex: none; opacity: .8; }
 /* A text and its tag on one line: the text truncates, the tag stays whole. */
 .mf-with-tag { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .mf-with-tag > .mf-shrink { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -28,3 +31,27 @@
 .mf-notice p { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .mf-notice b { color: var(--text); font-weight: var(--weight-semibold); }
 .mf-notice-link { flex: none; }
+
+/* ADR-0028: the machine menu of the wall: a button and a panel of radio options. */
+.mf-menu { position: relative; min-width: 0; max-width: 100%; }
+.mf-menu-button { max-width: 100%; }
+.mf-menu-button .mf-menu-label, .mf-menu-item .mf-menu-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-menu-off { flex: none; color: var(--status-abandoned-text); white-space: nowrap; }
+.mf-menu-panel { position: absolute; left: 0; top: calc(100% + 6px); z-index: 20; min-width: 240px; max-width: calc(100vw - 32px); padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: var(--shadow-float); }
+.mf-menu-panel[hidden] { display: none; }
+.mf-menu-panel.mf-menu-end { left: auto; right: 0; }
+.mf-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text); font: inherit; font-size: var(--text-md); text-align: left; cursor: pointer; }
+.mf-menu-item:hover, .mf-menu-item[aria-checked="true"] { background: var(--raised); }
+.mf-menu-item:focus-visible, .mf-menu-button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: -2px; }
+.mf-menu-button:focus-visible { outline-offset: 2px; }
+.mf-menu-icon { display: inline-flex; flex: none; color: var(--muted); }
+.mf-menu-button .mf-menu-icon { color: inherit; }
+.mf-menu-item .icon, .mf-menu-button .icon { width: 15px; height: 15px; flex: none; }
+.mf-menu-count { margin-left: auto; flex: none; color: var(--subtle); font-size: var(--text-sm); font-variant-numeric: tabular-nums; }
+.mf-menu-check { display: inline-flex; flex: none; visibility: hidden; }
+.mf-menu-item[aria-checked="true"] .mf-menu-check { visibility: visible; }
+.mf-menu-item.mf-off { color: var(--status-abandoned-text); }
+
+/* Issue 764 (WCAG 2.5.8): the touch area is 24 px at least; the drawing keeps its size. */
+.mf-seg button { position: relative; }
+.mf-seg button::after { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, 24px); height: max(100%, 24px); transform: translate(-50%, -50%); }

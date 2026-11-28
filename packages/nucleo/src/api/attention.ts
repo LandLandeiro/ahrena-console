@@ -38,7 +38,7 @@ export function atencaoDe(inbox: Pick<InboxReading, 'status' | 'state' | 'reason
 // `attention: { level, reason } | null`:
 // - `level` `blocked` ("Precisa de você" on screen): the session is stuck until the person acts, with
 //   the reason `permission`, `question`, `plan`, `decision` or `error` (the `precisa` level above);
-// - `level` `idle` ("Ociosa" on screen): the turn ended and nothing blocks, with the reason
+// - `level` `idle` ("Em pausa" on screen): the turn ended and nothing blocks, with the reason
 //   `turn_ended`, `interrupted` or `first_prompt` (the `sua-vez` level above);
 // - `null`: the session is not waiting on you and not in error (working, delegating, in background,
 //   completed, abandoned).

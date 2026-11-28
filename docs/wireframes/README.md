@@ -1,5 +1,7 @@
 # Wireframes
 
+> **Nota (#753, decisão [0028](../decisoes/0028-console-visual-redesign.md)):** os nomes de estado "Ativa" e "Ociosa", citados nos wireframes da #245 abaixo e em `index.html`, hoje são "Trabalhando" e "Em pausa" (o motivo continua ao lado: "Em pausa · Sua vez"). As capturas e os desenhos antigos não são regerados; vale o texto da /ui.
+
 Wireframes de todas as telas da 0.0.1, para aprovação antes de construir:
 
 - **Painel lateral** (mod do Claude Code, decisão [0004](../decisoes/0004-painel-da-sessao.md)): P0 a P18, em 38 e 121 colunas, com as decisões da sessão (P9 e P10) e o grafo da sessão com os subagentes (P11 a P13, issue #146), a sessão numa máquina sem conexão (P14, issue #278), e o "Ver" com as sessões de todas as máquinas e o filtro de máquina (P15), com uma máquina sem conexão (P16, issue #262), e, com o painel fechado, a faixa acima do prompt com Abrir e Ocultar (P17) e o caminho de volta pelo painel depois de Ocultar (P18, issue #406).
@@ -40,3 +42,9 @@ node docs/wireframes/montar.mjs --checar
 ```
 
 Os dados são sintéticos, com o vocabulário do simulador (`packages/nucleo/src/simulador`).
+
+## Redesign visual
+
+O redesign visual (redesign-wall, redesign-home, redesign-sessions, redesign-session-detail e redesign-session-detail-working, épico #748, decisão [0028](../decisoes/0028-console-visual-redesign.md), aprovado por Fernando em 24/11/2026): a linguagem nova aplicada primeiro ao Mural ao vivo, com tema claro e escuro no mesmo nível, fonte do sistema, cantos suaves, estado como ícone desenhado mais rótulo, cor por agente no monograma e ícone de máquina. O Mural se organiza por quem precisa de você: cards só para quem espera, com a pergunta em letra grande e a resposta ali mesmo, e listas para Trabalhando, Em pausa e Concluídas, com a frase-resumo no topo. Início, Sessões e o Detalhe aparecem como referência para a #759. Esses `redesign-*` são nomes de captura, não seções do `index.html`. Capturas em [capturas/](capturas/) como `redesign-<tela>-<largura>-<tema>.png` (por exemplo `redesign-wall-1100-dark.png`), e o Mural no celular em `redesign-wall-390-light.png`.
+
+O protótipo navegável aprovado é [redesign-prototype.html](redesign-prototype.html), uma cópia byte a byte do que o Fernando aprovou. Abra no navegador: tem dados fictícios, tema claro e escuro, um evento ao vivo simulado a cada 15 s e as telas Mural, Início, Sessões e Detalhe (`#mural`, `#inicio`, `#sessoes`, `#s-n1`). É um arquivo separado e congelado, uma referência: as cores são escritas à mão, fica fora de `montar.mjs` e de `capturar.mjs` e não entra no artefato publicado (`index.html`). As capturas em `capturas/redesign-*` são as dele. Ele usa o divisor (`--line`) como borda de controle, e a regra `borderControl` da decisão [0028](../decisoes/0028-console-visual-redesign.md) (token `--border-control`) substitui isso: as telas usam `--border-control` em campos, caixas de seleção e botões sem fundo.
