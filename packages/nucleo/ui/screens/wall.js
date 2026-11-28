@@ -381,7 +381,7 @@ function skeleton() {
   return el(
     'section',
     { class: 'wall-skel', 'aria-label': 'Lendo o mural' },
-    // ADR-0028, #758-wall-polish: busy on an inner node, never on a direct child of the area: the switch of screen (#765) reads a busy child as "no data yet" and keeps its ghost over this skeleton.
+    // ADR-0028, #758-wall-polish: busy on an inner node, never on a direct child of the area: the switch of screen (issue 765) reads a busy child as "no data yet" and keeps its ghost over this skeleton.
     el(
       'div',
       { class: 'wall-skel-body', 'aria-busy': 'true' },

@@ -684,9 +684,9 @@ describe('Mural: a tela montada', () => {
     let soltar: (v: unknown) => void = () => {};
     const { area, pronta, sair } = await montarTela(() => new Promise((r) => (soltar = r)));
     try {
-      // #758: the loading is the skeleton with the shape of one card and three rows (ADR-0028), still busy and named.
+      // #758: the loading is the skeleton with the shape of one card and three rows (ADR-0028), named, and busy on a node inside it.
       assert.equal(comClasse(area, 'wall-skel').length, 1);
-      assert.equal(comClasse(area, 'wall-skel')[0]!.getAttribute('aria-busy'), 'true');
+      assert.equal(comClasse(comClasse(area, 'wall-skel')[0]!, 'wall-skel-body')[0]!.getAttribute('aria-busy'), 'true');
       soltar({ ...MURAL, count: { all: 0, waiting: 0, active: 0, blocked: 0, idle: 0 }, cards: [] });
       await pronta;
       assert.equal(comClasse(area, 'wall-skel').length, 0);
