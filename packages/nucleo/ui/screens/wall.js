@@ -5,7 +5,7 @@
 
 import { el, icon } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
-import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle } from '../attention.js';
+import { ATTENTION_PLURAL, ATTENTION_REASONS, attentionOf, isIdle, isYourTurn } from '../attention.js';
 import { stateOfSession, stateTag } from '../state-icon.js';
 import { agentMonogram } from '../agent-monogram.js';
 import { openAction } from '../open-action.js';
@@ -22,6 +22,7 @@ export const HIGH_CONTEXT = 90;
 // ADR-0028, issue 751: the agent is data, from the contract's `identity.provider`; no identity is the legacy Claude.
 const AGENTS = { codex: 'Codex' };
 const SEE_SESSION = 'Ver sessão';
+const ANSWER = 'Responder';
 
 /** The agent's name on screen: 'Codex' for a codex session, 'Claude' for the rest (ADR-0028, issue 751). */
 export const agentOf = (c) => AGENTS[c?.identity?.provider] ?? 'Claude';
@@ -78,30 +79,42 @@ export function cardContent(c) {
   };
 }
 
-// ADR-0028: an idle row says why it waits ("Sua vez · text"); the text alone when it already starts with the reason.
-function idlePhrase(c) {
+// ADR-0028, issue 761: a row says why it waits ("Interrompida · text", "Sua vez · text"); the text alone when it already starts with the reason.
+// An idle row says its idle reason, a "Sua vez" row (blocked, low urgency) says "Sua vez"; any other reason is the text.
+function reasonPhrase(c) {
   const a = attentionOf(c.attention);
-  const reason = a?.level === 'idle' && a.reason && ATTENTION_REASONS[a.reason]?.level === 'idle' ? ATTENTION_REASONS[a.reason].label : null;
+  const known = a?.reason ? ATTENTION_REASONS[a.reason] : null;
+  const reason = known && known.level === a.level && (a.level === 'idle' || isYourTurn(a)) ? known.label : null;
   const text = clean(c.activity?.text);
   if (!reason) return text;
   if (!text) return reason;
   return text.toLowerCase().startsWith(reason.toLowerCase()) ? text : `${reason} · ${text}`;
 }
 
+const answerHref = (c) => {
+  const href = itemHref(c);
+  return `${href}${href.includes('?') ? '&' : '?'}focus=message#conversation`;
+};
+
 /** What a row shows, without DOM: the phrase, the slice of the state, "passo X de Y" when there is a plan and the time of a completed one. */
 export function rowContent(c) {
   const v = base(c);
   const plan = planOf(c);
   const idle = isIdle(c.attention);
+  // issue 761: "Sua vez" is blocked, drawn as a row under the cards: it carries how long ago like an idle row, and the answer.
+  const turn = isYourTurn(c.attention);
   return {
     ...v,
-    phrase: c.status === 'completed' ? 'Terminou sem erro' : idlePhrase(c),
+    phrase: c.status === 'completed' ? 'Terminou sem erro' : reasonPhrase(c),
     fraction: plan ? plan.step / plan.total : 0,
     // ADR-0028: an idle row is the icon, the written label and the time; the "passo X de Y" is for the others.
-    ratio: plan && !idle && c.status !== 'completed' ? `passo ${plan.step} de ${plan.total}` : null,
+    ratio: plan && !idle && !turn && c.status !== 'completed' ? `passo ${plan.step} de ${plan.total}` : null,
     // ADR-0028: a completed row shows the time of its last activity (`since`), not the plan.
     time: c.status === 'completed' ? clockOf(c.since) || null : null,
     idle,
+    turn,
+    // issue 761: "Responder" goes to the Detail with the box focused (`composeHref` of session-message.js); a remote keeps its `?machine=`.
+    answerHref: turn ? answerHref(c) : null,
     since: c.since,
   };
 }
@@ -229,10 +242,12 @@ function row(c, write, nest, known, mono, place = '') {
         'div',
         { class: 'wall-side' },
         tagOver(stateTag({ kind: v.state.kind, label: v.state.label, fraction: v.fraction }), link),
-        v.idle ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
+        v.idle || v.turn ? el('span', { class: 'wall-since' }, sinceText(v.since)) : null,
         v.time ? el('span', { class: 'wall-since', title: 'Última atividade' }, v.time) : null,
         v.ratio ? el('span', { class: 'wall-ratio' }, v.ratio) : null,
         machineOf(c, known),
+        // issue 761: a separate control, above the stretched link; its name carries the title, as the link of the row does not say "Responder".
+        v.turn ? el('a', { class: 'btn outline sm wall-answer', href: v.answerHref, 'aria-label': `${ANSWER}, ${v.title}`, 'data-answer': v.key }, ANSWER) : null,
         action ? el('span', { class: 'wall-act' }, action) : null,
       ),
     ),
@@ -519,13 +534,24 @@ export async function mount(area, ctx) {
     const sections = [];
     const section = (id, title, count, ...content) => {
       const h = el('h2', { class: 'wall-h', id: `wall-h-${id}` }, `${title} `, el('span', { class: 'wall-h-n' }, String(count)));
-      return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content);
+      return el('section', { class: `wall-sec wall-sec-${id}`, 'aria-labelledby': h.id }, h, ...content.filter(Boolean));
     };
     const list = (id, nodes, extra = '') => el('div', { class: `wall-list${extra}`, role: 'list', 'aria-labelledby': `wall-h-${id}` }, ...nodes);
     const rowsOf = (id) => by[id].map((c) => row(c, ctx.write, nest, known, mono).node);
     const calm = (filter === 'all' || filter === 'blocked') && total > 0 && !machines.chosenDown();
     if (by.blocked.length) {
-      sections.push(section('blocked', ATTENTION_PLURAL.blocked, by.blocked.length, el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...by.blocked.map((c) => card(c, ctx.write, nest, known, mono).node))));
+      // issue 761: the cards first, then "Sua vez" as rows, each kind in the core's order; the count of the section is both.
+      const asked = by.blocked.filter((c) => !isYourTurn(c.attention));
+      const turns = by.blocked.filter((c) => isYourTurn(c.attention));
+      sections.push(
+        section(
+          'blocked',
+          ATTENTION_PLURAL.blocked,
+          by.blocked.length,
+          asked.length ? el('div', { class: 'wall-grid', role: 'list', 'aria-labelledby': 'wall-h-blocked' }, ...asked.map((c) => card(c, ctx.write, nest, known, mono).node)) : null,
+          turns.length ? list('blocked', turns.map((c) => row(c, ctx.write, nest, known, mono).node)) : null,
+        ),
+      );
     } else if (calm) {
       sections.push(section('blocked', ATTENTION_PLURAL.blocked, 0, calmBlock()));
     }

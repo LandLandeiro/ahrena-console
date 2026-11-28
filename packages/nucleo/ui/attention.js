@@ -2,9 +2,11 @@
 //
 // - `blocked` ("Precisa de você"): the session is stuck until the person acts. Yellow, highlighted, always
 //   with the reason (permission, question, plan, decision). An `error` session is blocked too, but keeps
-//   its own red "Com erro" pill.
-// - `idle` ("Ociosa"): the turn ended and nothing is stuck. Neutral tokens, hollow dot, no fill, the
-//   reason in a light chip (turn ended, interrupted, at the prompt).
+//   its own red "Com erro" pill. "Sua vez" (`turn_ended`, #761) is blocked as well, with the lowest urgency:
+//   the turn ended and the session waits for the answer. Its pill and chip are light (outline, no fill),
+//   and still say it in text and icon, never by colour alone.
+// - `idle` ("Ociosa"): nothing is stuck and nothing is asked. Neutral tokens, hollow dot, no fill, the
+//   reason in a light chip (interrupted, at the prompt).
 //
 // Every route answers the same `attention: { level, reason } | null` (packages/nucleo/README.md,
 // "Precisa de você e ociosa (issue 245)"). The classes live in shell.css, loaded by every screen.
@@ -23,7 +25,7 @@ export const ATTENTION_REASONS = {
   plan: { level: 'blocked', label: 'Plano para aprovar', icon: 'list-checks' },
   decision: { level: 'blocked', label: 'Decisão pedida', icon: 'hand' },
   error: { level: 'blocked', label: 'Com erro', icon: 'error' },
-  turn_ended: { level: 'idle', label: 'Sua vez', icon: 'your-turn' },
+  turn_ended: { level: 'blocked', label: 'Sua vez', icon: 'your-turn' },
   interrupted: { level: 'idle', label: 'Interrompida', icon: 'interrupted' },
   first_prompt: { level: 'idle', label: 'No prompt', icon: 'no-prompt' },
 };
@@ -38,11 +40,14 @@ export function attentionOf(value) {
 /**
  * The attention of an item of `GET /api/attention`: its `attention`, or, from an older core (a remote
  * machine that was not updated), the old `level` (`needs` is blocked, `your-turn` idle) and `reason`.
+ * "Sua vez" is the exception (#761): a remote from before it sends `your-turn` for the turn that ended, and
+ * the core reads that as a session that needs you (src/api/attention-route.ts), so this does too.
  */
 export function attentionOfItem(item) {
   const a = attentionOf(item?.attention);
   if (a) return a;
   if (item?.reason === 'error') return { level: 'blocked', reason: 'error' };
+  if (item?.reason === 'your-turn' && (item.level === 'needs' || item.level === 'your-turn')) return { level: 'blocked', reason: 'turn_ended' };
   if (item?.level === 'needs') return { level: 'blocked', reason: ATTENTION_REASONS[item.reason]?.level === 'blocked' ? item.reason : null };
   if (item?.level === 'your-turn') return { level: 'idle', reason: null };
   return null;
@@ -59,6 +64,11 @@ export function statusWithoutAttention(status) {
 
 export const isBlocked = (value) => attentionOf(value)?.level === 'blocked';
 export const isIdle = (value) => attentionOf(value)?.level === 'idle';
+/** "Sua vez" (#761): blocked, with the lowest urgency. It is a row in "Precisam de você", never a card. */
+export const isYourTurn = (value) => {
+  const a = attentionOf(value);
+  return a?.level === 'blocked' && a.reason === 'turn_ended';
+};
 /** A blocked session stopped by an error: it keeps the red "Com erro" pill. */
 export const isError = (value) => {
   const a = attentionOf(value);
@@ -85,20 +95,23 @@ export function reasonLabel(value) {
   return a?.reason ? (ATTENTION_REASONS[a.reason]?.label ?? null) : null;
 }
 
-/** The pill of an attention: yellow "Precisa de você", neutral hollow "Ociosa" or red "Com erro". */
+/**
+ * The pill of an attention: yellow "Precisa de você", neutral hollow "Ociosa" or red "Com erro". "Sua vez" is
+ * "Precisa de você" in its light form (`attention-pill-low`): outline without the strong yellow of a card.
+ */
 export function attentionPill(value, { extraClass = '' } = {}) {
   const tone = attentionTone(value);
   if (!tone) return null;
   return el(
     'span',
-    { class: `attention-pill attention-pill-${tone}${extraClass ? ` ${extraClass}` : ''}`, 'data-attention': tone },
+    { class: `attention-pill attention-pill-${tone}${isYourTurn(value) ? ' attention-pill-low' : ''}${extraClass ? ` ${extraClass}` : ''}`, 'data-attention': tone },
     el('span', { class: 'attention-pill-dot' }),
     attentionText(value),
   );
 }
 
 /**
- * The reason chip: strong (yellow) when blocked, light (neutral) when idle. The error reason has no
+ * The reason chip: strong (yellow) when blocked, light (neutral) when idle or when it is "Sua vez" (#761). The error reason has no
  * chip by default (the red pill already says it); `withError` draws a red chip where only the chip shows.
  */
 export function reasonChip(value, { withError = false } = {}) {
@@ -106,7 +119,7 @@ export function reasonChip(value, { withError = false } = {}) {
   const reason = a?.reason ? ATTENTION_REASONS[a.reason] : null;
   if (!reason) return null;
   if (a.reason === 'error' && !withError) return null;
-  const kind = a.reason === 'error' ? ' attention-chip-error' : a.level === 'idle' ? ' attention-chip-light' : '';
+  const kind = a.reason === 'error' ? ' attention-chip-error' : a.level === 'idle' || a.reason === 'turn_ended' ? ' attention-chip-light' : '';
   return el('span', { class: `attention-chip${kind}`, 'data-reason': a.reason }, icon(reason.icon), reason.label);
 }
 
@@ -115,7 +128,7 @@ export function attentionBadges(value) {
   return [attentionPill(value), reasonChip(value)].filter(Boolean);
 }
 
-/** The status dot: solid yellow for blocked, hollow neutral for idle. */
+/** The status dot: solid yellow for blocked, hollow neutral for idle (it only knows the level, so Sua vez is yellow too). */
 export function attentionDot(level) {
   return el('span', { class: `attention-dot attention-dot-${level === 'blocked' ? 'blocked' : 'idle'}`, 'aria-hidden': 'true' });
 }

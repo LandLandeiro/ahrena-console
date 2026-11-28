@@ -162,6 +162,7 @@ button { font: inherit; cursor: pointer; }
 .attention-pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 11.5px; font-weight: var(--weight-medium); white-space: nowrap; flex: none; vertical-align: middle; }
 .attention-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
 .attention-pill-blocked { background: var(--status-waiting-badge); color: var(--status-waiting-text); font-weight: var(--weight-semibold); }
+.attention-pill-blocked.attention-pill-low { background: transparent; font-weight: var(--weight-medium); box-shadow: inset 0 0 0 1px var(--border); }
 .attention-pill-idle { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
 .attention-pill-idle .attention-pill-dot { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
 .attention-pill-error { background: var(--status-error-badge); color: var(--status-error-text); }
