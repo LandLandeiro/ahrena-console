@@ -128,7 +128,7 @@ class Elemento extends No {
 const head = new Elemento('head');
 Object.assign(globalThis, {
   Node: No,
-  reportError: () => {},
+  reportError: (e: unknown) => { throw e; },
   MouseEvent: class {
     type: string;
     constructor(type: string, init: Record<string, unknown> = {}) {

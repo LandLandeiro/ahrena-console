@@ -567,7 +567,7 @@ export async function mount(area, ctx) {
   }
 
   ctx.onRestart(() => read());
-  // issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
+  // ADR-0028, issue 752: one read per burst, THROTTLE_MS after its first change; `needs-you` or `permission` reads at once and cancels the timer.
   ctx.onChange((changes) => {
     if (Array.isArray(changes) && changes.some((c) => c?.type === 'needs-you' || c?.type === 'permission')) {
       clearTimeout(wait);

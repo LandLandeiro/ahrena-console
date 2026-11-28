@@ -5,7 +5,7 @@ import { ElementoFalso, documentoFalso, instalarDomFalso } from './fake-dom.ts';
 
 instalarDomFalso();
 Object.assign(globalThis, {
-  reportError: () => {},
+  reportError: (e: unknown) => { throw e; },
   location:{ pathname: '/ui/wall', search: '', hash: '' },
   history: { state: null, replaceState: () => {}, pushState: () => {} },
   ResizeObserver: class {
