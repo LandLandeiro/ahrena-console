@@ -498,7 +498,7 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
 
 describe('Kanban with every machine (C46)', () => {
   const card = (id: string, extra: Record<string, unknown> = {}) => ({ id, title: `Sessão ${id}`, status: 'active', attention: null, lastActivity: '2026-10-22T22:00:00Z', running: true, durationMs: 60_000, agents: 1, model: 'Opus 5.5', costUsd: 1, cwd: '/simulacao/x', ...extra });
-  const board = (items: unknown[]) => ({ view: 'sessions', columns: [{ id: 'active', label: 'Ativas', total: items.length, page: 1, hasMore: false, items }], machines: machinesUp });
+  const board = (items: unknown[]) => ({ view: 'sessions', columns: [{ id: 'active', label: 'Trabalhando', total: items.length, page: 1, hasMore: false, items }], machines: machinesUp });
 
   test('a remote card swaps the folder for the server icon, the machine in the tooltip; ids repeat across machines without colliding', async () => {
     setUrl('/ui/kanban');

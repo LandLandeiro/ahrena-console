@@ -170,9 +170,9 @@ describe('Kanban: the sessions board with blocked and idle (issue 245)', () => {
     view: 'sessions',
     perPage: 10,
     columns: [
-      { id: 'active', label: 'Ativas', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
+      { id: 'active', label: 'Trabalhando', total: 1, page: 1, hasMore: false, items: [card('a1', {})] },
       { id: 'blocked', label: 'Precisam de você', total: 12, page: 1, hasMore: true, items: [card('b1', { status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), card('e1', { status: 'error', attention: { level: 'blocked', reason: 'error' } })] },
-      { id: 'idle', label: 'Ociosas', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
+      { id: 'idle', label: 'Em pausa', total: 1, page: 1, hasMore: false, items: [card('i1', { status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } })] },
       { id: 'completed', label: 'Concluídas', total: 0, page: 1, hasMore: false, items: [] },
       { id: 'abandoned', label: 'Abandonadas', total: 0, page: 1, hasMore: false, items: [] },
     ],
