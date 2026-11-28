@@ -29,6 +29,11 @@ const SMALL_TARGETS = [
   '.subs',
   '.up-version',
   '.wb-edit-chip-x',
+  '.agent .exp',
+  '.wb-card-github',
+  '.wb-level',
+  '.an-seg a',
+  '.an-seg button',
 ];
 
 describe('issue 764: the touch area of a control is 24 px at least', () => {
