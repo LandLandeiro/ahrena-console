@@ -100,7 +100,7 @@ export const ordemStatus = [
 
 export const status = {
   "active": {
-    "label": "Ativa",
+    "label": "Trabalhando",
     "glyph": "●",
     "color": "#f47720",
     "dark": {

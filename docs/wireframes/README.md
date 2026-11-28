@@ -1,5 +1,7 @@
 # Wireframes
 
+> **Nota (#753, decisão [0028](../decisoes/0028-console-visual-redesign.md)):** os nomes de estado "Ativa" e "Ociosa", citados nos wireframes da #245 abaixo e em `index.html`, hoje são "Trabalhando" e "Em pausa" (o motivo continua ao lado: "Em pausa · Sua vez"). As capturas e os desenhos antigos não são regerados; vale o texto da /ui.
+
 Wireframes de todas as telas da 0.0.1, para aprovação antes de construir:
 
 - **Painel lateral** (mod do Claude Code, decisão [0004](../decisoes/0004-painel-da-sessao.md)): P0 a P18, em 38 e 121 colunas, com as decisões da sessão (P9 e P10) e o grafo da sessão com os subagentes (P11 a P13, issue #146), a sessão numa máquina sem conexão (P14, issue #278), e o "Ver" com as sessões de todas as máquinas e o filtro de máquina (P15), com uma máquina sem conexão (P16, issue #262), e, com o painel fechado, a faixa acima do prompt com Abrir e Ocultar (P17) e o caminho de volta pelo painel depois de Ocultar (P18, issue #406).
