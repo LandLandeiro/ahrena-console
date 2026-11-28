@@ -28,7 +28,7 @@
 //   read with `perPage=100`, the pages it needs in parallel, at most 50 (`MAX_REMOTE_PAGES`); the merge
 //   looks at most `MAX_MERGE_ROWS` rows deep, so a page past that comes empty.
 // - `GET /api/wall` (C46): the cards of every machine, merged in the wall's order (needs you, the
-//   urgent first; then idle; then the rest, by `since`); `count` is recounted over the merged cards
+//   urgent first; then "Sua vez", which needs you too (#761); then idle; then the rest, by `since`); `count` is recounted over the merged cards
 //   and `byMachine: [{ id, count }]` has each machine's.
 // - `GET /api/kanban` (C46): column by column, the items merged by the newest activity (ties keep this
 //   machine first); `total` adds the machines, `hasMore` follows from it. With `column` and `page`,
@@ -88,6 +88,7 @@ import type { MontadorDoPainel } from './panel.ts';
 import { ErroDoPedido, FILTROS_DE_STATUS, pedidoDeSessoes, SESSIONS_ROUTE, type FiltroDeStatus, type ListaDeSessoes, type PedidoDeSessoes } from './sessions.ts';
 import { DASHBOARD_ROUTE } from './dashboard-route.ts';
 import { WALL_ROUTE } from './wall.ts';
+import { isYourTurn } from '../states/needs-you.ts';
 import type { Wall } from './types.ts';
 
 export const MACHINE_PARAM = 'machine';
@@ -669,11 +670,11 @@ async function remoteSessions(source: RemoteSessionSource, reader: MachineReader
   };
 }
 
-/** The wall's order (api/wall.ts): needs you (urgent first), then idle, then the rest; newest `since` first. */
+/** The wall's order (api/wall.ts): needs you (urgent first), then "Sua vez" (#761), then idle, then the rest; newest `since` first. */
 function wallOrder(a: Record<string, unknown>, b: Record<string, unknown>): number {
   const rank = (c: Record<string, unknown>) => {
     const level = isObject(c.attention) ? c.attention.level : null;
-    return level === 'blocked' ? 0 : level === 'idle' ? 1 : 2;
+    return level === 'blocked' ? (isYourTurn(isObject(c.attention) ? (c.attention.reason as string) : null) ? 1 : 0) : level === 'idle' ? 2 : 3;
   };
   if (rank(a) !== rank(b)) return rank(a) - rank(b);
   if (rank(a) === 0 && a.urgent !== b.urgent) return a.urgent ? -1 : 1;
