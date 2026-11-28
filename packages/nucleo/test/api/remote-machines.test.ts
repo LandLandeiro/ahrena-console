@@ -127,14 +127,15 @@ describe('#176/AC-6 the remote sessions in the attention response', () => {
       remotes.map((i) => [i.session, i.machine, i.local, i.level]),
       [
         ['remota-1', { id: 'ws-exemplo', label: 'Workstation' }, null, 'needs'],
-        ['remota-2', { id: 'ws-exemplo', label: 'Workstation' }, null, 'your-turn'],
+        // A remote from before #761 sends `your-turn` for "Sua vez"; read by the rule, it needs you.
+        ['remota-2', { id: 'ws-exemplo', label: 'Workstation' }, null, 'needs'],
       ],
     );
     // This machine's sessions are marked with no machine and keep their Desktop id.
     assert.ok(r.items.filter((i) => !i.machine).every((i) => i.machine === null));
     assert.equal(r.total, 9);
-    assert.equal(r.needs, 5);
-    assert.equal(r.yourTurn, 4);
+    assert.equal(r.needs, 7);
+    assert.equal(r.yourTurn, 2);
     // Urgent first: the remote permission comes before every "sua vez", the remote one included.
     const order = r.items.map((i) => i.session);
     assert.ok(order.indexOf('remota-1') < order.indexOf('erro'));

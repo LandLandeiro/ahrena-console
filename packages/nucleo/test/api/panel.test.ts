@@ -217,12 +217,12 @@ describe('painel por cenário (P1 a P7)', () => {
       ['motor-de-regras', 'parent'],
       ['fila-de-tarefas', 'child'],
     ]);
-    assert.deepEqual(p.needYou.machine.map((i) => [i.title, i.level]), [['motor-de-regras', 'needs'], ['painel-de-metricas', 'needs'], ['fila-de-tarefas', 'your-turn']]);
-    // A divisão por conta conta só as que precisam de você: a sua vez (fila-de-tarefas) não soma.
+    assert.deepEqual(p.needYou.machine.map((i) => [i.title, i.level]), [['motor-de-regras', 'needs'], ['painel-de-metricas', 'needs'], ['fila-de-tarefas', 'needs']]); // #761: a sua vez precisa de você, por último
+    // A divisão por conta conta as que precisam de você, a sua vez (fila-de-tarefas, da equipe) incluída (#761).
     assert.deepEqual(
       p.needYou.byAccount.map((d) => [d.account?.label, d.n]),
       [
-        ['equipe', 1],
+        ['equipe', 2],
         ['cliente-exemplo', 1],
       ],
     );

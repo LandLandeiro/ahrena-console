@@ -119,12 +119,13 @@ describe('sessions_needing_attention', () => {
     assert.deepEqual(
       d.items.map((i: any) => [i.sessionId, i.group, i.reason]),
       [
-        // The turn that ended ("Sua vez") needs you too (#761): it is in `blocking`, ordered by the wait.
-        ['sua-vez', 'blocking', 'turn_ended'],
         ['plano', 'blocking', 'plan'],
         ['permissao', 'blocking', 'permission'],
         ['erro', 'blocking', 'error'],
         ['pergunta', 'blocking', 'question'],
+        // The turn that ended ("Sua vez") needs you too (#761): it is in `blocking`, but after the other blocking
+        // items, though it has waited longest (the lowest urgency).
+        ['sua-vez', 'blocking', 'turn_ended'],
         // Esc awaits nobody: idle (`your_turn`), as on the panel (atencaoDe, #140 and #761).
         ['interrompida', 'your_turn', 'interrupted'],
         ['abriu', 'your_turn', 'first_prompt'],

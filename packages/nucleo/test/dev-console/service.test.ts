@@ -317,15 +317,15 @@ describe('GET /api/dev-console', () => {
 });
 
 describe('#245 Dev Console: blocked depends on you, idle does not', () => {
-  test('#245/AC-3 an interrupted session and one whose turn ended are idle: out of "depende de você", counted apart', async () => {
+  test('#245/AC-3 an interrupted session is idle, out of "depende de você" and counted apart; the turn that ended (Sua vez) depends on you (#761)', async () => {
     await live({ id: 'interrompida', name: 'Filtro por categoria', cwd: '/sim/vitrine-demo', awaitingInputSince: at(-4), awaitingReason: 'interrupted' });
     await live({ id: 'sua-vez', name: 'Retry com backoff', cwd: '/sim/motor-de-regras', awaitingInputSince: at(-3), awaitingReason: 'stop' });
     const v = (await devConsole.view('loja'))!;
     assert.deepEqual(
       v.dependsOnYou.filter((d) => d.kind === 'session').map((d) => d.sessionId),
-      ['plan', 'permission'],
+      ['plan', 'sua-vez', 'permission'],
     );
-    assert.deepEqual(v.scoreboard, { ready: 3, ciRunning: 1, ciFailingOrConflict: 2, sessionsWorking: 2, waitingOnYou: 3, idle: 2 });
+    assert.deepEqual(v.scoreboard, { ready: 3, ciRunning: 1, ciFailingOrConflict: 2, sessionsWorking: 2, waitingOnYou: 4, idle: 1 });
   });
 
   test('#245/AC-4 a board card carries the session attention: blocked with the reason', async () => {
@@ -335,7 +335,9 @@ describe('#245 Dev Console: blocked depends on you, idle does not', () => {
     assert.equal(v.board['in-progress'][0].session?.attention, null, 'working');
   });
 
-  test('the depends-on-you reasons are the blocked ones', () => {
-    assert.deepEqual([...DEPENDS_ON_YOU_REASONS], ['permission', 'question', 'plan', 'decision', 'error']);
+  test('the depends-on-you reasons are the ones of the one rule (#761): interrupted and first_prompt are idle', () => {
+    assert.deepEqual([...DEPENDS_ON_YOU_REASONS], ['permission', 'question', 'plan', 'decision', 'error', 'turn_ended']);
+    assert.ok(!(DEPENDS_ON_YOU_REASONS as readonly string[]).includes('interrupted'));
+    assert.ok(!(DEPENDS_ON_YOU_REASONS as readonly string[]).includes('first_prompt'));
   });
 });

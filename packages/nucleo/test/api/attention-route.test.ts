@@ -32,14 +32,14 @@ describe('montarAtencao', () => {
         ['permissao', 'needs', 'permission'],
         ['pergunta', 'needs', 'question'],
         ['erro', 'needs', 'error'],
-        ['sua-vez', 'your-turn', 'your-turn'],
+        ['sua-vez', 'needs', 'your-turn'], // #761: the turn that ended needs you, after the error
         ['interrompida', 'your-turn', 'interrupted'],
         ['abriu', 'your-turn', 'no-prompt'],
       ],
     );
     assert.equal(r.total, 7);
-    assert.equal(r.needs, 4);
-    assert.equal(r.yourTurn, 3);
+    assert.equal(r.needs, 5);
+    assert.equal(r.yourTurn, 2);
     assert.equal(r.withError, 1);
     // Trabalhando e delegando; as que esperam você não contam como ativas.
     assert.equal(r.active, 2);
@@ -158,12 +158,12 @@ describe('#245 GET /api/attention: blocked and idle', () => {
         ['permissao', { level: 'blocked', reason: 'permission' }],
         ['pergunta', { level: 'blocked', reason: 'question' }],
         ['erro', { level: 'blocked', reason: 'error' }],
-        ['sua-vez', { level: 'idle', reason: 'turn_ended' }],
+        ['sua-vez', { level: 'blocked', reason: 'turn_ended' }], // #761
         ['interrompida', { level: 'idle', reason: 'interrupted' }],
         ['abriu', { level: 'idle', reason: 'first_prompt' }],
       ],
     );
-    assert.deepEqual({ total: r.total, needs: r.needs, yourTurn: r.yourTurn, blocked: r.blocked, idle: r.idle }, { total: 7, needs: 4, yourTurn: 3, blocked: 4, idle: 3 });
+    assert.deepEqual({ total: r.total, needs: r.needs, yourTurn: r.yourTurn, blocked: r.blocked, idle: r.idle }, { total: 7, needs: 5, yourTurn: 2, blocked: 5, idle: 2 });
     for (const i of r.items) assert.equal(i.level === 'needs', i.attention.level === 'blocked', i.session);
   });
 
@@ -175,8 +175,11 @@ describe('#245 GET /api/attention: blocked and idle', () => {
         items: [
           { session: 'r1', title: 't', project: null, account: null, level: 'needs', reason: 'question', since: '2026-11-02T11:00:00.000Z', minutes: 60, attention: { level: 'idle', reason: 'turn_ended' } },
           { session: 'r2', title: 't', project: null, account: null, level: 'your-turn', reason: 'no-prompt', since: '2026-11-02T11:00:00.000Z', minutes: 60 },
+          // A remote from before #761 sends `your-turn` for "Sua vez": read by the rule, it is `needs` and `blocked`.
+          { session: 'r3', title: 't', project: null, account: null, level: 'your-turn', reason: 'your-turn', since: '2026-11-02T11:00:00.000Z', minutes: 60 },
           // A level its reason does not imply is left out: the counts and `attention` never disagree.
-          { session: 'r3', title: 't', project: null, account: null, level: 'needs', reason: 'your-turn', since: '2026-11-02T11:00:00.000Z', minutes: 60 },
+          { session: 'r4', title: 't', project: null, account: null, level: 'your-turn', reason: 'permission', since: '2026-11-02T11:00:00.000Z', minutes: 60 },
+          { session: 'r5', title: 't', project: null, account: null, level: 'needs', reason: 'no-prompt', since: '2026-11-02T11:00:00.000Z', minutes: 60 },
         ],
       }),
     };
@@ -185,10 +188,12 @@ describe('#245 GET /api/attention: blocked and idle', () => {
       r.items.map((i) => [i.session, i.attention]),
       [
         ['r1', { level: 'blocked', reason: 'question' }],
+        ['r3', { level: 'blocked', reason: 'turn_ended' }],
         ['r2', { level: 'idle', reason: 'first_prompt' }],
       ],
     );
-    assert.deepEqual([r.blocked, r.idle], [1, 1]);
+    assert.deepEqual(r.items.map((i) => [i.session, i.level]), [['r1', 'needs'], ['r3', 'needs'], ['r2', 'your-turn']]);
+    assert.deepEqual([r.blocked, r.idle], [2, 1]);
   });
 
   test('GET /api/attention answers the new counts and `attention` on each item', async () => {
@@ -197,7 +202,7 @@ describe('#245 GET /api/attention: blocked and idle', () => {
     const api = await startLocalApi({ ownerToken: () => OWNER_TOKEN, panelBuilder: montador, hooks: { storage }, port: 0, log: () => {}, fleet: frota });
     try {
       const fresh = (await (await fetch(`${api.url}/api/attention`)).json()) as RespostaDaAtencao;
-      assert.deepEqual([fresh.blocked, fresh.idle], [4, 3]);
+      assert.deepEqual([fresh.blocked, fresh.idle], [5, 2]);
       for (const i of fresh.items) assert.ok('attention' in i, i.session);
     } finally {
       await api.close();

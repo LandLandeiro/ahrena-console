@@ -2,7 +2,7 @@ import { OWNER_TOKEN, ownerFetch as fetch } from '../owner-http.ts';
 // #245: every English route that feeds a /ui screen with a session's state answers the same
 // `attention: { level: 'blocked' | 'idle', reason } | null`, from `atencaoDe` only, and the counts split
 // blocked from idle where the screen shows counts. The old Portuguese routes are gone (#173 phase 6).
-// Synthetic data: the MCP seed (5 blocked, 3 idle, working, delegating, completed, abandoned).
+// Synthetic data: the MCP seed (5 blocked, 2 idle, working, delegating, completed, abandoned).
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { openSqliteStorage, type SqliteStorage } from '../../src/adapters/sqlite/sqlite-storage.ts';
@@ -78,14 +78,14 @@ describe('#245 attention on every /ui route', () => {
     const rows = pages.flatMap((p) => p.items);
     assert.equal(rows.length, Object.keys(EXPECTED).length);
     for (const r of rows) assert.deepEqual(r.attention, EXPECTED[r.id], r.id);
-    assert.deepEqual(pages[0].counts, { all: 11, active: 1, waiting: 7, blocked: 4, idle: 3, completed: 1, error: 1, abandoned: 1 });
+    assert.deepEqual(pages[0].counts, { all: 11, active: 1, waiting: 7, blocked: 5, idle: 2, completed: 1, error: 1, abandoned: 1 });
     const blocked = await read<ListaDeSessoesHttp>('/api/sessions?status=blocked');
-    assert.deepEqual(blocked.items.map((i) => i.id).sort(), ['erro', 'pergunta', 'permissao', 'plano']);
-    assert.equal(blocked.total, 4);
+    assert.deepEqual(blocked.items.map((i) => i.id).sort(), ['erro', 'pergunta', 'permissao', 'plano', 'sua-vez']);
+    assert.equal(blocked.total, 5);
     const idle = await read<ListaDeSessoesHttp>('/api/sessions?status=idle');
-    assert.deepEqual(idle.items.map((i) => i.id).sort(), ['abriu', 'interrompida', 'sua-vez']);
+    assert.deepEqual(idle.items.map((i) => i.id).sort(), ['abriu', 'interrompida']);
     // The pills count with the search, as the list does.
-    assert.deepEqual((await read<ListaDeSessoesHttp>('/api/sessions?status=idle&search=fila')).counts, { all: 1, active: 0, waiting: 1, blocked: 0, idle: 1, completed: 0, error: 0, abandoned: 0 });
+    assert.deepEqual((await read<ListaDeSessoesHttp>('/api/sessions?status=blocked&search=fila')).counts, { all: 1, active: 0, waiting: 1, blocked: 1, idle: 0, completed: 0, error: 0, abandoned: 0 });
   });
 
   test('GET /api/sessions: a bad status answers 400, and the old /api/sessoes is gone', async () => {
@@ -117,9 +117,9 @@ describe('#245 attention on every /ui route', () => {
   test('#245/AC-3 #245/AC-4 GET /api/wall: each card, and the blocked and idle counts', async () => {
     const wall = await read<Wall>('/api/wall');
     for (const c of wall.cards) assert.deepEqual(c.attention, EXPECTED[c.id], c.id);
-    assert.deepEqual(wall.count, { all: 10, waiting: 7, active: 2, blocked: 4, idle: 3 });
-    // Blocked first, then idle, then the rest.
-    const rank = (c: Wall['cards'][number]) => (c.attention?.level === 'blocked' ? 0 : c.attention?.level === 'idle' ? 1 : 2);
+    assert.deepEqual(wall.count, { all: 10, waiting: 7, active: 2, blocked: 5, idle: 2 });
+    // Blocked cards first, then "Sua vez" (blocked too, #761), then idle, then the rest.
+    const rank = (c: Wall['cards'][number]) => (c.attention?.level === 'blocked' ? (c.attention.reason === 'turn_ended' ? 1 : 0) : c.attention?.level === 'idle' ? 2 : 3);
     assert.deepEqual(wall.cards.map(rank), [...wall.cards.map(rank)].sort());
     assert.equal((await fetch(`${api.url}/api/mural`)).status, 404, 'the old route is gone');
   });
@@ -139,14 +139,14 @@ describe('#245 attention on every /ui route', () => {
     );
     assert.deepEqual(ids, {
       active: ['delegando', 'trabalhando'],
-      blocked: ['erro', 'pergunta', 'permissao', 'plano'],
-      idle: ['abriu', 'interrompida', 'sua-vez'],
+      blocked: ['erro', 'pergunta', 'permissao', 'plano', 'sua-vez'],
+      idle: ['abriu', 'interrompida'],
       completed: ['concluida'],
       abandoned: ['velha'],
     });
     for (const c of board.columns) for (const i of c.items) assert.deepEqual((i as { attention: unknown }).attention, EXPECTED[i.id], i.id);
     const more = await read<KanbanHttp>('/api/kanban?view=sessions&column=idle');
-    assert.deepEqual(more.columns.map((c) => [c.id, c.total]), [['idle', 3]]);
+    assert.deepEqual(more.columns.map((c) => [c.id, c.total]), [['idle', 2]]);
   });
 
   test('#245/AC-3 #245/AC-4 GET /api/kanban: the agents board splits the waiting column in blocked and idle', async () => {
@@ -164,8 +164,8 @@ describe('#245 attention on every /ui route', () => {
     const ids = Object.fromEntries(board.columns.map((c) => [c.id, c.items.map((i) => i.id).sort()]));
     assert.deepEqual(ids, {
       working: ['delegando', 'delegando:sub', 'trabalhando'],
-      blocked: ['pergunta', 'permissao', 'plano'],
-      idle: ['abriu', 'interrompida', 'sua-vez'],
+      blocked: ['pergunta', 'permissao', 'plano', 'sua-vez'],
+      idle: ['abriu', 'interrompida'],
       done: ['concluida', 'velha'],
       error: ['erro'],
     });
@@ -186,7 +186,7 @@ describe('#245 attention on every /ui route', () => {
 
   test('#245/AC-3 #245/AC-4 GET /api/dashboard: the session numbers split blocked from idle, and each card carries `attention`', async () => {
     const d = await read<RespostaDoDashboard>('/api/dashboard');
-    assert.deepEqual(d.numbers.sessions, { total: 11, active: 2, waiting: 6, withError: 1, blocked: 4, idle: 3 });
+    assert.deepEqual(d.numbers.sessions, { total: 11, active: 2, waiting: 6, withError: 1, blocked: 5, idle: 2 });
     for (const c of d.agents) assert.deepEqual(c.attention, EXPECTED[c.session], c.session);
   });
 });

@@ -65,7 +65,9 @@ describe('mural ao vivo (#34)', () => {
     assert.equal(ehAberta({ ...base, status: 'active' }, null, AGORA), true, 'ativa (e esperando) entra, por mais parada que esteja: o vigia a abandona');
     assert.equal(ehAberta({ ...base, status: 'error' }, null, AGORA), true, 'erro sem fim entra');
     assert.equal(ehAberta({ status: 'error', endedAt: iso(120), updatedAt: iso(120) }, null, AGORA), true, 'erro encerrado há 2 h ainda entra');
-    assert.equal(ehAberta({ status: 'error', endedAt: iso(181), updatedAt: iso(181) }, null, AGORA), false, 'erro encerrado há mais que o abandono sai');
+    assert.equal(ehAberta({ status: 'error', endedAt: iso(181), updatedAt: iso(181) }, null, AGORA), true, '#761: o erro precisa de você, por mais antigo que seja');
+    assert.equal(ehAberta({ status: 'error', endedAt: iso(60 * 24 * 40), updatedAt: iso(60 * 24 * 40) }, null, AGORA), true, '#761: o erro de 40 dias também entra');
+    assert.equal(ehAberta({ status: 'error', endedAt: iso(120), updatedAt: iso(120) }, { archived: true }, AGORA), false, 'o erro arquivado sai');
     assert.equal(ehAberta({ status: 'completed', endedAt: iso(179), updatedAt: iso(179) }, null, AGORA), true, 'concluída dentro do abandono do vigia (180 min) entra');
     assert.equal(ehAberta({ status: 'completed', endedAt: iso(181), updatedAt: iso(181) }, null, AGORA), false, 'concluída há mais de 180 min sai');
     assert.equal(ehAberta({ status: 'abandoned', endedAt: iso(1), updatedAt: iso(1) }, null, AGORA), false, 'abandonada nunca entra');
@@ -80,14 +82,15 @@ describe('mural ao vivo (#34)', () => {
     assert.deepEqual(
       mural.cards.map((c) => c.id),
       [
-        // Precisam de você: urgentes e erro, o pedido mais recente primeiro; depois as ociosas (#245), a mais recente primeiro.
-        sim('motor-de-regras'), sim('painel-de-metricas'), sim('fila-de-tarefas'), sim('app-receitas'),
+        // Precisam de você: urgentes e erro (o erro antigo também, #761), o pedido mais recente primeiro; depois a sua vez
+        // (precisa de você, como linha, #761); depois as ociosas (#245), a mais recente primeiro.
+        sim('motor-de-regras'), sim('painel-de-metricas'), 'sim-mural-erro-velho', sim('fila-de-tarefas'), sim('app-receitas'),
         // As outras, pela atividade mais recente; a concluída há 20 min ainda está aberta.
         PANEL_SESSION, sim('catalogo-exemplo'), sim('blog-estatico'),
       ],
     );
-    assert.deepEqual(mural.count, { all: 7, waiting: 4, active: 2, blocked: 2, idle: 2 });
-    const [permissao, erro, suaVez] = mural.cards;
+    assert.deepEqual(mural.count, { all: 8, waiting: 5, active: 2, blocked: 4, idle: 1 });
+    const [permissao, erro, , suaVez] = mural.cards;
     assert.deepEqual([permissao.status, permissao.state, permissao.reason, permissao.urgent, permissao.activity.type], ['waiting', 'waiting', 'notification', true, 'permission']);
     assert.deepEqual([erro.status, erro.state, erro.urgent, erro.activity.type], ['error', 'error', true, 'error']);
     assert.equal(erro.since, iso(3));
@@ -170,7 +173,7 @@ describe('mural ao vivo (#34)', () => {
     assert.equal(esta.effort, 'max', 'o Desktop vale mais que a metadata');
     assert.equal(esta.branch, 'feat/63-do-desktop');
     assert.equal(mural.cards.some((c) => c.id === sim('catalogo-exemplo')), false, 'a arquivada no Desktop sai do mural');
-    assert.deepEqual(mural.count, { all: 6, waiting: 4, active: 1, blocked: 2, idle: 2 });
+    assert.deepEqual(mural.count, { all: 7, waiting: 5, active: 1, blocked: 4, idle: 1 });
     await storage.close();
   });
 
@@ -201,7 +204,7 @@ describe('mural ao vivo (#34)', () => {
       assert.match(r.headers.get('content-type') ?? '', /application\/json/);
       const mural = (await r.json()) as Wall;
       assert.equal(mural.version, 1);
-      assert.equal(mural.cards.length, 7);
+      assert.equal(mural.cards.length, 8);
       assert.equal((await fetch(`${api.url}/api/wall`, { headers: { origin: 'https://exemplo.com' } })).status, 403);
       assert.equal((await fetch(`${api.url}/api/wall`, { method: 'POST' })).status, 405);
       // The old Portuguese route is gone (#173 phase 6).
@@ -253,6 +256,25 @@ describe('mural ao vivo: a que espera por mim fica e as Paradas (#333)', () => {
     await storage.close();
   });
 
+  test('#761: an abandoned session whose turn only ended (Sua vez) awaits nobody any more: it is parked, not a row', async () => {
+    const storage = openSqliteStorage({ path: ':memory:' });
+    await storage.putSession(session({ id: 'turn-ended', status: 'abandoned', updatedAt: iso(400), metadata: asked('stop') }));
+    const mural = await muralDe(storage).montar();
+    assert.deepEqual(mural.cards.map((c) => c.id), []);
+    assert.deepEqual(mural.parked.items.map((c) => c.id), ['turn-ended']);
+    await storage.close();
+  });
+
+  test('#761: an error older than 30 days is still a card, and an active session is not lost behind it', async () => {
+    const storage = openSqliteStorage({ path: ':memory:' });
+    await storage.putSession(session({ id: 'old-error', status: 'error', endedAt: iso(60 * 24 * 40), updatedAt: iso(60 * 24 * 40) }));
+    await storage.putSession(session({ id: 'live', status: 'active', updatedAt: iso(1) }));
+    const mural = await muralDe(storage).montar();
+    assert.deepEqual(mural.cards.map((c) => [c.id, c.attention?.reason ?? null]), [['old-error', 'error'], ['live', null]]);
+    assert.equal(mural.parked.total, 0);
+    await storage.close();
+  });
+
   test('the archived are in neither the cards nor Paradas, and what is older than the window is history', async () => {
     const storage = openSqliteStorage({ path: ':memory:' });
     await storage.putSession(session({ id: 'archived-asks', status: 'abandoned', updatedAt: iso(400), metadata: asked('notification') }));
@@ -295,16 +317,17 @@ describe('mural ao vivo: a que espera por mim fica e as Paradas (#333)', () => {
       { cliSessionId: 'grand', parentLocalId: 'local_working' } as DesktopSession,
     ]);
     const mural = await muralDe(storage, desktop).montar();
-    assert.deepEqual(mural.cards.map((c) => c.id), ['pending', 'pm'], 'the child that needs you first; the idle and the active ones nest');
+    assert.deepEqual(mural.cards.map((c) => c.id), ['pending', 'tl', 'pm'], 'the child that needs you first, then the one whose turn ended (Sua vez, #761); the active ones nest');
     const pm = mural.cards.find((c) => c.id === 'pm')!;
     assert.equal(pm.parentId, null);
     assert.deepEqual(pm.children.map((c) => c.id), ['tl']);
     assert.deepEqual(pm.children[0]!.children.map((c) => c.id), ['pending', 'working', 'stale']);
     assert.deepEqual(pm.children[0]!.children[1]!.children.map((c) => c.id), ['grand']);
-    assert.deepEqual(pm.tree, { total: 5, blocked: 1, active: 2, parked: 1 }, 'all levels: tl is idle, pending needs you, working and grand are active, stale is parked');
+    assert.deepEqual(pm.tree, { total: 5, blocked: 2, active: 2, parked: 1 }, 'all levels: tl (Sua vez) and pending need you, working and grand are active, stale is parked');
     const pending = mural.cards.find((c) => c.id === 'pending')!;
-    assert.equal(pending.parentId, 'pm', 'its leader is the nearest card above it');
+    assert.equal(pending.parentId, 'tl', 'its leader is the nearest card above it: tl is a Sua vez row now (#761)');
     assert.equal(pending.tree, null);
+    assert.equal(mural.cards.find((c) => c.id === 'tl')!.parentId, 'pm', 'the Sua vez row nests under the nearest card above it');
     assert.equal(mural.parked.total, 0, 'a parked child counts in its leader, not in Paradas');
     await storage.close();
   });
