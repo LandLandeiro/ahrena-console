@@ -1,5 +1,5 @@
 // Voice lint of #665: holds the pt-BR on-screen text to docs/brand/voice-rules.json.
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 export function loadRules(path) {
@@ -309,12 +309,12 @@ export function shrinkBaseline(findings, baseline) {
     .filter((e) => e.count > 0)
 }
 
-/* #766: the warning of the subtitles. A subtitle of the screen registry (`sub:` of packages/nucleo/ui/screens.js) says the state now or
-   is absent (null); one that starts with a descriptive article ("O", "A", "As", "Os", "Todos os", "Um"...) is the sentence that
+/* #766: the warning of the subtitles. A subtitle of a screen (`sub:` of the registry in packages/nucleo/ui/screens.js, `header({ sub })` of
+   packages/nucleo/ui/screens/*.js) says the state now or is absent (null); one that starts with a descriptive article ("O", "A", "As", "Os", "Todos os", "Um"...) is the sentence that
    explains the screen, which is what the rule of docs/brand/voice.md takes out. A warning, not a finding: it never reaches the baseline. */
 const DESCRIPTIVE_ARTICLES = ['Todos os', 'Todas as', 'Uma', 'Um', 'As', 'Os', 'O', 'A']
 
-/** The subtitles of a screens.js source that start with a descriptive article: `{ line, article, text, message }`. */
+/** The subtitles of a UI source that start with a descriptive article: `{ line, article, text, message }`. */
 export function subtitleWarnings(source) {
   const warnings = []
   const literal = /\bsub:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/g
@@ -324,6 +324,20 @@ export function subtitleWarnings(source) {
     if (!article) continue
     const line = source.slice(0, match.index).split('\n').length
     warnings.push({ line, article, text, message: `subtitle "${text}" starts with the article "${article}": say the state now (how many, who, what changed, what waits for the person) or leave only the title` })
+  }
+  return warnings
+}
+
+/** The subtitle warnings of the UI files the lint reads (`packages/nucleo/ui/*.js` and `ui/screens/*.js`), each with its `file` relative to `root`. A warning, never a failure. */
+export function subtitleWarningsOfTree(root) {
+  const warnings = []
+  for (const dir of ['packages/nucleo/ui', 'packages/nucleo/ui/screens']) {
+    const folder = join(root, dir)
+    if (!existsSync(folder)) continue
+    for (const name of readdirSync(folder).filter((n) => n.endsWith('.js')).sort()) {
+      const file = `${dir}/${name}`
+      for (const w of subtitleWarnings(readFileSync(join(root, file), 'utf8'))) warnings.push({ file, ...w })
+    }
   }
   return warnings
 }
