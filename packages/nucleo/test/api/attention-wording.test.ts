@@ -1,5 +1,5 @@
 // #245/AC-2: the old "Esperando você" and "na sua vez" are gone from what the núcleo says; the states are
-// "Precisa de você" and "Em pausa".
+// "Precisa de você" and "Em pausa" (#753).
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,7 +20,7 @@ describe('#245/AC-2 "Esperando você" is gone from the núcleo', () => {
     assert.deepEqual(found, []);
   });
 
-  // The screens say "Precisa de você" and "Ociosa" too: the /ui of the núcleo and the desktop app's Rust.
+  // The screens say "Precisa de você" and "Em pausa" too (#753): the /ui of the núcleo and the desktop app's Rust.
   for (const [name, folder] of [
     ['the /ui screens (packages/nucleo/ui)', '../../ui/'],
     ['the desktop app (apps/desktop/src-tauri/src)', '../../../../apps/desktop/src-tauri/src/'],
