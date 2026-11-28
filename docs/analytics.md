@@ -19,7 +19,7 @@ Os dias são contados no fuso do navegador. A tela acompanha o "Ao vivo": quando
 
 | Peça | O que mostra |
 | --- | --- |
-| Sessões | Sessões com atividade nos últimos 30 dias; embaixo, quantas estão ativas agora |
+| Sessões | Sessões com atividade nos últimos 30 dias; embaixo, quantas estão trabalhando agora |
 | Agentes | Agentes (principal e subagentes) dessas sessões; embaixo, quantos estão trabalhando |
 | Tokens | Tokens dos últimos 30 dias; embaixo, a parte da entrada que veio do cache |
 | Custo | Custo estimado dos últimos 30 dias (veja abaixo) |
