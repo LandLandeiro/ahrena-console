@@ -87,13 +87,15 @@ const button = (m: Mounted, action: string) => m.area.querySelector(`[data-actio
 const answer = (github: Status) => async () => ({ github });
 
 describe('Conexões: the registry and the files', () => {
-  test('the last item of Controle, at /ui/connections, with the plug icon', () => {
+  test('Conexões, at /ui/connections, has no item of its own: it lights Configuração and is its second tab (#754)', () => {
     const { screen } = findScreen('/ui/connections');
     assert.equal(screen.id, 'connections');
     assert.equal(screen.file, '/ui/screens/connections.js');
-    assert.deepEqual(SCREENS.find((s: { id: string }) => s.id === 'connections').item, { label: 'Conexões', icon: 'plug', section: 'control' });
-    const control = SCREENS.filter((s: { item?: { section: string } }) => s.item?.section === 'control').map((s: { id: string }) => s.id);
-    assert.equal(control.at(-1), 'connections');
+    const entry = SCREENS.find((s: { id: string }) => s.id === 'connections');
+    assert.equal(entry.item, undefined);
+    assert.equal(entry.highlights, 'agent-config');
+    const foot = SCREENS.filter((s: { item?: { section: string } }) => s.item?.section === 'foot').map((s: { id: string }) => s.id);
+    assert.deepEqual(foot, ['agent-config']);
   });
 
   test('every class of connections.css is conn-*, and the screen loads it', () => {

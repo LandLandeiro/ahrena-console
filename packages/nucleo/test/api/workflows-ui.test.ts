@@ -216,12 +216,12 @@ describe('formatos e registro', () => {
     assert.equal(workflowsRoute('active', 'subagent:code-reviewer'), '/api/workflows?filter=active&node=subagent%3Acode-reviewer');
   });
 
-  test('Workflows está na barra depois de Analytics, como no wireframe, e todo ícone usado existe', () => {
+  test('Workflows não tem item (#754): acende Uso e custo, é a aba Orquestração, e todo ícone usado existe', () => {
     const t = SCREENS.find((x: any) => x.id === 'workflows');
     assert.deepEqual(t, {
       id: 'workflows',
       route: '/ui/workflows',
-      item: { label: 'Workflows', icon: 'workflows', section: 'main' },
+      highlights: 'analytics',
       title: 'Workflows',
       sub: 'Como os agentes se orquestram: delegação, rodadas de review e resultado',
       icon: 'workflows',
@@ -245,5 +245,22 @@ describe('formatos e registro', () => {
       const meu = desenhos.find((m) => m[1] === nome)![2];
       assert.deepEqual(desenhos.filter((m) => m[2] === meu).map((m) => m[1]), [nome], `o desenho de ${nome} se repete`);
     }
+  });
+});
+
+describe('#750 the Workflows header wraps before the three filters need more than the window has', () => {
+  const css = readFileSync(`${UI_FOLDER}screens/workflows.css`, 'utf8');
+  const block = (query: string) => css.slice(css.indexOf(`@media (max-width: ${query}px) {`)).split(/\n}\n/)[0]!;
+
+  test('the header wrap rules sit at 1200 px, the KPI columns stay at 1000 px', () => {
+    assert.match(block('1200'), /\.cc-head:has\(\.wf-seg\) \{ flex-wrap: wrap; \}/);
+    assert.match(block('1200'), /\.cc-head:has\(\.wf-seg\) > div:nth-child\(2\) \{ flex: 1 1 0; min-width: 240px; \}/);
+    assert.doesNotMatch(block('1200'), /wf-kpis/);
+    assert.match(block('1000'), /\.wf-kpis \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); \}/);
+    assert.doesNotMatch(block('1000'), /wf-seg/);
+  });
+
+  test('the KPI card keeps 10 px at the sides, so "Profundidade" fits its label at 1100 px', () => {
+    assert.match(css, /\.wf-kpi \{ padding: 12px 10px;/);
   });
 });

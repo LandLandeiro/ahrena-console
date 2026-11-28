@@ -44,11 +44,11 @@ function withoutOtherConfirmation(state, key) {
  * Executar plano: opens the confirmation on the card. Only a card the components offer Executar plano on (a plan, in
  * Planejamento or Na fila) gets it: epics, initiatives, cards without a plan, live and running cards do nothing.
  */
-export function askRun(state, card) {
+export function askRun(state, card, { target = DEFAULT_TARGET } = {}) {
   const phase = runOf(state, card).phase;
   if (!['planned', 'queued'].includes(runState(card)) || !['idle', 'failed'].includes(phase)) return state;
   const prior = state.runs[card.key] ?? null;
-  return put(withoutOtherConfirmation(state, card.key), card.key, { phase: 'confirming', target: DEFAULT_TARGET, full: null, prior });
+  return put(withoutOtherConfirmation(state, card.key), card.key, { phase: 'confirming', target: TARGETS.includes(target) ? target : DEFAULT_TARGET, full: null, prior });
 }
 
 /** Where to open (Claude Desktop or Terminal) on the confirmation; an unknown target is ignored. */

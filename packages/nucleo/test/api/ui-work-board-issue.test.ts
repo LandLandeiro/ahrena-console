@@ -215,7 +215,7 @@ const press = (node: ElementoFalso | null, what: string) => {
   assert.ok(node, `${what} is on screen`);
   node.dispatchEvent({ type: 'click' });
 };
-const popup = (s: Screen) => s.area.querySelector('div.wb-plan-pop');
+const popup = (s: Screen) => s.area.querySelector('div.pop');
 /** #508 The clicks of a person on the card body, outside its buttons and links. */
 const clickCard = (s: Screen, n: number) => articleOf(s, n).dispatchEvent({ type: 'click' });
 
@@ -382,11 +382,23 @@ describe('#508/AC-3 the card says planejando… and then plano · N passos, and 
     assert.deepEqual(core.posts[0], { repo: REPO, number: 508, target: 'desktop', replan: true });
   });
 
+  test('#762 Esc on the Replanejar confirmation of a card gives the focus back to Replanejar, not to the card', async () => {
+    const core = new Core();
+    core.cards = [card(508, { plan: { steps: 2 } })];
+    const s = await open(core);
+    const replan = buttonIn(articleOf(s, 508), 'replan');
+    press(replan, 'Replanejar');
+    assert.ok(popup(s)!.contains(documentoFalso.activeElement), 'focus moved into the confirmation');
+    documentoFalso.activeElement!.dispatchEvent({ type: 'keydown', key: 'Escape' });
+    assert.equal(popup(s), null);
+    assert.equal(documentoFalso.activeElement, buttonIn(articleOf(s, 508), 'replan'));
+  });
+
   test('#508/AC-3 the chosen destination is what the POST carries', async () => {
     const core = new Core();
     const s = await open(core);
     press(buttonIn(articleOf(s, 508), 'plan'), 'Planejar');
-    press(popup(s)!.querySelector('button[data-target="terminal"]'), 'Terminal');
+    press(popup(s)!.querySelector('button[data-value="terminal"]'), 'Terminal');
     press(buttonIn(popup(s)!, 'confirm'), 'confirm');
     await until(() => core.posts.length === 1, 'the POST');
     assert.equal(core.posts[0]!.target, 'terminal');
@@ -453,7 +465,7 @@ describe('#508/AC-4 a failed planning puts the card back on Planejar with the re
     await until(() => popup(s)?.getAttribute('data-kind') === 'folder', 'the missing-folder block');
     const block = popup(s)!;
     assert.match(texto(block), new RegExp(`O Console não achou ${REPO} em nenhuma pasta deste Mac`));
-    assert.equal(texto(block.querySelector('pre.wb-plan-cmd')), command);
+    assert.equal(texto(block.querySelector('pre.pop-code')), command);
     press(buttonIn(block, 'copy'), 'Copiar comando');
     await until(() => copied.length === 1, 'the command is copied');
     assert.deepEqual(copied, [command]);

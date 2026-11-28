@@ -98,19 +98,38 @@ describe('github-connect.js: the pure parts', () => {
     assert.equal(texto(node), 'GitHub esperando');
     github = { state: 'connected', login: '<b>dev</b>' };
     await footer.refresh();
-    assert.equal(texto(node), '<b>dev</b> conectado', 'the login is text');
+    assert.equal(texto(node), 'GitHub conectado', 'the line says "GitHub conectado": the login is no longer in the visible text, it is cut at 248 px');
     assert.equal(node.getAttribute('aria-label'), 'GitHub: conectado como <b>dev</b>');
+    assert.equal(node.getAttribute('title'), 'GitHub: conectado como <b>dev</b>', 'the login is text, in the title');
+    assert.equal(node.querySelector('.cc-gh-name')!.textContent, 'GitHub');
+    github = { state: 'unavailable', reason: 'no-vault' };
+    await footer.refresh();
+    assert.equal(texto(node), 'GitHub indisponível');
+    assert.equal(node.getAttribute('title'), 'GitHub: indisponível');
+    github = { state: 'connected', login: '<b>dev</b>' };
+    await footer.refresh();
     const failing = gc.createGithubFooter({ node, read: async () => Promise.reject(new Error('404')) });
     await failing.refresh();
-    assert.equal(texto(node), '<b>dev</b> conectado', 'a failed read keeps what was there');
+    assert.equal(texto(node), 'GitHub conectado', 'a failed read keeps what was there');
   });
 
-  test('the shell wires the footer: index.html has the card, app.js refreshes it on start, restart and connections', () => {
-    assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="card cc-gh" id="github" hidden><\/a>/);
+  test('#750: the line has no github drawing, so the loader of "esperando" is not hidden by a first-child rule', async () => {
+    const node = new ElementoFalso('a');
+    const footer = gc.createGithubFooter({ node, read: async () => ({ github: { state: 'pending' } }) });
+    await footer.refresh();
+    assert.equal(node.children.filter((c) => c.classList.contains('icon')).length, 0, 'no drawing as a direct child of the line');
+    assert.equal(node.querySelectorAll('.cc-gh-state .icon').length, 1, 'the loader is drawn');
+    assert.doesNotMatch(readFileSync(`${UI_FOLDER}shell.css`, 'utf8'), /\.cc-gh \.icon:first-child/);
+  });
+
+  test('the shell wires the footer: index.html has the card, app.js refreshes it on boot, restart and connections', () => {
+    assert.match(readFileSync(`${UI_FOLDER}index.html`, 'utf8'), /<a class="cc-gh" id="github" hidden><\/a>/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
-    assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read \}\)/);
+    assert.match(app, /createGithubFooter\(\{ node: document\.getElementById\('github'\), read: shellRead \}\)/);
     assert.match(app, /if \(connectionChanged\(changes\)\) githubFooter\.refresh\(\);/);
-    assert.equal((app.match(/githubFooter\.refresh\(\)/g) ?? []).length, 3);
+    // Boot and restart read it through the shell load (#750, one list); a `connections` change reads it by itself.
+    assert.match(app, /loaders: \[[^\]]*githubFooter\.refresh,/);
+    assert.equal((app.match(/githubFooter\.refresh/g) ?? []).length, 2);
   });
 
   test('the write refusals are phrased in pt-BR, never the raw code', () => {

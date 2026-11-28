@@ -7,14 +7,15 @@ open, calls POST /api/work/run and hands the answer back (the limit full as `ful
 of work-board-plan.js). The styles are in `work-board-issue-panel.css` (classes `wb-run-`, and `wb-plan-` where shared). */
 
 import { el, icon } from '../dom.js';
-import { PLANNABLE_TYPES, cardPlanParts, planState, targetChoice, untrustedLine } from './work-board-plan.js';
+import { PLANNABLE_TYPES, cardPlanParts, planState, untrustedLine } from './work-board-plan.js';
+import { OPEN_IN_KEY, OPEN_TARGETS, destinationLabel, popoverContext, popoverFooter, popoverShell, segmented } from '../popover.js';
 
 const ref = (n) => `#${n}`;
 /** Where the session opened, by the core's `opened` (the words of open-action.js; issue 532). */
 const WHERE = { desktop: 'abrindo no Claude Desktop', terminal: 'abrindo no Terminal', focused: 'Terminal à frente' };
 /** The note of a failed run when the core gave no reason (the words of 477-1; issue 532). */
 const RUN_FAILED_FALLBACK = 'A sessão não subiu';
-/** The columns a live session still gets "Abrir sessão" in: Em review and Concluído have no action (465-2, issue 532). */
+/** The columns a live session still gets "Abrir sessão" in: Em revisão and Concluído have no action (465-2, issue 532, ADR-0028). */
 const LIVE_COLUMNS = new Set(['running', 'blocked']);
 
 /**
@@ -67,48 +68,37 @@ export function cardRunParts(card, { onRun = null, onReplan = null, onPlan = nul
 }
 
 /**
- * The confirmation anchored on the card (465-6): repository, folder, where to open and the start of the prompt. No account
- * row (issue 524). `full` (`{ running, limit }`, the core's 409) adds the warning and turns the button into "Executar mesmo
- * assim"; `running` and `limit` alone put the count in the hint.
+ * The confirmation anchored on the card (465-6), in the one popover (popover.js): repository, folder, where to open and the
+ * start of the prompt. No account row (issue 524). `full` (`{ running, limit }`, the core's 409) adds the warning and turns the
+ * primary into "Executar mesmo assim"; `running` and `limit` alone put the count in the hint. `trigger` is the button that
+ * opened it (a node or a function that finds it once drawn): the popover is placed on it and a click outside calls `onCancel`.
  */
-export function runConfirm({ repo, number, folder = null, target = 'desktop', prompt = null, running = null, limit = null, full = null, busy = false, onTarget = null, onCancel = null, onConfirm = null }) {
-  const title = `Executar o plano da ${ref(number)}`;
-  const rows = [
-    el('dt', {}, 'Repositório'),
-    el('dd', { class: 'mono wb-plan-trunc', 'data-field': 'repo' }, repo),
-    folder ? el('dt', {}, 'Pasta') : null,
-    folder ? el('dd', { class: 'mono wb-plan-trunc', 'data-field': 'folder' }, folder) : null,
-    el('dt', {}, 'Abrir em'),
-    el('dd', { 'data-field': 'target' }, targetChoice(target, onTarget)),
-  ];
+export function runConfirm({ repo, number, folder = null, target = 'desktop', prompt = null, running = null, limit = null, full = null, busy = false, trigger = null, onTarget = null, onCancel = null, onConfirm = null }) {
   const warn = full
     ? el(
         'div',
-        { class: 'wb-run-warn', role: 'alert', 'data-field': 'limit' },
+        { class: 'pop-warn', role: 'alert', 'data-field': 'limit' },
         icon('gauge'),
         el('div', {}, el('b', {}, 'Passa do limite.'), ` Já há ${full.running} de ${full.limit} rodando; esta seria a ${full.running + 1}ª execução. A fila não puxa ninguém até voltar a ter vaga.`),
       )
     : null;
   const count = running !== null && limit !== null ? ` Conta como 1 das ${limit} execuções; hoje há ${running} rodando.` : '';
   const hint = full ? 'Executar mesmo assim abre a sessão agora.' : `Abre a sessão agora e o card vai direto para Em execução.${count}`;
-  const label = full ? 'Executar mesmo assim' : 'Executar plano';
-  const root = el(
-    'div',
-    { class: 'card wb-plan-pop', role: 'dialog', 'aria-label': title, 'data-kind': full ? 'run-full' : 'run' },
-    el('h3', {}, title),
-    warn,
-    el('dl', { class: 'wb-plan-kv' }, ...rows),
-    prompt ? el('div', { class: 'wb-run-prompt', 'data-field': 'prompt' }, prompt) : null,
-    el('p', { class: 'wb-plan-hint' }, hint),
-    el(
-      'div',
-      { class: 'wb-plan-pop-acts' },
-      el('button', { type: 'button', class: 'btn outline sm', 'data-action': 'cancel', onClick: () => onCancel?.() }, 'Cancelar'),
-      el('button', { type: 'button', class: 'btn filled sm', 'data-action': 'confirm', disabled: busy, 'aria-busy': busy ? 'true' : null, onClick: () => !busy && onConfirm?.() }, icon('play'), label),
-    ),
-  );
-  root.addEventListener('keydown', (ev) => ev.key === 'Escape' && onCancel?.());
-  return root;
+  const label = full ? 'Executar mesmo assim' : destinationLabel('Executar', target);
+  return popoverShell({
+    title: `Executar o plano da ${ref(number)}`,
+    kind: full ? 'run-full' : 'run',
+    trigger,
+    onDismiss: () => onCancel?.(),
+    content: [
+      warn,
+      popoverContext([{ label: 'Repositório', value: repo, mono: true, field: 'repo' }, folder ? { label: 'Pasta', value: folder, mono: true, field: 'folder' } : null]),
+      segmented({ label: 'Abrir em', options: OPEN_TARGETS, value: target, onChange: onTarget, storageKey: OPEN_IN_KEY }),
+      prompt ? el('div', { class: 'pop-quote', 'data-field': 'prompt' }, prompt) : null,
+      el('p', { class: 'pop-note' }, hint),
+    ].filter(Boolean),
+    footer: popoverFooter({ cancel: { onClick: () => onCancel?.() }, primary: { label, busy, onClick: () => onConfirm?.() } }),
+  });
 }
 
 /**

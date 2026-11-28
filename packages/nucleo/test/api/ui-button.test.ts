@@ -25,6 +25,11 @@ describe('button CSS contract (shell.css)', () => {
     assert.match(bodyOf('.btn'), /height:\s*var\(--btn-h\)/);
   });
 
+  test('#749: the button corner is the --radius-control token, and the card corner is --radius-card', () => {
+    assert.match(bodyOf('.btn'), /border-radius:\s*var\(--radius-control\)/);
+    assert.match(bodyOf('.card'), /border-radius:\s*var\(--radius-card\)/);
+  });
+
   test('the four variants exist, and danger has a filled form', () => {
     for (const v of ['.btn.outline', '.btn.filled', '.btn.ghost', '.btn.danger', '.btn.danger.filled']) assert.notEqual(bodyOf(v), '', v);
   });

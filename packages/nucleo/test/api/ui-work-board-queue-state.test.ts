@@ -24,7 +24,8 @@ describe('#477/AC-2 dropPlan', () => {
   });
   test('#477/AC-5 the four fact columns refuse, each with its own words', () => {
     for (const to of ['running', 'review', 'blocked', 'done']) assert.equal(q.dropPlan({ card: c(9), to, queued }).kind, 'refuse');
-    assert.match(q.dropPlan({ card: c(9), to: 'review', queued }).message, /Em review vem do PR/);
+    assert.match(q.dropPlan({ card: c(9), to: 'review', queued }).message, /Em revisão vem do PR/);
+    assert.match(q.dropPlan({ card: c(9), to: 'blocked', queued }).message, /Precisa de você vem da sessão, do PR e do CI/);
   });
   test('#477/AC-2 a queued card reorders, dequeues, and a drop where it already is does nothing', () => {
     assert.deepEqual(q.dropPlan({ card: queued[2]!, to: 'queued', queued, beforeKey: 'r/x#1' }), { kind: 'reorder', after: null, index: 0 });

@@ -121,14 +121,14 @@ describe('o card de uma decisão', () => {
 });
 
 describe('a página (C21) e a aba (C20)', () => {
-  test('a página está registrada na barra, no bloco Decisões, depois de Entrega e antes de Máquinas', () => {
-    const blocks = sidebarSections().map((s: { id: string }) => s.id);
-    assert.equal(blocks.indexOf('decisions'), blocks.indexOf('delivery') + 1);
-    assert.ok(blocks.indexOf('decisions') < blocks.indexOf('machines'));
+  test('a página está registrada na barra, como o último item de Entrega, antes de Máquinas', () => {
+    const delivery = sidebarSections().find((s: { id: string }) => s.id === 'delivery');
+    assert.equal(delivery.items.at(-1).id, 'decisions', 'Decisões fecha o bloco Entrega (#754, decision 0029)');
+    assert.ok(sidebarSections().map((s: { id: string }) => s.id).indexOf('delivery') < sidebarSections().map((s: { id: string }) => s.id).indexOf('machines'));
     const { screen: tela } = findScreen('/ui/decisions');
-    assert.equal(tela.item.label, 'Das sessões', 'o bloco já se chama Decisões: o item não repete o nome');
+    assert.equal(tela.item.label, 'Decisões', 'o item recebe as abas Nas sessões, Técnicas e Produto');
     assert.equal(tela.title, 'Decisões', 'a tela continua com o título dela');
-    assert.equal(tela.item.section, 'decisions', 'no bloco Decisões, onde as ADRs vão entrar');
+    assert.equal(tela.item.section, 'delivery', 'no bloco Entrega, que não tem mais um bloco só de decisões');
     assert.equal(tela.item.icon, 'decision', 'o desenho do main (git-commit-horizontal), não um nome novo');
     assert.equal(tela.icon, 'decision');
   });
