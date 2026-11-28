@@ -41,7 +41,7 @@ class No {
     this.filhos = [];
     this.append(v);
   }
-  // Issue 759: the screen writes the greeting and the sentence in its own header (dom.js `setHeaderSub`).
+  /* #759: the screen writes the greeting and the sentence in its own header (dom.js `setHeaderSub`). */
   get parentNode(): No | null {
     return this.pai;
   }

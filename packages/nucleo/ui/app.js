@@ -212,7 +212,7 @@ async function showScreen() {
   await mountScreen(screen, ctx, leave);
 }
 
-// Closes the drawer (unless a mode switch keeps it), aborts the screen that was open and starts the signal of the new visit.
+/* #759: Closes the drawer (unless a mode switch keeps it), aborts the screen that was open and starts the signal of the new visit. */
 function beginLeave() {
   if (keepDrawer) keepDrawer = false;
   else drawer.close();
@@ -223,7 +223,7 @@ function beginLeave() {
   return leave;
 }
 
-// Draws the page of a route no screen owns, with a way back to the Dashboard.
+/* #759: Draws the page of a route no screen owns, with a way back to the Dashboard. */
 function showNotFound() {
   highlight(null);
   openScreenId = null;
@@ -233,7 +233,7 @@ function showNotFound() {
   area.replaceChildren(empty({ title: 'Página não encontrada', text: `Nada em ${location.pathname}.`, action: { label: 'Ir para o Dashboard', onClick: () => navigate('/ui') } }));
 }
 
-// Draws the placeholder of a screen the menu lists but that has no file yet.
+/* #759: Draws the placeholder of a screen the menu lists but that has no file yet. */
 function showUnbuilt(screen, params) {
   swap.settle();
   area.replaceChildren(
@@ -243,7 +243,7 @@ function showUnbuilt(screen, params) {
   drawLive();
 }
 
-// Builds what a screen gets when it mounts: its reads and writes, tied to the signal of this visit, and its listeners, dropped when it leaves.
+/* #759: Builds what a screen gets when it mounts: its reads and writes, tied to the signal of this visit, and its listeners, dropped when it leaves. */
 function screenContext(params, leave) {
   return {
     params,
@@ -270,7 +270,7 @@ function screenContext(params, leave) {
   };
 }
 
-// Loads the screen's module and mounts it; a visit that was left meanwhile ends quietly, any other failure shows the error.
+/* #759: Loads the screen's module and mounts it; a visit that was left meanwhile ends quietly, any other failure shows the error. */
 async function mountScreen(screen, ctx, leave) {
   try {
     const module = await import(screen.file);
@@ -286,7 +286,7 @@ async function mountScreen(screen, ctx, leave) {
   }
 }
 
-// Marks the open as failed (a restart then opens again) and draws the error with a retry.
+/* #759: Marks the open as failed (a restart then opens again) and draws the error with a retry. */
 function showMountFailure(e) {
   screenFailed = true;
   swap.settle();

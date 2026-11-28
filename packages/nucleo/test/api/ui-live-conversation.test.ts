@@ -160,7 +160,7 @@ describe('Live conversation (#414, C100)', () => {
 
   test('AC-4: stuck to the bottom follows; scrolled up it holds position and shows the "N novas mensagens" pill, which lands at the bottom', async () => {
     const { h, area, ccMain } = await mountLive({ messages: [you('m1', 'começa'), bot('m2', 'ok, começando.')], total: 2, cursor: 'k0' });
-    // Issue 759 (A5): the page opens at the top; only the list of the conversation has an end to stick to.
+    /* #759: the page opens at the top; only the list of the conversation has an end to stick to. */
     const list = area.querySelector('.sd-messages')!;
     list.scrollHeight = 1000;
     list.clientHeight = 500;

@@ -1,5 +1,5 @@
-// #759: the order of effects of the switch of screen (`showScreen` in app.js), pinned by the order the lines appear
-// in the source from an anchor, so the branches can move between functions without changing what they do.
+/* #759: the order of effects of the switch of screen (`showScreen` in app.js), pinned by the order the lines appear
+   in the source from an anchor, so the branches can move between functions without changing what they do. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -8,7 +8,7 @@ import { UI_FOLDER } from '../../src/api/ui.ts';
 
 const app = readFileSync(join(UI_FOLDER, 'app.js'), 'utf8');
 
-// The position of each needle, searched in order after the anchor: each one must come after the one before it.
+/* #759: The position of each needle, searched in order after the anchor: each one must come after the one before it. */
 function inOrder(anchor: string, needles: string[]) {
   let at = app.indexOf(anchor);
   assert.ok(at >= 0, `anchor ${anchor}`);

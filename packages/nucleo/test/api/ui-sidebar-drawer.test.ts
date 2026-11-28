@@ -139,7 +139,7 @@ describe('issue 750: the drawer', () => {
     assert.match(/async function open\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '', /await showScreen\(\)/);
     const body = /async function showScreen\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '';
     assert.match(body, /beginLeave\(\)/);
-    // beginLeave is where the drawer closes: the open of a mode switch keeps it.
+    /* #759: beginLeave is where the drawer closes: the open of a mode switch keeps it. */
     assert.match(/function beginLeave\(\) \{([\s\S]*?)\n\}\n/.exec(app)?.[1] ?? '', /drawer\.close\(\)/);
     assert.match(app, /addEventListener\('popstate', open\)/);
   });

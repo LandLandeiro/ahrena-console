@@ -1,10 +1,10 @@
-// O Início (C1, #27): a saudação e a frase do dia, os três números e as barras por hora, "precisam de você" em destaque,
-// os agentes ativos com os subagentes e a atividade recente. Lê `GET /api/dashboard` e `GET /api/attention` (#87); para
-// o dia lê também `GET /api/sessions` e `GET /api/analytics/cost`, as rotas que o Sessões e o Custo já leem (issue 759).
-// issue 245: the inbox counts only the blocked sessions (`blocked` of the attention, the menu bar number);
-// the idle ones go to a neutral row below it, with the reason in a light chip.
-//
-// As funções sem DOM (formatação e o que cada parte mostra) saem exportadas para o teste.
+/* #759-other-screens: O Início (C1, #27): a saudação e a frase do dia, os três números e as barras por hora, "precisam de você" em destaque,
+   os agentes ativos com os subagentes e a atividade recente. Lê `GET /api/dashboard` e `GET /api/attention` (#87); para
+   o dia lê também `GET /api/sessions` e `GET /api/analytics/cost`, as rotas que o Sessões e o Custo já leem (#759-other-screens).
+   issue 245: the inbox counts only the blocked sessions (`blocked` of the attention, the menu bar number);
+   the idle ones go to a neutral row below it, with the reason in a light chip.
+
+   As funções sem DOM (formatação e o que cada parte mostra) saem exportadas para o teste. */
 
 import { header, el, icon, setHeaderSub } from '../dom.js';
 import { loading, error, errorBand, empty } from '../states.js';
@@ -23,16 +23,16 @@ const STYLE = '/ui/dashboard.css';
 // se o nome mudar lá, muda aqui.
 export const DASHBOARD_ROUTE = '/api/dashboard';
 export const ATTENTION_ROUTE = '/api/attention';
-// issue 759: the day of the sessions (newest activity first, the most one page holds) and the spend of today: the routes of the Sessões and the Custo.
+/* #759-other-screens: the day of the sessions (newest activity first, the most one page holds) and the spend of today: the routes of the Sessões and the Custo. */
 export const SESSIONS_ROUTE = '/api/sessions?order=activity&direction=desc&perPage=100';
-// The core accepts only 7, 30 or 90 days (DIAS_DO_CUSTO) and answers 400 to the rest; the shortest holds today in `todaySummary`.
+/* #759-other-screens: The core accepts only 7, 30 or 90 days (DIAS_DO_CUSTO) and answers 400 to the rest; the shortest holds today in `todaySummary`. */
 export const COST_ROUTE = '/api/analytics/cost?days=7';
 /** Releitura depois de uma rajada de mudanças, e a releitura de fundo das idades ("2 min"). */
 const DEBOUNCE_MS = 400;
 const BACKGROUND_MS = 30_000;
 const IN_INBOX = 5;
 const IN_IDLE_ROW = 3;
-/** The sessions of the day and the spend are read again after this long, not at every redraw. */
+/** #759-other-screens: The sessions of the day and the spend are read again after this long, not at every redraw. */
 const DAY_MS = BACKGROUND_MS;
 
 // The words are in state-labels.js (ADR-0028); the map reads the mode when it is read.
@@ -131,7 +131,7 @@ export function idleChips(attention) {
 // ---------- Peças ----------
 
 /**
- * ADR-0028, issue 759: the state of a card or a row, as the Mural writes it: the icon and the words, no pill. The attention
+ * ADR-0028, #759-other-screens: the state of a card or a row, as the Mural writes it: the icon and the words, no pill. The attention
  * when there is one (Precisa de você, Em pausa, Com erro); a waiting one without it does not wait on the person and is
  * working ("Trabalhando"); the rest by status.
  */
@@ -318,7 +318,7 @@ export async function mount(area, ctx) {
   useStyle();
   useMessageStyle();
   const refresh = el('button', { type: 'button', class: 'btn', onClick: () => draw(true) }, icon('refresh'), 'Atualizar');
-  // issue 759: the greeting is the title and the sentence of the day is the subtitle; both are written in the same header node, never a new one.
+  /* #759-other-screens: the greeting is the title and the sentence of the day is the subtitle; both are written in the same header node, never a new one. */
   const head = header({ icon: 'dashboard', title: greeting(Date.now()), sub: null, actions: [refresh, newSessionButton({ read: ctx.read, write: ctx.write })] });
   // Issue 243 (C47): the machine filter on its own row under the header. The Dashboard's own background
   // re-read (BACKGROUND_MS) and its re-read on every change already cover the remotes: the filter adds no
@@ -358,10 +358,10 @@ export async function mount(area, ctx) {
     if (last) paint(last);
   }
 
-  // issue 759: the sessions of the day and the spend of today, read at most once in DAY_MS; a read that fails keeps what was known.
+  /* #759-other-screens: the sessions of the day and the spend of today, read at most once in DAY_MS; a read that fails keeps what was known. */
   let day = null;
 
-  /** What the day says, only for this machine's view: a remote's own day is not read here. */
+  /** #759-other-screens: What the day says, only for this machine's view: a remote's own day is not read here. */
   function dayFor(attention) {
     const own = machines.choice === 'all' || machines.choice === 'local';
     const figures = own && day ? todayFigures(day.sessions, Date.now()) : todayFigures(null);

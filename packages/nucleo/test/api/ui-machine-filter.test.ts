@@ -802,7 +802,7 @@ describe('the Detail of a remote session (C49)', () => {
     const stop = await detail.mount(area, f.ctx);
     try {
       await until(() => !!one(area, '.sm-compose'), 'the compose box');
-      // Issue 759: the header reads the plan (`/agents`, a route the screen already reads) for "2 de 5" and the plan card, with the machine too.
+      /* #759: the header reads the plan (`/agents`, a route the screen already reads) for "2 de 5" and the plan card, with the machine too. */
       await until(() => f.routes.includes('/api/sessions/s1/agents?machine=ws'), 'the plan read');
       assert.deepEqual([...f.routes].sort(), ['/api/sessions/s1/agents?machine=ws', '/api/sessions/s1/conversation?machine=ws', '/api/sessions/s1?machine=ws']);
       assert.match(texto(one(area, '.sd-meta')), /Workstation/, 'the machine, on the meta line of the header');

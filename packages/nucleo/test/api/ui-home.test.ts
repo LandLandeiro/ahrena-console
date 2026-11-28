@@ -1,5 +1,5 @@
-// issue 759: the Início in the new language: the greeting, the sentence under it, three numbers, the bars by hour,
-// the recent activity with the state icon instead of the pill, and a redraw that keeps the focus (M6).
+/* #759: the Início in the new language: the greeting, the sentence under it, three numbers, the bars by hour,
+   the recent activity with the state icon instead of the pill, and a redraw that keeps the focus (M6). */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, mock, test } from 'node:test';
@@ -24,7 +24,7 @@ const { resetMachineChoice } = await import('../../ui/machine-filter.js');
 const at = (h: number, m = 0, day = 28) => new Date(2026, 10, day, h, m, 0).getTime();
 const iso = (ms: number) => new Date(ms).toISOString();
 const session = (id: string, start: number, last: number, status = 'completed', attention: unknown = null) => ({ id, status, attention, start: iso(start), lastActivity: iso(last), running: status === 'active' });
-// The shape `GET /api/sessions` answers: the rows are `items` (the Sessões reads `list.items` too).
+/* #759: The shape `GET /api/sessions` answers: the rows are `items` (the Sessões reads `list.items` too). */
 const page = (rows: unknown[], total = rows.length) => ({ total, items: rows });
 const NOW = at(16, 20);
 
@@ -106,7 +106,6 @@ describe('issue 759: the sentence under the greeting', () => {
   });
 });
 
-// ---------- the screen ----------
 
 const machines = [{ id: 'local', label: 'Esta máquina', state: 'connected' }];
 const numbers = (active: number) => ({
@@ -137,7 +136,7 @@ function rig(answer: { dash?: () => unknown; sessions?: () => unknown; cost?: ()
       if (route.startsWith('/api/dashboard')) return (answer.dash ?? (() => dashboardBody(3)))();
       if (route.startsWith('/api/sessions')) return (answer.sessions ?? (() => page([])))();
       if (route.startsWith('/api/analytics/cost')) {
-        // The core answers 400 `days: 7, 30 ou 90` to any other period: the stub does the same, so a wrong one shows as a dash.
+        /* #759: The core answers 400 `days: 7, 30 ou 90` to any other period: the stub does the same, so a wrong one shows as a dash. */
         const days = Number(new URL(route, 'http://core').searchParams.get('days') ?? 30);
         if (![7, 30, 90].includes(days)) throw new Error('days: 7, 30 ou 90');
         return (answer.cost ?? (() => costBody(14.88)))();
@@ -155,8 +154,8 @@ function rig(answer: { dash?: () => unknown; sessions?: () => unknown; cost?: ()
   const area = new ElementoFalso('main');
   return { ctx, area, reads, leave, listeners };
 }
-// Two rows tied to the clock the test runs under: both start today and both sit in the last minutes before now, so
-// they are inside the window of the bars at any hour (00:00 to 23:59) and in any time zone.
+/* #759: Two rows tied to the clock the test runs under: both start today and both sit in the last minutes before now, so
+   they are inside the window of the bars at any hour (00:00 to 23:59) and in any time zone. */
 const liveRows = () => {
   const now = Date.now();
   const h = new Date(now);
@@ -339,8 +338,8 @@ describe('issue 759: the style of the Início', () => {
   });
 });
 
-// issue 759: the window of the bars is the last nine hours up to now, so what the test puts on screen has to be
-// relative to the clock it runs under, at any hour of the day and in any time zone.
+/* #759: the window of the bars is the last nine hours up to now, so what the test puts on screen has to be
+   relative to the clock it runs under, at any hour of the day and in any time zone. */
 describe('issue 759: the bars at any hour of the day', () => {
   afterEach(() => (stops.splice(0).forEach((s) => s()), resetMachineChoice(), (documentoFalso.activeElement = null)));
   const HOURS = [[0, 0], [0, 30], [8, 30], [9, 30], [12, 0], [22, 30], [23, 30], [23, 59]] as const;

@@ -1,9 +1,9 @@
-// Issue 759: the session Detail in the new language (ADR-0028). The header in two lines (the state tag, the machine and
-// the start on the first; the title on the second; the actions beside the first, M10), the question card with its primary
-// button and the focus on it (A2 b and c, A5), the screen opening at the top with only the conversation list sticking to
-// its end (A5), the plan with one icon per step and the usage numbers beside the conversation, the tabs underlined with
-// their counts, and the "Configuração em vigor" link that no longer looks like a primary button (M11).
-// Mounted in the fake DOM against a stubbed core; synthetic data.
+/* #759: the session Detail in the new language (ADR-0028). The header in two lines (the state tag, the machine and
+   the start on the first; the title on the second; the actions beside the first, M10), the question card with its primary
+   button and the focus on it (A2 b and c, A5), the screen opening at the top with only the conversation list sticking to
+   its end (A5), the plan with one icon per step and the usage numbers beside the conversation, the tabs underlined with
+   their counts, and the "Configuração em vigor" link that no longer looks like a primary button (M11).
+   Mounted in the fake DOM against a stubbed core; synthetic data. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, test } from 'node:test';

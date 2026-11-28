@@ -1,13 +1,13 @@
-// issue 759: the card of the Início under the greeting: the three numbers and the bars by hour. The words of a state
-// come from state-labels.js; the colour of a bar is in dashboard.css, and every bar also says its state in words
-// (its title, the label of its hour and the legend), so no state is told by colour alone.
+/* #759: the card of the Início under the greeting: the three numbers and the bars by hour. The words of a state
+   come from state-labels.js; the colour of a bar is in dashboard.css, and every bar also says its state in words
+   (its title, the label of its hour and the legend), so no state is told by colour alone. */
 import { el } from './dom.js';
 import { stateLabel } from './state-labels.js';
 import { BAR_KINDS, BAR_STATE, plural } from './home-today.js';
 
 const stat = (id, label, value, note = '') => el('div', { class: 'stat', 'data-card': id }, el('span', { class: 'label' }, label), el('span', { class: 'v' }, value), note ? el('span', { class: 's' }, note) : null);
 
-/** The height class of a bar: a quarter, a half, three quarters or the whole hour. */
+/** #759: The height class of a bar: a quarter, a half, three quarters or the whole hour. */
 const heightOf = (share) => `home-bar-h${Math.min(4, Math.max(1, Math.ceil(share * 4)))}`;
 
 const wordsOf = (kind, n) => `${n} ${stateLabel(BAR_STATE[kind], { plural: n > 1 }).toLowerCase()}`;

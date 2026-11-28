@@ -1,7 +1,7 @@
-// Issue 759: the Sessões screen in the new language (ADR-0028). The columns Sessão, Estado, Máquina, Duração and
-// Atualizada, the state tag in place of the pill, the filters in the one `.seg` with their counts, the neutral duration
-// of a paused session, the session name as the title with folder and id as the secondary line, and one line per session
-// below 860 px. Mounted in the fake DOM against a stubbed core; synthetic data.
+/* #759: the Sessões screen in the new language (ADR-0028). The columns Sessão, Estado, Máquina, Duração and
+   Atualizada, the state tag in place of the pill, the filters in the one `.seg` with their counts, the neutral duration
+   of a paused session, the session name as the title with folder and id as the secondary line, and one line per session
+   below 860 px. Mounted in the fake DOM against a stubbed core; synthetic data. */
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';

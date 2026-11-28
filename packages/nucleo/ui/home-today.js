@@ -1,6 +1,6 @@
-// issue 759: what the Início says about the day. Pure functions of what the screen already reads (the page of
-// `GET /api/sessions` and the figures of the dashboard); no DOM, no read of their own. A figure the data does not
-// give is `null`, and the sentence leaves that part out instead of making a number up.
+/* #759: what the Início says about the day. Pure functions of what the screen already reads (the page of
+   `GET /api/sessions` and the figures of the dashboard); no DOM, no read of their own. A figure the data does not
+   give is `null`, and the sentence leaves that part out instead of making a number up. */
 import { stateOfSession } from './state-icon.js';
 
 const HOUR = 3_600_000;
@@ -34,7 +34,7 @@ const dayStart = (now, offset = 0) => {
 
 const EMPTY = Object.freeze({ today: null, yesterday: null, completed: null, hours: [] });
 
-/** The rows of the page that carry a start and a last activity, with them as numbers (`GET /api/sessions` answers its rows as `items`). */
+/** #759: The rows of the page that carry a start and a last activity, with them as numbers (`GET /api/sessions` answers its rows as `items`). */
 function rowsOf(page) {
   if (!Array.isArray(page?.items)) return null;
   return page.items
@@ -70,7 +70,7 @@ function barKind(session) {
   return BAR_OF_KIND[kind] ?? 'paused';
 }
 
-/** The last hours up to now: per hour one bar per session open in it, with the height as the share of the hour it was open. */
+/** #759: The last hours up to now: per hour one bar per session open in it, with the height as the share of the hour it was open. */
 function hoursOf(rows, now, midnight) {
   const current = new Date(now).getHours();
   const first = Math.max(0, current - (HOURS_SHOWN - 1));

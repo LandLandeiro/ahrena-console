@@ -80,7 +80,7 @@ function when(iso, now = new Date()) {
 /** The timeline's status filter: the core's `waiting` takes both the blocked and the idle events. */
 const STATUS_FILTER = stateLabels({ active: 'active', working: 'active', error: 'error', completed: 'completed', abandoned: 'abandoned', waiting: needsOrIdleLabel });
 
-/** The tag of a state: the attention when there is one; a waiting one without it is active; the rest by status. */
+/** #759: The tag of a state: the attention when there is one; a waiting one without it is active; the rest by status. */
 function statusPill(status, attention = null, { fraction = 0 } = {}) {
   const { kind, label } = stateOfSession({ attention, status });
   return stateTag({ kind, label, fraction });
@@ -232,9 +232,9 @@ export async function mount(area, ctx) {
   area.replaceChildren(loading({ label: 'Carregando a sessão' }));
 
   let headData = null;
-  // The plan the Agentes read already gives (`/agents`, `tasks`): the header says "2 de 5" and the Conversa draws the plan beside it.
+  /* #759: The plan the Agentes read already gives (`/agents`, `tasks`): the header says "2 de 5" and the Conversa draws the plan beside it. */
   let plan = null;
-  // `#responder` (A2 c): the Conversa with the reply field focused, where "Sua vez" and the card of the question lead.
+  /* #759: `#responder` (A2 c): the Conversa with the reply field focused, where "Sua vez" and the card of the question lead. */
   const wantsReply = location.hash === '#responder';
   let tab = wantsReply ? 'conversation' : (location.hash.slice(1) && TABS_LIST.some((a) => a.id === location.hash.slice(1))) ? location.hash.slice(1) : null;
   const labels = {};
@@ -242,7 +242,7 @@ export async function mount(area, ctx) {
     TABS_LIST.map((a) => [a.id, a.create(ctx, base, { head: () => headData, plan: () => plan, setLabel: (t) => ((labels[a.id] = t ?? undefined), drawTabs()), remote: remoteId ? { id: remoteId } : null })]),
   );
 
-  /** What the card of the question and "Sua vez" do: the Conversa, with the reply field focused. */
+  /** #759: What the card of the question and "Sua vez" do: the Conversa, with the reply field focused. */
   async function reply() {
     if (tab !== 'conversation') await switchTo('conversation');
     tabScreens.conversation.focusReply();
@@ -260,7 +260,8 @@ export async function mount(area, ctx) {
       if (JSON.stringify(fresh) === JSON.stringify(plan)) return;
       plan = fresh;
     } catch {
-      return; // the fraction and the plan are an extra: a read that fails leaves what was there
+      // #759: the fraction and the plan are an extra: a read that fails leaves what was there
+      return;
     }
     drawHead();
     tabScreens.conversation.drawAside?.();
@@ -337,7 +338,7 @@ export async function mount(area, ctx) {
     drawTabs();
     body.replaceChildren(loading({ label: 'Carregando', blocks: 2 }));
     void readPlan();
-    // A5: the screen opens at the top; a session that needs you gives the focus to the button of its card.
+    /* #759: A5: the screen opens at the top; a session that needs you gives the focus to the button of its card. */
     if (isBlocked(headData.session.attention)) top.querySelector('.sd-ask-action')?.focus?.();
     await tabScreens[tab].show(body);
     if (wantsReply) {
@@ -392,14 +393,14 @@ function backLink() {
   return el('a', { class: 'sd-back', href: '/ui/sessions', title: 'Voltar para Sessões', 'aria-label': 'Voltar para Sessões' }, icon('back'), el('span', {}, 'Sessões'));
 }
 
-/** "às 15:31" today, "em 18/10, 09:10" another day. */
+/** #759: "às 15:31" today, "em 18/10, 09:10" another day. */
 function startedAt(iso, now = new Date()) {
   const d = new Date(iso);
   return d.toDateString() === now.toDateString() ? `às ${HOUR.format(d)}` : `em ${DAY.format(d)}, ${HOUR.format(d)}`;
 }
 
 /**
- * The header in two lines (M10): the meta line (the state tag with the plan fraction when the screen reads one, the
+ * #759: The header in two lines (M10): the meta line (the state tag with the plan fraction when the screen reads one, the
  * machine, the start and the link of the configuration) with the actions beside it, and the title under it. Under 640 px
  * the row stacks, so the state never runs under the button.
  */
@@ -435,13 +436,13 @@ function drawTop(c, { refresh, write, source = null, plan = null, reply }) {
     pill('clock', duration(end - Date.parse(s.startedAt))),
   );
   const folder = s.cwd ? el('div', { class: 'sd-folder mono' }, icon('folder'), el('span', {}, s.cwd), copyButton(s.cwd, 'a pasta')) : null;
-  // The card only when the session is stuck (or stopped by an error); idle gets one muted line. Both lead to the reply field.
+  /* #759: The card only when the session is stuck (or stopped by an error); idle gets one muted line. Both lead to the reply field. */
   const blocked = isBlocked(s.attention) || s.status === 'error';
   const notice = s.banner && blocked ? band(c, reply) : isIdle(s.attention) ? idleLine(c, reply) : null;
   return [backLink(), el('div', { class: 'sd-head-row' }, meta, actions), el('h1', {}, s.title), pills, folder, source, notice].filter(Boolean);
 }
 
-/** The primary button of the card and of the idle line (A2 b and c): the dark one of the system, to the reply field. */
+/** #759: The primary button of the card and of the idle line (A2 b and c): the dark one of the system, to the reply field. */
 function replyButton(reply) {
   return el('button', { type: 'button', class: 'btn primary sd-ask-action', onClick: () => reply() }, 'Responder');
 }
@@ -606,7 +607,7 @@ function progress(t) {
 /** The kind of the icon of a plan step: done, working, next (the state icon, ADR-0028); the word follows for a reader of the screen. */
 const STEP_KIND = { completed: 'completed', in_progress: 'working', pending: 'queued' };
 
-/** The steps of a plan, each with its state icon and its state in words, never by colour alone; `rest` is what a cut left out. */
+/** #759: The steps of a plan, each with its state icon and its state in words, never by colour alone; `rest` is what a cut left out. */
 function planSteps(steps, rest = 0) {
   return el(
     'ul',
@@ -625,12 +626,12 @@ function planSteps(steps, rest = 0) {
   );
 }
 
-/** The plan beside the conversation: every step with its icon, and the count in the title. */
+/** #759: The plan beside the conversation: every step with its icon, and the count in the title. */
 function planCard(t) {
   return el('section', { class: 'card sd-plan' }, el('header', {}, el('b', {}, 'Plano'), el('span', { class: 'sd-plan-count' }, `${num(t.done)} de ${num(t.total)}`)), planSteps(t.steps));
 }
 
-/** The numbers of use beside the conversation, only the ones the screen reads: what was spent, the model and the branch. */
+/** #759: The numbers of use beside the conversation, only the ones the screen reads: what was spent, the model and the branch. */
 function usageCard(c) {
   const rows = [
     c.cost ? ['Gasto até agora', usd(c.cost.usd), false] : null,
@@ -738,7 +739,7 @@ function conversationTab(ctx, base, { head, plan = () => null, remote = null } =
   // A re-draw replaces only this wrapper: the compose box is placed once per show and never moved, so a
   // live change does not take the focus, the caret or an IME composition away from the person typing.
   const content = el('div', { class: 'sd-conversation' });
-  // The plan and the numbers of use beside the conversation (the wireframe); empty, the column is not there.
+  /* #759: The plan and the numbers of use beside the conversation (the wireframe); empty, the column is not there. */
   const aside = el('aside', { class: 'sd-aside', 'aria-label': 'Plano e uso' });
   const layout = el('div', { class: 'sd-conv' }, el('div', { class: 'sd-conv-main' }), aside);
   function drawAside() {
@@ -760,8 +761,8 @@ function conversationTab(ctx, base, { head, plan = () => null, remote = null } =
   const newPill = el('button', { type: 'button', class: 'sd-newpill', hidden: true });
   newPill.addEventListener('click', () => landAtBottom());
 
-  // A5: only the list of the conversation sticks to its end. It scrolls by itself (`.sd-messages`), so the page keeps the
-  // header and the card of the question at the top.
+  /* #759: A5: only the list of the conversation sticks to its end. It scrolls by itself (`.sd-messages`), so the page keeps the
+     header and the card of the question at the top. */
   const scroller = () => list;
   function atBottom() {
     const s = scroller();
@@ -1072,8 +1073,8 @@ function conversationTab(ctx, base, { head, plan = () => null, remote = null } =
       layout.firstChild.replaceChildren(content, composeBox().node);
       drawAside();
       node.replaceChildren(layout);
-      // A5: opening the tab leaves the page at the top and lands the list on its latest message; a live update does
-      // not scroll when the reader is up the list, so someone reading further up is not pulled down.
+      /* #759: A5: opening the tab leaves the page at the top and lands the list on its latest message; a live update does
+         not scroll when the reader is up the list, so someone reading further up is not pulled down. */
       listen();
       landAtBottom();
       // "Mandar mensagem" from a list opens here with `?focus=message`: the box takes the focus once.
@@ -1088,7 +1089,7 @@ function conversationTab(ctx, base, { head, plan = () => null, remote = null } =
     },
     refresh: () => (compose?.refresh(), drawAside(), live()),
     drawAside: () => (target ? drawAside() : undefined),
-    /** "Responder": the reply field takes the focus once it can (a box with no live process says why and offers the open action). */
+    /** #759: "Responder": the reply field takes the focus once it can (a box with no live process says why and offers the open action). */
     focusReply: () => composeBox().focus(),
   };
 }

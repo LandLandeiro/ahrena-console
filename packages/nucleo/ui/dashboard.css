@@ -19,7 +19,7 @@
 .ttl .r { margin-left: auto; font-size: 12px; font-weight: var(--weight-medium); color: var(--muted); display: inline-flex; align-items: center; gap: 4px; }
 .ttl a.r:hover { color: var(--text); }
 
-/* ---------- issue 759: os três números e as barras por hora ---------- */
+/* ---------- #759-other-screens: os três números e as barras por hora ---------- */
 .home-hero { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
 .home-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
 .stat { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

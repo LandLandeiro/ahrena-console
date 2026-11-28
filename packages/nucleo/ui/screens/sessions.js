@@ -1,9 +1,9 @@
-// A tela Sessões (C3, #28): a tabela das sessões com busca, filtro por diretório, ordenação, as
-// filtros de estado no `.seg` (com a contagem de cada um, issue 759) e as linhas que cabem na altura da janela (issue 279; no mínimo 10). Filtro, ordem
-// e página vão para o servidor (`GET /api/sessions`, src/api/sessions.ts) e ficam na query da URL, para
-// o Voltar do Detalhe cair no mesmo lugar.
-// A linha leva ao Detalhe, `/ui/sessions/<id>`. The last column is the icon that opens the session
-// where it runs (C71, issue 285); its click stays in the cell and never navigates the row.
+/* #759: A tela Sessões (C3, #28): a tabela das sessões com busca, filtro por diretório, ordenação, as
+   filtros de estado no `.seg` (com a contagem de cada um, #759) e as linhas que cabem na altura da janela (#279; no mínimo 10). Filtro, ordem
+   e página vão para o servidor (`GET /api/sessions`, src/api/sessions.ts) e ficam na query da URL, para
+   o Voltar do Detalhe cair no mesmo lugar.
+   A linha leva ao Detalhe, `/ui/sessions/<id>`. The last column is the icon that opens the session
+   where it runs (C71, #285); its click stays in the cell and never navigates the row. */
 
 import { rememberSessions } from '../session-seed.js';
 import { header, el, icon } from '../dom.js';
@@ -18,7 +18,7 @@ import { newSessionButton } from '../new-session.js';
 import { createMachineFilter, isRemote, itemHref, itemKey, machineLabel, machineTag, queryWithMachine, remoteParts, whereText } from '../machine-filter.js';
 
 /* ADR-0028: the `status` and `order` values of `/api/sessions` (English since phase 2b of issue 173). issue 245: the
-   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Em pausa" (`idle`). Issue 759: the six
+   old waiting pill split in two, "Precisam de você" (`blocked`, with the errors) and "Em pausa" (`idle`). #759: the six
    filters of the new language; `abandoned` is still a valid `status` (a bookmark keeps filtering) but has no button, the
    sessions it holds show under Todas. The words are in state-labels.js: each is `[value, label]` and its label is read
    when the button is drawn. */
@@ -46,7 +46,7 @@ const ORDERS = {
 /** An old bookmark's `?status=waiting` opens the ones that need you. */
 const STATUS_ALIASES = { waiting: 'blocked' };
 
-/** The `status` values the query may carry: the six filters and the one bookmarks may still hold. */
+/** #759: The `status` values the query may carry: the six filters and the one bookmarks may still hold. */
 const STATUSES = [...PILLS.map(([v]) => v), 'abandoned'];
 
 const DEFAULTS = { status: 'all', search: '', dir: '', order: 'activity', direction: 'desc', page: 1 };
@@ -155,8 +155,8 @@ export function shortId(id) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(id) ? id.slice(0, 8) : id;
 }
 
-// As colunas, na ordem; a classe dá a largura de cada uma (sessions.css). The last two have no visible header
-// (the Mensagem button and the open icon say what they are); the third item says so for the reader.
+/* #759: As colunas, na ordem; a classe dá a largura de cada uma (sessions.css). The last two have no visible header
+   (the Mensagem button and the open icon say what they are); the third item says so for the reader. */
 export const COLUMNS = [
   ['c-session', 'Sessão', true],
   ['c-status', 'Estado', true],
@@ -193,14 +193,14 @@ function selector(label, options, value, onChange) {
 
 const KNOWN_STATUSES = ['active', 'waiting', 'completed', 'error', 'abandoned'];
 
-/** The state cell: the tag of the Mural, icon and words, in the words of the mode (issue 759); no coloured pill. */
+/** The state cell: the tag of the Mural, icon and words, in the words of the mode (#759); no coloured pill. */
 export function stateCell(status, attention) {
   if (!attentionOf(attention) && !KNOWN_STATUSES.includes(status)) return null;
   const { kind, label } = stateOfSession({ attention, status });
   return kind ? stateTag({ kind, label }) : null;
 }
 
-/** The monogram of the row: the initial of the provider that runs it (the list does not carry the agent's name). */
+/** #759: The monogram of the row: the initial of the provider that runs it (the list does not carry the agent's name). */
 const PROVIDER_NAMES = { claude: 'Claude', codex: 'Codex' };
 export const providerName = (s) => PROVIDER_NAMES[s?.identity?.provider] ?? 'Claude';
 
@@ -376,7 +376,7 @@ export async function mount(area, ctx) {
     }).catch(() => {});
   }
 
-  /** The secondary line of the Sessão cell: why a pause (when it is one), the folder, the short id and the account. */
+  /** #759: The secondary line of the Sessão cell: why a pause (when it is one), the folder, the short id and the account. */
   function metaOf(s) {
     const a = attentionOf(s.attention);
     const why = a?.level === 'idle' ? reasonLabel(a) : null;
@@ -396,11 +396,11 @@ export async function mount(area, ctx) {
     const tr = el(
       'tr',
       { class: 'session-row', 'data-key': itemKey(s) },
-      // Issue 759 (A9): the title is the session's name; the folder and the id are the secondary line.
+      /* #759: the title is the session's name; the folder and the id are the secondary line. */
       el('td', { class: 'nm' }, el('div', { class: 'sessions-who' }, agentMonogram(providerName(s)), el('div', { class: 'sessions-text' }, el('a', { href: target, title: s.title }, el('b', {}, s.title)), metaOf(s)))),
       el('td', { class: 'st' }, stateCell(s.status, s.attention)),
       el('td', { class: 'mach' }, machineCell(s)),
-      // Issue 759 (M9): "rodando ·" is plain text, never a state colour: a paused session is not working.
+      /* #759: "rodando ·" is plain text, never a state colour: a paused session is not working. */
       el('td', { class: 'mono dur' }, s.running ? el('span', { class: 'sessions-running' }, 'rodando ·') : null, s.running ? ' ' : null, el('span', {}, duration(s.durationMs))),
       el('td', { class: 'when', title: new Date(s.lastActivity).toLocaleString('pt-BR') }, age(s.lastActivity)),
       messageTd(s),

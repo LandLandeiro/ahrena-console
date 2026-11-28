@@ -329,7 +329,7 @@ describe('#28 a tela Sessões', () => {
     assert.match(css.slice(mid, corte), /\.table th, \.table td \{ padding-left: 8px; padding-right: 8px; \}/);
     assert.match(css.slice(mid, corte), /\.table th:first-child, \.table td:first-child \{ padding-left: 14px; \}/);
     // Mínimos em px, com o respiro das células.
-    // Issue 759: the columns are Sessão, Estado, Máquina, Duração, Atualizada, Mensagem and the open icon (no Diretório, Agentes or Custo).
+    // #759: the columns are Sessão, Estado, Máquina, Duração, Atualizada, Mensagem and the open icon (no Diretório, Agentes or Custo).
     const MINIMO: Record<string, number> = { 'c-session': 170, 'c-status': 140, 'c-machine': 115, 'c-duration': 85, 'c-activity': 81, 'c-message': 142.5, 'c-open': 36 };
     // Up to 1240 px: 8 px of padding take 4 px from each need, and the message button is only its icon ("sem processo vivo").
     const MINIMO_MEIO: Record<string, number> = { 'c-session': 160, 'c-status': 136, 'c-machine': 108, 'c-duration': 81, 'c-activity': 77, 'c-message': 111, 'c-open': 36 };
