@@ -102,7 +102,7 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     r.swap.begin('sessions');
     assert.ok(r.watching);
     const body = node('div', 'sessions-body', node('section', 'card state loading'));
-    body.children[0]!.setAttribute('aria-busy', 'true');
+    body.children[0]!.setAttribute('data-swap-pending', '');
     r.area.append(node('h1', '', 'Sessões'), node('div', 'notices'), node('div', 'filters'), body);
     r.tick();
     assert.equal(r.ghosts().length, 1, 'a loading card inside the body is not data (the real shape of Sessões)');
@@ -117,7 +117,7 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     const r = rig();
     r.swap.begin('history');
     const body = node('div', 'history-body', node('section', 'card state loading'));
-    body.children[0]!.setAttribute('aria-busy', 'true');
+    body.children[0]!.setAttribute('data-swap-pending', '');
     r.area.append(node('h1', '', 'Histórico'), node('div', 'machine-slot'), body);
     r.tick();
     assert.equal(r.ghosts().length, 1, 'the loading card is not data');
@@ -141,7 +141,7 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     const r = rig();
     r.swap.begin('history');
     const body = node('div', 'hist-body', node('div', 'hist-region', node('section', 'card state loading')));
-    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
+    body.querySelector('.state')!.setAttribute('data-swap-pending', '');
     r.area.append(node('h1', '', 'Histórico'), node('div', 'hist-machines'), body);
     r.swap.mounted();
     assert.equal(r.ghosts().length, 1, 'the generic loading card never shows between the swap and the read');
@@ -159,26 +159,38 @@ describe('The switch of screen keeps the screen that was open (#765, M1)', () =>
     assert.equal(r.ghosts().length, 0);
   });
 
-  test('the seeded header of Detalhe is data: aviso, marked header and a loading body settle at once (N1)', () => {
+  test('the seeded header of Detalhe is data: its loading body carries no pending mark, so it settles at once (N1)', () => {
     const r = rig();
     r.swap.begin('session-detail');
-    const top = node('div', '', node('h1', '', 'Título da lista'));
-    top.setAttribute('data-swap-ready', '');
     const body = node('div', 'sd-body', node('section', 'card state loading'));
     body.querySelector('.state')!.setAttribute('aria-busy', 'true');
-    r.area.append(node('div', 'notice-slot'), top, body);
+    r.area.append(node('div', 'notice-slot'), node('div', '', node('h1', '', 'Título da lista')), body);
     r.tick();
     assert.equal(r.ghosts().length, 0, 'the seeded header shows before the read');
   });
 
-  test('a loading card with no seed mark still holds the ghost (N1 does not weaken A1)', () => {
+  test('a screen with a part still reading (aria-busy) but no pending mark settles at once, the shape of Entregas (N3)', () => {
     const r = rig();
-    r.swap.begin('session-detail');
-    const body = node('div', 'sd-body', node('section', 'card state loading'));
-    body.querySelector('.state')!.setAttribute('aria-busy', 'true');
-    r.area.append(node('div', 'notice-slot'), node('div', '', node('h1', '', 'x')), body);
-    r.tick();
+    r.swap.begin('analytics-delivery');
+    const github = node('section', 'card state loading');
+    github.setAttribute('aria-busy', 'true');
+    r.area.append(node('h1', '', 'Entregas'), node('div', 'tabs'), github);
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 0, 'a part reading the GitHub does not hold the old screen over the new one');
+    assert.ok(!r.watching, 'and the observer is gone');
+  });
+
+  test('only the first-read card marked data-swap-pending holds the ghost, and it leaves with the mark', () => {
+    const r = rig();
+    r.swap.begin('history');
+    const body = node('div', 'hist-body', node('section', 'card state loading'));
+    body.querySelector('.state')!.setAttribute('data-swap-pending', '');
+    r.area.append(node('h1', '', 'Histórico'), body);
+    r.swap.mounted();
     assert.equal(r.ghosts().length, 1);
+    body.replaceChildren(node('section', 'card state loading'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0, 'the mark is gone, so the area has its data');
   });
 
   test('with the drawer open the area stays inert through begin and settle (N2)', () => {
@@ -271,8 +283,11 @@ describe('The shell uses the swap (#765)', () => {
     assert.doesNotMatch(mount, /swap\.settle\(\)/);
     assert.match(app, /createScreenSwap\(\{ area, held: \(\) => drawer\.isOpen\(\) \}\)/);
   });
-  test('the seed of Detalhe marks its header as data (N1)', () => {
-    assert.match(ui('screens/session-detail.js'), /setAttribute\('data-swap-ready', ''\)/);
+  test('only the first-read card of Histórico and Sessões says it is pending, and Detalhe marks nothing (N1, N3)', () => {
+    assert.match(ui('screens/history.js'), /data-swap-pending/);
+    assert.match(ui('screens/sessions.js'), /data-swap-pending/);
+    assert.doesNotMatch(ui('screens/session-detail.js'), /data-swap-ready|data-swap-pending/);
+    assert.doesNotMatch(ui('screen-swap.js'), /aria-busy|data-swap-ready/);
   });
   test('a screen that does not exist leaves no ghost behind', () => {
     const lost = app.slice(app.indexOf('if (!found) {'), app.indexOf('const { screen, params } = found;'));
