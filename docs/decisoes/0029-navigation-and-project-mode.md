@@ -20,7 +20,7 @@
 - **"Precisa de você":** tem quatro contagens diferentes.
 - **Público duplo:** quem é de produto vê o mesmo detalhe técnico que quem é dev.
 
-## Decisão proposta
+## Decisão
 
 1. **Barra de seis itens fixos no modo Dev (Agora 3 e Entrega 3), mais um por máquina e a Configuração no pé, sem perder nenhuma tela.** Com três máquinas, a barra chega a dez. O que se funde vira aba ou filtro, e a rota antiga continua abrindo. A fusão por dentro é uma issue própria, a abrir com o aceite desta decisão (achado A3 da revisão); até lá, a aba é um link para a rota que já existe, no topo da tela que a recebe, e o item da barra fica marcado em qualquer uma delas.
 
@@ -35,12 +35,12 @@
 2. **Modo Projeto**, num botão ao lado do de tema ("Ver como Projeto" / "Ver como Dev"):
    - **o que ele é:** a soma do preset do Exibir (#754, campos), da coluna Projeto do mapa de rótulos (#760, vocabulário) e da barra de 5 itens (Mural ao vivo, Conversas, Quadro do trabalho, Decisões e Custo);
    - **onde fica a escolha:** junto com a do tema. Hoje o tema fica no `localStorage` do navegador (`docs/design.md`), e o modo e o Exibir ficam ali também; os três passam ao núcleo juntos, na issue do tema que se perde ao reabrir, ainda a abrir;
-   - **a regra que não se quebra:** o que pede ação nunca some. Aprovação mostra "Ver o comando" antes do botão; máquina caída, conexão expirada e conversa quase cheia aparecem nos dois modos. No modo Projeto, o item de uma máquina sem conexão (ou com o núcleo desatualizado) continua na barra enquanto durar o alerta, com o ponto de estado; a faixa no Mural fica para depois.
+   - **a regra que não se quebra:** o que pede ação nunca some. Aprovação mostra "Ver o comando" antes do botão; máquina caída, conexão expirada e conversa quase cheia aparecem nos dois modos. No modo Projeto, o item de uma máquina que pede ação continua na barra enquanto durar o estado: Sem conexão, Acesso bloqueado, Versão diferente ou Sem configuração, com o ponto de estado, ou o núcleo desatualizado, com a seta. Parada por você e Atualizando não pedem ação e não entram. A faixa no Mural fica para depois.
 3. **Uma regra para "precisa de você"** no núcleo (#761): pergunta, permissão, plano, erro e "Sua vez". "Sua vez" sai de "Em pausa" e entra em "Precisam de você" como linha, o que emenda a 0028.
 4. **Cor de agente só com dois agentes ou mais na tela.** Com todas as linhas "C · Claude", a cor vira enfeite; emenda a 0028.
 5. **Subtítulo só com estado** (#766): quanto, quem, o que mudou. Explicação de como a tela funciona sai.
 
-## Alternativas
+## Alternativas consideradas
 
 - **Modo Projeto como sistema paralelo, com telas próprias.** Recusada: dois lugares decidiriam o que aparece.
 - **Manter os 18 itens e só traduzir os nomes.** Recusada: não resolve as vistas repetidas.
