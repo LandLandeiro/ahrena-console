@@ -149,7 +149,7 @@ describe('#751: stateTag: the icon and the written label, no background', () => 
     assert.equal(tag.children[1]!.getAttribute('title'), 'Pergunta');
     assert.equal(tag.getAttribute('aria-label'), null);
     assert.equal(tag.children[1]!.getAttribute('aria-label'), null);
-    assert.equal(stateTag({ kind: 'working' }).children[1]!.getAttribute('title'), 'Ativa', 'the label a kind says by itself too');
+    assert.equal(stateTag({ kind: 'working' }).children[1]!.getAttribute('title'), 'Trabalhando', 'the label a kind says by itself too');
   });
 
   test('the label is data: it goes in as text, never as markup', () => {
@@ -161,12 +161,12 @@ describe('#751: stateTag: the icon and the written label, no background', () => 
   test('without a label, the kind says its own, so the label is always written', () => {
     assert.deepEqual(
       STATE_KINDS.map((k: string) => texto(stateTag({ kind: k }))),
-      ['Precisa de você', 'Pede permissão', 'Ativa', 'Na fila', 'Ociosa', 'Concluída', 'Com erro', 'Respondida'],
+      ['Precisa de você', 'Pede permissão', 'Trabalhando', 'Na fila', 'Em pausa', 'Concluída', 'Com erro', 'Respondida'],
     );
   });
 
   test('the fraction reaches the slice', () => {
-    const a = stateTag({ kind: 'working', label: 'Ativa', fraction: 1 }).querySelector('path.si-fill')!.getAttribute('d');
+    const a = stateTag({ kind: 'working', label: 'Trabalhando', fraction: 1 }).querySelector('path.si-fill')!.getAttribute('d');
     assert.equal(a, 'M8 8V4.5A3.5 3.5 0 1 1 7.98 4.50Z');
   });
 });
@@ -182,16 +182,16 @@ describe('#751: stateOfSession: the kind and the label of today for an attention
     assert.deepEqual(stateOfSession({ attention: blocked(null), status: 'waiting' }), { kind: 'needs', label: 'Precisa de você' });
     assert.deepEqual(stateOfSession({ attention: blocked('nope'), status: 'waiting' }), { kind: 'needs', label: 'Precisa de você' });
   });
-  test('idle is paused and says Ociosa', () => {
-    assert.deepEqual(stateOfSession({ attention: { level: 'idle', reason: 'turn_ended' }, status: 'waiting' }), { kind: 'paused', label: 'Ociosa' });
+  test('idle is paused and says Em pausa', () => {
+    assert.deepEqual(stateOfSession({ attention: { level: 'idle', reason: 'turn_ended' }, status: 'waiting' }), { kind: 'paused', label: 'Em pausa' });
   });
   test('without attention: completed, error, abandoned and the rest as working', () => {
     assert.deepEqual(stateOfSession({ attention: null, status: 'completed' }), { kind: 'completed', label: 'Concluída' });
     assert.deepEqual(stateOfSession({ attention: null, status: 'error' }), { kind: 'error', label: 'Com erro' });
     assert.deepEqual(stateOfSession({ attention: null, status: 'abandoned' }), { kind: 'paused', label: 'Abandonada' });
-    assert.deepEqual(stateOfSession({ attention: null, status: 'active' }), { kind: 'working', label: 'Ativa' });
-    assert.deepEqual(stateOfSession({ attention: null, status: 'waiting' }), { kind: 'working', label: 'Ativa' });
-    assert.deepEqual(stateOfSession({}), { kind: 'working', label: 'Ativa' });
+    assert.deepEqual(stateOfSession({ attention: null, status: 'active' }), { kind: 'working', label: 'Trabalhando' });
+    assert.deepEqual(stateOfSession({ attention: null, status: 'waiting' }), { kind: 'working', label: 'Trabalhando' });
+    assert.deepEqual(stateOfSession({}), { kind: 'working', label: 'Trabalhando' });
   });
 });
 

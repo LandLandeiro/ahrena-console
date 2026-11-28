@@ -113,7 +113,7 @@ describe('the tree between sessions on the screen', () => {
     const tree = node('pm', [node('tl', [node('cloud', [node('kid')])])]);
     assert.equal(descendants(tree), 3);
     assert.deepEqual([...initialOpen([{ root: tree }])].sort(), ['cloud', 'pm', 'tl']);
-    assert.deepEqual(statusOf('active'), ['Ativa', 'active']);
+    assert.deepEqual(statusOf('active'), ['Trabalhando', 'active']);
   });
 });
 
@@ -135,13 +135,13 @@ describe('the period of the Workflows page (C84)', () => {
   test('the coverage line says how many sessions the numbers cover and that no active one is left out', () => {
     assert.deepEqual(coverageText({ period: '30d', sessions: 1286, activeOutsidePeriod: 0 }), {
       title: '1.286 sessões em 30 dias',
-      text: 'Os números e o grafo contam todas, não só as da lista. Nenhuma sessão ativa fica de fora.',
+      text: 'Os números e o grafo contam todas, não só as da lista. Nenhuma sessão trabalhando fica de fora.',
     });
     // `sessions` already counts the active session older than the period.
-    assert.deepEqual(coverageText({ period: '24h', sessions: 1, activeOutsidePeriod: 1 }), { title: 'Nada em 24 h', text: 'Há 1 sessão ativa mais velha e ela entra mesmo assim: sessões ativas nunca ficam de fora do período.' });
+    assert.deepEqual(coverageText({ period: '24h', sessions: 1, activeOutsidePeriod: 1 }), { title: 'Nada em 24 h', text: 'Há 1 sessão trabalhando mais velha e ela entra mesmo assim: sessões trabalhando nunca ficam de fora do período.' });
     const mixed = coverageText({ period: '7d', sessions: 13, activeOutsidePeriod: 1 });
     assert.equal(mixed.title, '12 sessões em 7 dias');
-    assert.match(mixed.text, /1 ativa mais velha entra assim mesmo\./);
+    assert.match(mixed.text, /1 trabalhando mais velha entra assim mesmo\./);
     assert.equal(coverageText({ period: 'all', sessions: 8912, activeOutsidePeriod: 0 }).title, '8.912 sessões no histórico');
   });
 });

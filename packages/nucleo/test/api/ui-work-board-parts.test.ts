@@ -363,7 +363,7 @@ describe('#465/AC-2 the card (465-2), data only', () => {
     assert.ok(running.querySelector('.wb-session')!.classList.contains('wb-session-working'));
     assert.equal(sessionText({ count: 1, state: 'working' }), 'trabalhando');
     assert.equal(sessionText({ count: 1, state: 'needs-you' }), 'precisa de você');
-    assert.equal(sessionText({ count: 1, state: 'idle' }), 'ociosa');
+    assert.equal(sessionText({ count: 1, state: 'idle' }), 'em pausa');
     assert.equal(sessionText({ count: 0, state: null }), null);
 
     const review = workCard(CARDS.review[0], { primaryRepo: REPO, now: NOW });

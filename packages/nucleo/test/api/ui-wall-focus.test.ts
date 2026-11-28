@@ -165,7 +165,7 @@ describe('#751: the redraw of the wall keeps the focus', () => {
     assert.ok(focusLog.every((f) => (f.options as { preventScroll?: boolean } | undefined)?.preventScroll === true), 'every focus of the redraw is preventScroll');
   });
 
-  test('the filter: Enter on Ociosas keeps the focus on it while the list redraws', async () => {
+  test('the filter: Enter on Em pausa keeps the focus on it while the list redraws', async () => {
     const s = await mountWith(wallOf([blocked('c1'), session('r1')]));
     const idle = one(s.area, '[data-filter="idle"]');
     idle.focus();

@@ -19,7 +19,7 @@ instalarDomFalso();
 /** Dev: today's words, exactly (the singular, then the plural when the state has one). */
 const DEV: Record<string, [string, string?]> = {
   blocked: ['Precisa de você', 'Precisam de você'],
-  idle: ['Ociosa', 'Ociosas'],
+  idle: ['Em pausa', 'Em pausa'],
   permission: ['Pede permissão'],
   question: ['Pergunta'],
   plan: ['Plano para aprovar'],
@@ -28,7 +28,7 @@ const DEV: Record<string, [string, string?]> = {
   turn_ended: ['Sua vez'],
   interrupted: ['Interrompida'],
   first_prompt: ['No prompt'],
-  active: ['Ativa', 'Ativas'],
+  active: ['Trabalhando', 'Trabalhando'],
   completed: ['Concluída', 'Concluídas'],
   abandoned: ['Abandonada', 'Abandonadas'],
   queued: ['Na fila'],
@@ -41,7 +41,7 @@ const DEV: Record<string, [string, string?]> = {
   completed_item: ['Concluído'],
   agent_waiting: ['Esperando'],
 };
-/** Projeto: the table of ux-review.md section 4; what is not here is equal to Dev. "Ativa" and "Ociosa" stay until #753. */
+/** Projeto: the table of ux-review.md section 4; what is not here is equal to Dev ("Trabalhando" and "Em pausa" included, #753). */
 const PROJECT_DIFFERS: Record<string, [string, string?]> = {
   permission: ['Pede sua aprovação'],
   question: ['Esperando sua resposta'],
@@ -55,7 +55,7 @@ const PROJECT: Record<string, [string, string?]> = { ...DEV, ...PROJECT_DIFFERS 
 const BOARD: Record<string, string> = { planning: 'Planejamento', queued: 'Na fila', running: 'Em execução', review: 'Em revisão', blocked: 'Precisa de você', done: 'Concluído' };
 /** What the screens used to say and no longer may, plus the compound the module builds. */
 const RETIRED = ['Em review', 'Bloqueado'];
-const COMPOUND = 'Precisa de você ou ociosa';
+const COMPOUND = 'Precisa de você ou em pausa';
 
 const texts = (table: Record<string, [string, string?]>) => Object.values(table).flatMap(([one, many]) => [one, ...(many ? [many] : [])]);
 const GUARDED = new Set([...texts(DEV), ...texts(PROJECT), ...Object.values(BOARD), ...RETIRED, COMPOUND]);
@@ -206,16 +206,16 @@ export function strayLabelsInUi(): { strays: Stray[]; used: Set<string> } {
 }
 
 describe('#760 uma fonte só: the guard finds a state label written by hand', () => {
-  const map = ['const STATUS = {', "  active: 'Ativa',", '  error: "Com erro",', '  abandoned: `Abandonada`,', '};'].join('\n');
+  const map = ['const STATUS = {', "  active: 'Trabalhando',", '  error: "Com erro",', '  abandoned: `Abandonada`,', '};'].join('\n');
 
   test('a regular expression with a backtick does not hide the labels after it', () => {
-    const source = ["const parts = text.split(/`([^`\\n]+)`/);", "const STATUS = { active: 'Ativa' };"].join('\n');
-    assert.deepEqual(findStrayLabels(source, 'screens/x.js'), [{ file: 'screens/x.js', line: 2, text: 'Ativa' }]);
+    const source = ["const parts = text.split(/`([^`\\n]+)`/);", "const STATUS = { active: 'Trabalhando' };"].join('\n');
+    assert.deepEqual(findStrayLabels(source, 'screens/x.js'), [{ file: 'screens/x.js', line: 2, text: 'Trabalhando' }]);
   });
 
   test('a hand-written map is red, with the file and the line of each label', () => {
     assert.deepEqual(findStrayLabels(map, 'screens/x.js'), [
-      { file: 'screens/x.js', line: 2, text: 'Ativa' },
+      { file: 'screens/x.js', line: 2, text: 'Trabalhando' },
       { file: 'screens/x.js', line: 3, text: 'Com erro' },
       { file: 'screens/x.js', line: 4, text: 'Abandonada' },
     ]);
@@ -227,19 +227,19 @@ describe('#760 uma fonte só: the guard finds a state label written by hand', ()
   });
 
   test('a label in a comment, in a longer sentence or in a template with an expression is not a map', () => {
-    const prose = ["// 'Ativa' and \"Com erro\" in a comment", '/* `Ociosa`', " 'Concluída' */", "const a = 'Ativa, mais velha que o período';", 'const b = `Ativa ${x}`;', "const c = 'ativa';"].join('\n');
+    const prose = ["// 'Trabalhando' and \"Com erro\" in a comment", '/* `Em pausa`', " 'Concluída' */", "const a = 'Trabalhando, mais velha que o período';", 'const b = `Trabalhando ${x}`;', "const c = 'trabalhando';"].join('\n');
     assert.deepEqual(findStrayLabels(prose, 'screens/x.js'), []);
   });
 
   test('a label inside the expression of a template is read, and the line count survives the comment before it', () => {
-    const source = ['/* one', 'two */', 'const t = `${ok ? \'Ociosa\' : null}`;'].join('\n');
-    assert.deepEqual(findStrayLabels(source, 'screens/x.js'), [{ file: 'screens/x.js', line: 3, text: 'Ociosa' }]);
+    const source = ['/* one', 'two */', 'const t = `${ok ? \'Em pausa\' : null}`;'].join('\n');
+    assert.deepEqual(findStrayLabels(source, 'screens/x.js'), [{ file: 'screens/x.js', line: 3, text: 'Em pausa' }]);
   });
 
   test('the old board words are refused too, and the compound the module builds', () => {
     assert.deepEqual(
-      findStrayLabels("const c = ['Em review', 'Bloqueado', 'Precisa de você ou ociosa'];", 'screens/x.js').map((s) => s.text),
-      ['Em review', 'Bloqueado', 'Precisa de você ou ociosa'],
+      findStrayLabels("const c = ['Em review', 'Bloqueado', 'Precisa de você ou em pausa'];", 'screens/x.js').map((s) => s.text),
+      ['Em review', 'Bloqueado', 'Precisa de você ou em pausa'],
     );
   });
 });
@@ -327,15 +327,15 @@ describe('#760 the module: the mode and the two columns', () => {
     }
   });
 
-  test('Projeto is the table of the review; "Ativa" and "Ociosa" are not renamed here (#753)', async () => {
+  test('Projeto is the table of the review; "Trabalhando" and "Em pausa" are the same in both columns (#753)', async () => {
     const m = await labels();
     m.setStateLabelMode('project');
     for (const [id, [one, many]] of Object.entries(PROJECT)) {
       assert.equal(m.stateLabel(id), one, id);
       assert.equal(m.stateLabel(id, { plural: true }), many ?? one, `${id} plural`);
     }
-    assert.equal(m.stateLabel('active'), 'Ativa');
-    assert.equal(m.stateLabel('idle'), 'Ociosa');
+    assert.equal(m.stateLabel('active'), 'Trabalhando');
+    assert.equal(m.stateLabel('idle'), 'Em pausa');
     assert.equal(m.stateLabel('blocked'), 'Precisa de você');
   });
 
@@ -372,8 +372,8 @@ describe('#760 the module: the mode and the two columns', () => {
     }
     for (const kind of STATE_KINDS) assert.equal(typeof m.kindLabel(kind), 'string', kind);
     assert.equal(m.kindLabel('needs'), 'Precisa de você');
-    assert.equal(m.kindLabel('paused'), 'Ociosa');
-    assert.equal(m.kindLabel('working'), 'Ativa');
+    assert.equal(m.kindLabel('paused'), 'Em pausa');
+    assert.equal(m.kindLabel('working'), 'Trabalhando');
     assert.equal(m.kindLabel('permission'), 'Pede permissão');
     assert.equal(m.kindLabel('nope'), null);
   });
@@ -537,7 +537,7 @@ describe('#760 as duas colunas: "Pede permissão" and "Com erro" in the same scr
     assert.equal(both.dev, 'Pede permissão | Com erro | Pede permissão | Com erro | Pede permissão | Com erro | Sua vez');
     assert.equal(both.project, 'Pede sua aprovação | Parou com erro | Pede sua aprovação | Parou com erro | Pede sua aprovação | Parou com erro | Esperando sua resposta');
     assert.equal(attention.ATTENTION_LABEL.blocked, 'Precisa de você');
-    assert.equal(attention.ATTENTION_PLURAL.idle, 'Ociosas');
+    assert.equal(attention.ATTENTION_PLURAL.idle, 'Em pausa');
   });
 
   test('Mural: the cards and the rows', async () => {

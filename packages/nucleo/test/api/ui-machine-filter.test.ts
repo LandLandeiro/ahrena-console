@@ -447,7 +447,7 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     const again = new ElementoFalso('main');
     await wall.mount(again, live.ctx);
     await until(() => all(again, '.wall-row').length === 1);
-    assert.match(texto(one(again, '.wall-summary')), /ativa/);
+    assert.match(texto(one(again, '.wall-summary')), /trabalhando/);
     assert.equal(texto(all(again, '.wall-seg-n')[0]!), '1');
     live.leave.abort();
   });
@@ -462,14 +462,14 @@ describe('Mural ao vivo with every machine (C46, C48)', () => {
     f.ctx.read = async (route: string) => (route.includes('/api/wall?machine=ws') ? ((asked = true), await gate, read(route)) : read(route));
     const area = new ElementoFalso('main');
     await wall.mount(area, f.ctx);
-    await until(() => /ativa/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
+    await until(() => /trabalhando/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
     one(area, '[aria-haspopup="menu"]')!.click();
     one(area, '[role="menuitemradio"][data-machine="ws"]')!.click();
     await until(() => asked, 'the read of the chosen machine');
     assert.equal(texto(one(area, '.wall-summary')).trim(), '', 'the sentence of the other machine is gone');
     assert.deepEqual(all(area, '.wall-seg-n').map((n) => texto(n)), ['', '', '', ''], 'and so are the numbers');
     release();
-    await until(() => /ativa/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
+    await until(() => /trabalhando/.test(texto(one(area, '.wall-summary'))) && texto(all(area, '.wall-seg-n')[0]!) === '1');
     f.leave.abort();
   });
 

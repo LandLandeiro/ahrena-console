@@ -272,7 +272,7 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
   test('the state is the one of the session, with today\'s words', () => {
     assert.deepEqual(cardContent(blocked()).state, { kind: 'needs', label: 'Pergunta' });
     assert.deepEqual(cardContent(blocked({ attention: { level: 'blocked', reason: 'permission' } })).state, { kind: 'permission', label: 'Pede permissão' });
-    assert.deepEqual(rowContent(cardDeExemplo('r')).state, { kind: 'working', label: 'Ativa' });
+    assert.deepEqual(rowContent(cardDeExemplo('r')).state, { kind: 'working', label: 'Trabalhando' });
   });
   test('the row: the slice is done/total with no minimum plan, "passo X de Y" with a plan, the idle one carries how long ago', () => {
     const r = rowContent(cardDeExemplo('r'));
@@ -293,7 +293,7 @@ describe('#751: Mural: the content of a card and of a row, without DOM', () => {
     assert.equal(bare.fraction, 0);
     assert.equal(bare.ratio, null);
     const idle = rowContent(cardDeExemplo('r', { status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' } }));
-    assert.equal(idle.state.label, 'Ociosa');
+    assert.equal(idle.state.label, 'Em pausa');
     assert.equal(idle.idle, true);
     assert.equal(r.idle, false);
     assert.equal(rowContent(cardDeExemplo('r', { status: 'completed', activity: { type: 'completed', text: '' } })).phrase, 'Terminou sem erro');
@@ -339,9 +339,9 @@ describe('Mural: a tela montada', () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
       await ate(() => sessionsOf(area).length > 0);
-      assert.match(area.textContent, /^Mural ao vivo2 sessões precisam de você\. 1 ativa, 1 ociosa e 1 concluída\./);
+      assert.match(area.textContent, /^Mural ao vivo2 sessões precisam de você\. 1 trabalhando, 1 em pausa e 1 concluída\./);
       const filtros = area.todos((e) => e.getAttribute('data-filter') !== null);
-      assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 5', 'Precisam de você 2', 'Ativas 1', 'Ociosas 1'], 'the name of each segment reads "Ativas 1", with a real space');
+      assert.deepEqual(filtros.map((f) => f.textContent), ['Todas 5', 'Precisam de você 2', 'Trabalhando 1', 'Em pausa 1'], 'the name of each segment reads "Trabalhando 1", with a real space');
       assert.equal(filtros[0]!.getAttribute('aria-pressed'), 'true');
       const groups = area.todos((e) => e.getAttribute('role') === 'group' && e.getAttribute('aria-label') === 'Estado');
       assert.equal(groups.length, 1, 'the state segments are one named group (#752)');
@@ -357,7 +357,7 @@ describe('Mural: a tela montada', () => {
       assert.ok(cards.every((c) => c.tag === 'div' && needSection[0]!.todos((e) => e === c).length === 1));
       const listBox = comClasse(area, 'wall-list');
       assert.deepEqual(listBox.map((l) => rowsOf(l).map((c) => c.getAttribute('data-session'))), [['ativa-1'], ['espera-2'], ['feita-1']], 'one list per section, the core order inside each (#752)');
-      assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você 2', 'Ativas 1', 'Ociosas 1', 'Concluídas 1']);
+      assert.deepEqual(comClasse(area, 'wall-h').map((h) => h.textContent), ['Precisam de você 2', 'Trabalhando 1', 'Em pausa 1', 'Concluídas 1']);
       assert.deepEqual(
         sessionsOf(area).map((c) => comClasse(c, 'wall-link')[0]!.getAttribute('href')),
         ['/ui/sessions/espera-1', '/ui/sessions/erro-1', '/ui/sessions/ativa-1', '/ui/sessions/espera-2', '/ui/sessions/feita-1'],
@@ -385,12 +385,12 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(workingRow, 'wall-link')[0]!.textContent, 'Sessão ativa-1');
       assert.equal(comClasse(workingRow, 'wall-phrase')[0]!.textContent, 'Rodar a bateria');
       assert.equal(comClasse(workingRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
-      assert.equal(comClasse(workingRow, 'state-tag')[0]!.textContent, 'Ativa');
+      assert.equal(comClasse(workingRow, 'state-tag')[0]!.textContent, 'Trabalhando');
       assert.equal(comClasse(workingRow, 'wall-ratio')[0]!.textContent, 'passo 4 de 5');
       assert.ok(comClasse(workingRow, 'wall-rt-work').length === 1, 'working title is the medium weight one');
       assert.equal(comClasse(rowsOf(area)[1]!, 'wall-rt-work').length, 0);
       const idleRow = rowsOf(area)[1]!;
-      assert.equal(comClasse(idleRow, 'state-tag')[0]!.textContent, 'Ociosa');
+      assert.equal(comClasse(idleRow, 'state-tag')[0]!.textContent, 'Em pausa');
       assert.equal(comClasse(idleRow, 'state-tag')[0]!.getAttribute('data-state-kind'), 'paused');
       assert.match(comClasse(idleRow, 'wall-since')[0]!.textContent, /^há \d+ (min|h|d)$/);
       const doneRow = rowsOf(area)[2]!;
@@ -518,7 +518,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(calm[0]!, 'icon').length, 1, 'the check icon');
       assert.deepEqual(comClasse(area, 'wall-sec-blocked')[0]!.todos((e) => e.tag === 'h2').map((h) => h.textContent), ['Precisam de você 0']);
       assert.equal(area.todos((e) => e.getAttribute('aria-live') !== null || e.getAttribute('role') === 'status' || e.getAttribute('role') === 'alert').filter((e) => calm[0]!.contains(e) || e.contains(calm[0])).length, 0, 'neither the block nor what holds it is a live region');
-      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^Nada precisa de você agora\. 1 ativa e 1 ociosa\.$/);
+      assert.match(comClasse(area, 'wall-summary')[0]!.textContent, /^Nada precisa de você agora\. 1 trabalhando e 1 em pausa\.$/);
     } finally {
       await sair();
     }
@@ -535,7 +535,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(comClasse(area, 'state').length, 0, 'and not the empty state');
       segment('idle').click();
       assert.equal(comClasse(area, 'wall-calm').length, 0);
-      assert.match(area.textContent, /Nenhuma sessão ociosa/);
+      assert.match(area.textContent, /Nenhuma sessão em pausa/);
     } finally {
       await sair();
     }
@@ -611,14 +611,14 @@ describe('Mural: a tela montada', () => {
     }
   });
 
-  test('waiting without attention (delegating): "Ativa" in a row, not idle, no card, no section', async () => {
+  test('waiting without attention (delegating): "Trabalhando" in a row, not idle, no card, no section', async () => {
     const semMotivo = cardDeExemplo('espera-3', { status: 'waiting', state: 'delegating', reason: null, attention: null, activity: { type: 'tool', text: 'Delegando ao subagente' } });
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [semMotivo] }));
     try {
       await ate(() => sessionsOf(area).length === 1);
       const rowEl = rowsOf(area)[0]!;
       assert.equal(cardsOf(area).length, 0);
-      assert.equal(comClasse(rowEl, 'state-tag')[0]!.textContent, 'Ativa');
+      assert.equal(comClasse(rowEl, 'state-tag')[0]!.textContent, 'Trabalhando');
       assert.equal(comClasse(rowEl, 'state-tag')[0]!.getAttribute('data-state-kind'), 'working');
       assert.equal(comClasse(rowEl, 'wall-phrase')[0]!.textContent, 'Delegando ao subagente');
     } finally {
@@ -674,7 +674,7 @@ describe('Mural: a tela montada', () => {
       assert.equal(sessionsOf(area).length, 0);
       assert.equal(comClasse(area, 'wall-calm').length, 1, 'other cards exist, so the calm block answers (#752)');
       segment('idle').click();
-      assert.match(area.textContent, /Nenhuma sessão ociosa/);
+      assert.match(area.textContent, /Nenhuma sessão em pausa/);
     } finally {
       await sair();
     }
@@ -1217,7 +1217,7 @@ const WALL_WITH_CHILDREN = {
 
 describe('Wall: nested children and Paradas (#333)', () => {
   test("the leader's summary: the counts of the whole tree, without the zeros, singular and plural", () => {
-    assert.deepEqual(treeSummary({ total: 4, blocked: 1, active: 2, parked: 1 })?.map((p: { text: string }) => p.text), ['4 filhas', '1 precisa de você', '2 ativas', '1 parada']);
+    assert.deepEqual(treeSummary({ total: 4, blocked: 1, active: 2, parked: 1 })?.map((p: { text: string }) => p.text), ['4 filhas', '1 precisa de você', '2 trabalhando', '1 parada']);
     assert.deepEqual(treeSummary({ total: 1, blocked: 0, active: 0, parked: 0 })?.map((p: { text: string }) => p.text), ['1 filha']);
     assert.deepEqual(treeSummary({ total: 3, blocked: 2, active: 0, parked: 2 })?.map((p: { text: string }) => p.text), ['3 filhas', '2 precisam de você', '2 paradas']);
     assert.equal(treeSummary(null), null);
@@ -1238,7 +1238,7 @@ describe('Wall: nested children and Paradas (#333)', () => {
     try {
       await ate(() => sessionsOf(area).length === 2);
       const treeLine = area.todos((e) => e.getAttribute('data-tree') === 'lider')[0]!;
-      assert.match(treeLine.textContent, /4 filhas.*1 precisa de você.*2 ativas.*1 parada/);
+      assert.match(treeLine.textContent, /4 filhas.*1 precisa de você.*2 trabalhando.*1 parada/);
       assert.equal(treeLine.getAttribute('aria-expanded'), 'false');
       assert.equal(comClasse(area, 'wall-kid').length, 0, 'closed');
       treeLine.click();
@@ -1406,7 +1406,7 @@ describe('#752: list semantics of the sections, the nested children and Paradas'
     return lists;
   };
 
-  test('the filler that a three-row Ativas list draws is aria-hidden, and the list holds nothing else that is no item', async () => {
+  test('the filler that a three-row Trabalhando list draws is aria-hidden, and the list holds nothing else that is no item', async () => {
     const { area, sair } = await montarTela(async () => ({ ...MURAL, cards: [cardDeExemplo('a1'), cardDeExemplo('a2'), cardDeExemplo('a3')] }));
     try {
       await ate(() => rowsOf(area).length === 3);
@@ -1514,7 +1514,7 @@ describe('#752: the sheet of the sections', () => {
     assert.equal(declared('.wall-segs', 'margin-bottom'), '12px');
     assert.equal(declared('.wall-parked', 'margin-top'), '12px');
     assert.equal(declared('.wall-body', 'gap'), '28px', 'between the sections');
-    assert.equal(declared('.wall-pair', 'gap'), '28px', 'between Ociosas and Concluídas side by side');
+    assert.equal(declared('.wall-pair', 'gap'), '28px', 'between Em pausa and Concluídas side by side');
     assert.match(css('shell.css'), /\.cc-main \{[^}]*gap:\s*16px/);
     const head = rules.find((r) => /^\.wall-h\b/.test(r.selector) && /margin/.test(r.body));
     assert.ok(head, 'a heading rule with a margin');
@@ -1643,7 +1643,7 @@ describe('#752: Argos round 1, the columns and the side-by-side sections of the 
   const activeList = (area: No) => comClasse(comClasse(area, 'wall-sec-active')[0]!, 'wall-list')[0]!;
   const shape = (list: No) => (list as Elemento).children.map((n) => (n.classes.includes('wall-filler') ? 'filler' : n.getAttribute('data-session')));
 
-  test('the Ativas list is the two-column one; Ociosas and Concluídas share one pair, and with a single one the pair still wraps it', async () => {
+  test('the Trabalhando list is the two-column one; Em pausa and Concluídas share one pair, and with a single one the pair still wraps it', async () => {
     const { area, sair } = await montarTela(async () => MURAL);
     try {
       await ate(() => sessionsOf(area).length === 5);

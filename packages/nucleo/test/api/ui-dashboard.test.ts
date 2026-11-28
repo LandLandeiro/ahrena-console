@@ -128,7 +128,7 @@ describe('Dashboard: formatação', () => {
     assert.deepEqual(
       c.map((x: { rotulo: string; valor: string; extra?: string; sub: string }) => [x.rotulo, x.valor, x.extra ?? null, x.sub]),
       [
-        ['Sessões', '12', '4 ativas', '5 precisam de você · 3 ociosas'],
+        ['Sessões', '12', '4 trabalhando', '5 precisam de você · 3 em pausa'],
         ['Agentes ativos', '4', null, 'em 4 sessões'],
         ['Subagentes ativos', '7', null, 'em 3 sessões'],
         ['Eventos hoje', '3,2 mil', null, '+412 na última hora'],
@@ -139,7 +139,7 @@ describe('Dashboard: formatação', () => {
   });
   test('sessions detail: blocked and idle apart, nobody is "ninguém precisa de você" (issue 245)', () => {
     assert.equal(sessionsDetail({ blocked: 1, idle: 0 }), '1 precisa de você');
-    assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 ociosa');
+    assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 em pausa');
     assert.equal(sessionsDetail({ blocked: 0, idle: 0 }), 'ninguém precisa de você');
   });
   test('inbox: only the blocked ones, at most five, the ask and the model from the agent card; the idle ones go to their own row (issue 245)', () => {
@@ -161,16 +161,16 @@ describe('Dashboard: formatação', () => {
     assert.deepEqual(idleChips(atencao).map((x: { session: string; name: string }) => [x.session, x.name]), [['c', 'p-c'], ['h', 'p-h']]);
     assert.equal(inboxTitle(1), '1 precisa de você');
     assert.equal(inboxTitle(4), '4 precisam de você');
-    assert.equal(idleTitle(1), '1 ociosa');
-    assert.equal(idleTitle(3), '3 ociosas');
+    assert.equal(idleTitle(1), '1 em pausa');
+    assert.equal(idleTitle(3), '3 em pausa');
   });
 
-  test('waiting without attention (delegating) is "Ativa", not idle; the attention tones carry the dash- prefix (issue 245)', () => {
+  test('waiting without attention (delegating) is "Trabalhando", not idle; the attention tones carry the dash- prefix (issue 245)', () => {
     const { statusPill, cardToneClass } = tela;
     const pill = statusPill('waiting', null);
-    assert.equal(pill.textContent, 'Ativa');
+    assert.equal(pill.textContent, 'Trabalhando');
     assert.ok(pill.classes.includes('b-active'));
-    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Ociosa');
+    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Em pausa');
     assert.equal(cardToneClass('waiting', null), 'st-active');
     assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'permission' }), 'dash-st-blocked');
     assert.equal(cardToneClass('waiting', { level: 'idle', reason: 'turn_ended' }), 'dash-st-idle');
@@ -222,7 +222,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
         ['sessions', 'agents', 'subagents', 'events-today', 'events-total', 'cost'],
       );
-      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 ativa1 precisa de você · 1 ociosa$/);
+      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 ativa1 precisa de você · 1 em pausa$/);
       assert.match(comClasse(area, 'stat')[5]!.textContent, /~US\$ 1,84estimativa · 30 dias/);
 
       const inbox = comClasse(area, 'inbox')[0]!;
@@ -236,24 +236,24 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       assert.deepEqual(contadores, {}, 'the number of who waits is on the Mural, read by the shell (issue 750)');
 
       const idle = comClasse(area, 'dash-idle')[0]!;
-      assert.match(idle.textContent, /^1 ociosa · sem pressaInterrompidaapp-receitasVer em Sessões$/);
+      assert.match(idle.textContent, /^1 em pausa · sem pressaInterrompidaapp-receitasVer em Sessões$/);
       assert.equal(comClasse(idle, 'attention-chip-light').length, 1);
       assert.equal(idle.todos((e) => e.getAttribute('href') === '/ui/sessions?status=idle').length, 1, 'Ver em Sessões opens the idle filter');
 
       const agentes = comClasse(area, 'ac');
       assert.equal(agentes.length, 3);
       assert.equal(agentes[0]!.getAttribute('href'), `/ui/sessions/${PANEL_SESSION}`);
-      assert.match(agentes[0]!.textContent, /Agente principal · Kanban de sessões no artefato.*ahrena-demo · 2 subagentes · 18 turnos.*Ativa/);
+      assert.match(agentes[0]!.textContent, /Agente principal · Kanban de sessões no artefato.*ahrena-demo · 2 subagentes · 18 turnos.*Trabalhando/);
       assert.match(agentes[0]!.textContent, /Opus 5\.5.*~US\$ 1,84.*Rodar a bateria/);
       assert.ok(agentes[1]!.classes.includes('dash-st-blocked'));
       assert.match(agentes[1]!.textContent, /Precisa de você/);
       assert.ok(agentes[2]!.classes.includes('dash-st-idle'));
-      assert.match(agentes[2]!.textContent, /Ociosa/);
+      assert.match(agentes[2]!.textContent, /Em pausa/);
 
       const linhas = comClasse(area, 'row');
       assert.deepEqual(linhas.map((l) => l.getAttribute('href')), ['/ui/sessions/sim-panel-motor-de-regras', '/ui/sessions/sim-panel-app-receitas']);
       assert.match(linhas[0]!.textContent, /Precisa de você.*Pede permissão: Bash npm run migrate.*motor-de-regras/);
-      assert.match(linhas[1]!.textContent, /Ociosa.*Interrompida \(Esc\).*app-receitas/);
+      assert.match(linhas[1]!.textContent, /Em pausa.*Interrompida \(Esc\).*app-receitas/);
       assert.doesNotMatch(area.textContent, /Esperando/);
       assert.ok(comClasse(area, 'ttl').some((t) => t.todos((e) => e.getAttribute('href') === '/ui/sessions').length > 0), 'Ver tudo leva às Sessões');
     } finally {

@@ -62,21 +62,21 @@ describe('#752: sectionsOf and countsOf keep the core order and count each card 
 describe('#752: summaryOf, the sentence under "Mural ao vivo"', () => {
   const say = (blocked: number, active: number, idle: number, completed: number) => summaryOf({ blocked, active, idle, completed });
   test('the example of the issue, word for word', () => {
-    assert.deepEqual(say(3, 3, 2, 2), { lead: '3 sessões precisam de você.', rest: '3 ativas, 2 ociosas e 2 concluídas.' });
-    assert.equal(summaryText(say(3, 3, 2, 2)), '3 sessões precisam de você. 3 ativas, 2 ociosas e 2 concluídas.');
+    assert.deepEqual(say(3, 3, 2, 2), { lead: '3 sessões precisam de você.', rest: '3 trabalhando, 2 em pausa e 2 concluídas.' });
+    assert.equal(summaryText(say(3, 3, 2, 2)), '3 sessões precisam de você. 3 trabalhando, 2 em pausa e 2 concluídas.');
   });
   test('nobody blocked: "Nada precisa de você agora." and the rest, if any', () => {
-    assert.deepEqual(say(0, 3, 2, 2), { lead: 'Nada precisa de você agora.', rest: '3 ativas, 2 ociosas e 2 concluídas.' });
+    assert.deepEqual(say(0, 3, 2, 2), { lead: 'Nada precisa de você agora.', rest: '3 trabalhando, 2 em pausa e 2 concluídas.' });
   });
   test('one of each: singular where it needs it', () => {
-    assert.deepEqual(say(1, 1, 1, 1), { lead: '1 sessão precisa de você.', rest: '1 ativa, 1 ociosa e 1 concluída.' });
+    assert.deepEqual(say(1, 1, 1, 1), { lead: '1 sessão precisa de você.', rest: '1 trabalhando, 1 em pausa e 1 concluída.' });
   });
   test('a part that is zero is left out, and the "e" goes before the last one', () => {
-    assert.equal(say(2, 0, 4, 1).rest, '4 ociosas e 1 concluída.');
-    assert.equal(say(2, 5, 0, 0).rest, '5 ativas.');
-    assert.equal(say(2, 5, 3, 0).rest, '5 ativas e 3 ociosas.');
+    assert.equal(say(2, 0, 4, 1).rest, '4 em pausa e 1 concluída.');
+    assert.equal(say(2, 5, 0, 0).rest, '5 trabalhando.');
+    assert.equal(say(2, 5, 3, 0).rest, '5 trabalhando e 3 em pausa.');
     assert.equal(say(2, 0, 0, 7).rest, '7 concluídas.');
-    assert.equal(say(0, 1, 0, 2).rest, '1 ativa e 2 concluídas.');
+    assert.equal(say(0, 1, 0, 2).rest, '1 trabalhando e 2 concluídas.');
   });
   test('only one part, and all zero: the lead alone, with no trailing space', () => {
     assert.deepEqual(say(0, 0, 0, 0), { lead: 'Nada precisa de você agora.', rest: '' });
