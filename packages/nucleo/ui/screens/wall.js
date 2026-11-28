@@ -225,9 +225,6 @@ function tree(c, summary, opened, nest) {
   return summary ? [el('div', { class: 'wall-tree' }, treeLine(c, summary, opened, nest)), opened ? el('div', { class: 'wall-kids', role: 'list', 'aria-label': `Filhas de ${c.title}` }, ...kidRows(c.children ?? [], 0, c, nest)) : null] : [];
 }
 
-// #767-micro-interactions: the answer of a card runs on this, the screen alone: nothing is sent to the core until the call of Permitir and Negar for real exists (#757-answers).
-const sendAnswer = async () => {};
-
 // #767-micro-interactions: a command the person may copy: the ask of a permission, in Dev.
 function askLine(c, v) {
   const ask = el('p', { class: 'wall-ask', title: v.ask }, v.ask);
@@ -237,7 +234,7 @@ function askLine(c, v) {
 
 function card(c, write, nest, known, mono, view) {
   const v = cardContent(c);
-  const choices = choicesOf(c);
+  const choices = choicesOf(c, view.canAnswer);
   const summary = treeSummary(c.tree);
   const opened = Boolean(summary) && nest.isOpen(c.id);
   const parentTitle = c.parentId ? nest.titleOf(c.parentId) : null;
@@ -251,8 +248,7 @@ function card(c, write, nest, known, mono, view) {
     { class: `card wall-card${summary ? ' wall-lead' : ''}${opened ? ' wall-span' : ''}${view.moved.has(v.key) ? ' wall-moved' : ''}`, role: 'listitem', 'data-session': v.id, 'data-key': v.key },
     who(tagOver(stateTag({ kind: v.state.kind, label: v.state.label }), link), c.since, v.agent, mono, view.show),
     el('div', { class: 'wall-head' }, titleLine(link, parentTitle), askLine(c, v)),
-    action || see || choices.length ? el('div', { class: 'wall-act' }, ...answerButtons(choices, (choice, button) => view.answer(c, choice, button)), action ?? see) : null,
-    displayMode() === 'dev' ? keyHint(choices) : null,
+    action || see || choices.length ? el('div', { class: 'wall-act' }, ...answerButtons(choices, (choice, button) => view.answer(c, choice, button)), action ?? see, displayMode() === 'dev' ? keyHint(choices) : null) : null,
     ...tree(c, summary, opened, nest),
     techOf(c, view),
     foot(v, machineOf(c, known, view, 'card'), view.show),
@@ -494,10 +490,9 @@ export async function mount(area, ctx) {
     const key = itemKey(c);
     answered.delete(key);
     draw();
-    ctx.waiting?.(blockedNow());
+    ctx.shiftWaiting?.(1);
     const node = findCard(key);
-    const mine = choice.kind === 'option' ? `[data-answer="option"][data-option="${choice.n}"]` : `[data-answer="${choice.kind}"]`;
-    (node?.querySelector(mine) ?? node?.querySelector('a.wall-link'))?.focus();
+    (node?.querySelector(`[data-answer="${choice.kind}"]`) ?? node?.querySelector('a.wall-link'))?.focus();
   }
 
   // #767-micro-interactions: after the check the card leaves (opacity and 12 px, LEAVE_MS) and the session shows in "Trabalhando"; reduced motion swaps at once.
@@ -511,7 +506,7 @@ export async function mount(area, ctx) {
       calmEnters = blockedNow() === 0;
       draw();
       calmEnters = false;
-      ctx.waiting?.(blockedNow());
+      ctx.shiftWaiting?.(-1);
       toasts.push({ text: toastText(choice, titled(c.title)), action: { label: 'Desfazer', onClick: () => undo(c, choice) } });
       focusAfter(next, key);
     };
@@ -524,7 +519,7 @@ export async function mount(area, ctx) {
   }
 
   async function answer(c, choice, button) {
-    const result = await runButtonAction(button, sendAnswer, { doneLabel: choice.done });
+    const result = await runButtonAction(button, () => ctx.answer(c, choice), { doneLabel: choice.done });
     if (result.ok) leave(c, choice);
   }
 
@@ -652,7 +647,7 @@ export async function mount(area, ctx) {
     };
     const known = machines.hasRemotes();
     // ADR-0029, issue 754: the Exibir choice of the current mode, read at every draw.
-    const view = { ...getDisplay(), mode: displayMode(), moved, answer, hover };
+    const view = { ...getDisplay(), mode: displayMode(), moved, answer, hover, canAnswer: typeof ctx.answer === 'function' };
     // ADR-0028, issue 751: the monogram paints an identity, so it shows only when the sessions drawn, in every section, have two or more agents.
     const mono = new Set(cards.map(agentOf)).size > 1;
     const by = sectionsOf(cards);
@@ -790,12 +785,12 @@ export async function mount(area, ctx) {
   };
   doc?.addEventListener?.('keydown', onKey);
 
-  // #767-micro-interactions: A allows, N denies and 1-9 choose an option, on the card under the mouse or holding the focus; the keys of the field and the modifiers are left alone.
+  // #767-micro-interactions: A allows and N denies, on the card under the mouse or holding the focus; the keys of the field and the modifiers are left alone.
   const onAnswerKey = (ev) => {
     const choice = answerKeyOf(ev);
     if (!choice) return;
     const holder = doc.activeElement?.closest?.('.wall-card[data-key]') ?? findCard(hoveredKey);
-    const button = holder?.querySelector(choice.kind === 'option' ? `[data-answer="option"][data-option="${choice.n}"]` : `[data-answer="${choice.kind}"]`);
+    const button = holder?.querySelector(`[data-answer="${choice.kind}"]`);
     if (!button) return;
     ev.preventDefault?.();
     button.click();

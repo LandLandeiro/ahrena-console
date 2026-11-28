@@ -40,6 +40,8 @@ const queuedTag = (n) => (n > 0 ? { tone: 'active', text: String(n), note: 'na f
 export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = clearTimeout, now = Date.now }) {
   // Whether the last number read of the board was above zero; an error leaves it as it was (ADR-0028), so the window still reads.
   let hadQueue = false;
+  // #767: the last number of "esperam" the core said, so an answer on the Mural can walk it by difference; null when there is none.
+  let lastWaiting = null;
   function reader(route, id, tagOf, count) {
     let latest = 0;
     return async function load() {
@@ -56,6 +58,7 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
       }
       if (mine !== latest) return;
       if (id === 'work' && answered) hadQueue = n > 0;
+      if (id === 'wall') lastWaiting = answered ? n : null;
       nav.tag(id, tag);
     };
   }
@@ -93,9 +96,11 @@ export function createCounts({ read, nav, setTimer = setTimeout, clearTimer = cl
         }
       }
     },
-    // #767: the screen knows a number the core has not said yet (a card answered on it); the next read of the core replaces it.
-    show(n) {
-      nav.tag('wall', waitingTag(Math.max(0, n)));
+    // #767: a card answered on the Mural moves the number the core last said by `delta` (-1 on the answer, +1 on Desfazer); the next read replaces it.
+    shift(delta) {
+      if (lastWaiting === null) return;
+      lastWaiting = Math.max(0, lastWaiting + delta);
+      nav.tag('wall', waitingTag(lastWaiting));
     },
     wrote(route) {
       if (typeof route === 'string' && (route === '/api/work' || route.startsWith('/api/work/'))) later('work', loadWork);

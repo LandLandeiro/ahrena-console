@@ -208,8 +208,8 @@ button.wall-kid-toggle::after { content: ""; position: absolute; left: 50%; top:
 .wall-notice-link:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 
 /* ADR-0028: the answer on the card, the hint of its keys (Dev only, drawn by the script), the command with its copy icon and the toast. */
-.wall-card .wall-act:has(.wall-answer) { display: flex; flex-wrap: wrap; gap: 8px; }
-.wall-hint { position: absolute; right: 14px; bottom: 6px; display: none; align-items: center; gap: 4px; color: var(--muted); font-size: var(--text-xs); pointer-events: none; }
+.wall-card .wall-act:has(.wall-answer) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wall-hint { margin-left: auto; display: none; align-items: center; gap: 4px; color: var(--muted); font-size: var(--text-xs); pointer-events: none; }
 .wall-card:hover .wall-hint, .wall-card:focus-within .wall-hint { display: inline-flex; }
 .wall-cmd { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 8px; }
 .wall-cmd .wall-ask { flex: 1; min-width: 0; }

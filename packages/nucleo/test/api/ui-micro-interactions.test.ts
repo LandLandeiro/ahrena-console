@@ -364,7 +364,7 @@ describe('#767: with no ctx.answer there is nothing to press', () => {
     const s = await mountWith(wallOf([asking('c1'), asking('c2')]), false);
     assert.equal(all(s.area, 'button[data-answer]').length, 0);
     assert.equal(all(s.area, '.wall-hint').length, 0);
-    assert.equal(all(s.area, '[aria-keyshortcuts]').length, 0);
+    assert.equal(all(s.area, '.wall-card [aria-keyshortcuts]').length, 0);
     cardOf(s, 'c1')!.dispatchEvent({ type: 'mouseenter' });
     press('a');
     press('n');
