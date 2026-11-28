@@ -569,11 +569,11 @@ export class MontadorDoPainel {
         account: this.contas.ofSession(c.session, c.desktop),
       });
     }
-    // Quem precisa de você antes das ociosas (#140, #245); dentro de cada nível, as urgentes
+    // Quem precisa de você antes das ociosas (#140, #245, #761); dentro de cada nível, as urgentes
     // e, entre elas, o pedido mais recente, que é o que a pessoa lembra.
     const peso = (i: NeedsYouItem) => (i.level === 'needs' ? 1 : 0)
     itens.sort((a, b) => peso(b) - peso(a) || Number(b.urgent) - Number(a.urgent) || b.since.localeCompare(a.since));
-    // A contagem e a divisão por conta são só das que precisam de você: a sua vez não soma.
+    // A contagem e a divisão por conta são só das que precisam de você, a sua vez incluída (#761); as ociosas não somam.
     const precisam = itens.filter((i) => i.level === 'needs');
     const porConta = new Map<string, { account: PanelAccount | null; n: number }>();
     for (const i of precisam) {

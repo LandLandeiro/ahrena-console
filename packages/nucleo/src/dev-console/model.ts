@@ -61,7 +61,7 @@ export interface ContextSession {
   branch: string | null;
   /** Working now (not waiting on you and not stopped on an error). */
   working: boolean;
-  /** Needs you: one of the depends-on-you reasons (permission, question, plan, decision, error), #245's `blocked`. */
+  /** Needs you: one of the depends-on-you reasons (permission, question, plan, decision, error, the turn that ended), `blocked` by the rule of #761. */
   waitingOnYou: boolean;
   /** #245: `blocked` or `idle`, with the reason (src/api/attention.ts); `null` when it does not need you. */
   attention: SessionAttention | null;
@@ -124,7 +124,7 @@ export interface Scoreboard {
   ciFailingOrConflict: number;
   sessionsWorking: number;
   waitingOnYou: number;
-  /** #245: the context's idle sessions (the turn ended, Esc, at the prompt): shown apart, never in `waitingOnYou`. */
+  /** #245: the context's idle sessions (Esc, at the prompt): shown apart, never in `waitingOnYou`. */
   idle: number;
 }
 

@@ -53,8 +53,9 @@ export interface PanelSession {
   reason: AwaitingReason | null;
   urgent: boolean;
   /**
-   * #245: `blocked` ("Precisa de você": the session is stuck until you act) or `idle` ("Ociosa": the
-   * turn ended), with the reason; `null` when it is not waiting on you and not in error.
+   * #245, #761: `blocked` ("Precisa de você": `needsYou`, the one rule: the session is stuck until you act, or
+   * its turn ended and awaits the answer, `turn_ended`, "Sua vez") or `idle` ("Ociosa": Esc, a new session at
+   * the prompt), with the reason; `null` when it is not waiting on you and not in error.
    * `sessionAttention` in api/attention.ts; the old routes leave it out.
    */
   attention: SessionAttention | null;
@@ -219,7 +220,9 @@ export interface NeedsYouItem {
   id: string;
   /**
    * #140: `needs`, bloqueada até você agir (permissão, pergunta com opções, plano para aprovar,
-   * decisão pedida, erro), com destaque e na contagem; `your-turn`, o bate-bola comum, sem destaque.
+   * decisão pedida, erro) ou o turno acabou e espera a sua resposta ("Sua vez", `why` `your-turn`, a menor
+   * urgência, #761), na contagem; `your-turn`, o que não espera ninguém (Esc, sessão nova), sem destaque.
+   * O painel mantém o nome `your-turn` do nível por contrato.
    */
   level: 'needs' | 'your-turn';
   why: 'permission' | 'question' | 'plan' | 'decision' | 'error' | 'your-turn' | 'interrupted' | 'no-prompt';
@@ -244,7 +247,7 @@ export interface NeedsYouItem {
 export interface PanelNeedYou {
   /** Só as que precisam de você (nível `needs`). */
   total: number;
-  /** As ociosas (#245: o turno acabou, nada trava): fora da contagem, sem destaque. */
+  /** As ociosas (#245, #761: Esc, sessão nova no prompt; ninguém espera): fora da contagem, sem destaque. */
   yourTurn: number;
   /** A divisão por conta; "Sem conta" quando não se sabe. Limites nunca entram aqui. */
   byAccount: { account: PanelAccount | null; n: number }[];
@@ -412,12 +415,12 @@ export interface Wall {
     all: number;
     waiting: number;
     active: number;
-    /** #245: as que precisam de você (`attention.level` `blocked`, as de erro incluídas). */
+    /** #245, #761: as que precisam de você (`attention.level` `blocked`, as de erro e a "Sua vez" incluídas). */
     blocked: number;
-    /** #245: as ociosas (`attention.level` `idle`). */
+    /** #245: as ociosas (`attention.level` `idle`: Esc, sessão nova no prompt). */
     idle: number;
   };
-  /** Primeiro as que precisam de você (as urgentes antes), depois as ociosas, depois a atividade mais recente (#245). */
+  /** Primeiro as que precisam de você (as urgentes antes), depois a "Sua vez", depois as ociosas, depois a atividade mais recente (#245, #761). */
   cards: WallCard[];
   /**
    * #333, the "Paradas" band: open to nobody but not archived, idle for more than the watcher's 180 min and

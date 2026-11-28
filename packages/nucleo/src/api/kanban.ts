@@ -11,7 +11,7 @@
 // old path, so its body simply turned English. The old parameter names and values left in phase 6.
 //
 // #245: the waiting column splits in two, by the session's `attention` (src/api/attention.ts):
-// Visão sessões: `active`, `blocked` ("Precisam de você", as de erro incluídas), `idle` ("Ociosas"),
+// Visão sessões: `active`, `blocked` ("Precisam de você", as de erro e a "Sua vez" incluídas, #761), `idle` ("Ociosas"),
 // `completed`, `abandoned`. A waiting session with no attention (delegating, in background) is `active`.
 // Visão agentes: `working`, `blocked`, `idle`, `done`, `error`; o principal de cada sessão (o
 // id é o da sessão) e cada subagente (`<sessão>:<agente>`). O principal herda o status e a atenção da

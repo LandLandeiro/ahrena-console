@@ -13,8 +13,8 @@ import { PROVIDERS, legacySessionIdentity, unknownCapabilities, type Provider, t
 // | `perPage` | from 1 to `PER_PAGE_MAX`: the screen asks for the rows that fit (#279) | `POR_PAGINA` |
 //
 // #245: each row carries `attention` (`blocked` or `idle`, with the reason, or `null`; src/api/attention.ts),
-// `status=blocked` and `status=idle` filter by it (`blocked` takes the errors too, as "Precisam de você"
-// does), and `counts` has one number per `status` value, with the search and the directory applied, for
+// `status=blocked` and `status=idle` filter by it (`blocked` takes the errors and, #761, the turn that ended
+// ("Sua vez") too, as "Precisam de você" does; `idle` is Esc and a new session at the prompt), and `counts` has one number per `status` value, with the search and the directory applied, for
 // the pills. The old route answers neither.
 //
 // Everything through the port and in-memory caches (decision 0004). A session's cost is redone only when

@@ -38,9 +38,9 @@ export function gitLocator({ git = gitDoSistema, ttlMs = 60_000, now = Date.now 
 }
 
 /**
- * The depends-on-you reasons: the blocked ones of `atencaoDe` (#245: permission, question, plan,
- * decision, error). The idle ones (the turn ended, Esc, a new session at its first prompt) do not depend
- * on you; they are counted apart (`Scoreboard.idle`).
+ * The depends-on-you reasons: the ones of the one rule `needsYou` (#761: permission, question, plan,
+ * decision, error, and the turn that ended, "Sua vez"). The idle ones (Esc, a new session at its first
+ * prompt) do not depend on you; they are counted apart (`Scoreboard.idle`).
  */
 export const DEPENDS_ON_YOU_REASONS = BLOCKED_REASONS satisfies readonly McpAttentionReason[];
 export type DependsOnYouReason = (typeof DEPENDS_ON_YOU_REASONS)[number];

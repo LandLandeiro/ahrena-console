@@ -43,9 +43,9 @@ export interface NumerosDoDashboard {
     active: number;
     waiting: number;
     withError: number;
-    /** #245: as vivas que precisam de você (`attention.level` `blocked`, as de erro incluídas). */
+    /** #245, #761: as vivas que precisam de você (`attention.level` `blocked`, as de erro e a "Sua vez" incluídas). */
     blocked: number;
-    /** #245: as vivas ociosas (`attention.level` `idle`). */
+    /** #245: as vivas ociosas (`attention.level` `idle`: Esc, sessão nova no prompt). */
     idle: number;
   };
   /** Agentes principais trabalhando, e em quantas sessões. */
