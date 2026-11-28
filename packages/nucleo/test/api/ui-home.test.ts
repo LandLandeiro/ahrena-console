@@ -135,7 +135,12 @@ function rig(answer: { dash?: () => unknown; sessions?: () => unknown; cost?: ()
       if (route === '/api/attention') return attention;
       if (route.startsWith('/api/dashboard')) return (answer.dash ?? (() => dashboardBody(3)))();
       if (route.startsWith('/api/sessions')) return (answer.sessions ?? (() => page([])))();
-      if (route.startsWith('/api/analytics/cost')) return (answer.cost ?? (() => costBody(14.88)))();
+      if (route.startsWith('/api/analytics/cost')) {
+        // The core answers 400 `days: 7, 30 ou 90` to any other period: the stub does the same, so a wrong one shows as a dash.
+        const days = Number(new URL(route, 'http://core').searchParams.get('days') ?? 30);
+        if (![7, 30, 90].includes(days)) throw new Error('days: 7, 30 ou 90');
+        return (answer.cost ?? (() => costBody(14.88)))();
+      }
       return { available: true };
     },
     write: async () => ({}),
@@ -225,6 +230,40 @@ describe('issue 759: the Início mounted', () => {
     assert.deepEqual(rows.map((r) => texto(r.querySelector('.state-tag-label'))), ['Trabalhando', 'Concluída', 'Pede permissão']);
     assert.equal(area.querySelectorAll('.badge').length, 0);
     leave.abort();
+  });
+
+  test('the cost is asked for a period the core accepts (7, 30 or 90 days) and today comes from its todaySummary', async () => {
+    const { ctx, area, reads, leave } = rig({ sessions: () => page(liveRows()) });
+    stops.push(await dashboard.mount(area, ctx));
+    const asked = reads.filter((r) => r.startsWith('/api/analytics/cost'));
+    assert.equal(asked.length, 1);
+    const days = Number(new URL(asked[0]!, 'http://core').searchParams.get('days'));
+    assert.ok([7, 30, 90].includes(days), `days=${days} is not one the core accepts`);
+    assert.equal(texto(area.querySelector('[data-card="spend-today"] .v')), 'US$ 14,88');
+    leave.abort();
+  });
+
+  test('the cards of "precisam de você" say the state as the Mural does: the icon and the words, no coloured chip', async () => {
+    const { ctx, area, leave } = rig({});
+    stops.push(await dashboard.mount(area, ctx));
+    const cards = area.querySelectorAll('.dash-mini');
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0]!.querySelectorAll('.attention-chip').length, 0, 'no chip with a background');
+    assert.equal(cards[0]!.querySelectorAll('.state-tag').length, 1);
+    assert.equal(cards[0]!.querySelectorAll('.state-icon').length, 1);
+    assert.equal(texto(cards[0]!.querySelector('.state-tag-label')), 'Pede permissão');
+    leave.abort();
+  });
+
+  test('the state column of the recent activity is as wide as the longest label needs, never an ellipsis', () => {
+    const css = readFileSync(`${UI_FOLDER}dashboard.css`, 'utf8');
+    const rule = (selector: string) => new RegExp(`${selector.replace(/[.]/g, '\\.')}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? '';
+    const tag = rule('.row .state-tag');
+    assert.match(tag, /flex:\s*0 0 (?!auto)\S+|width:\s*\S+/, 'the tag has a width of its own and is not squeezed');
+    assert.doesNotMatch(tag, /flex:\s*(0 )?1/);
+    const label = rule('.row .state-tag-label');
+    assert.doesNotMatch(label, /text-overflow:\s*ellipsis/);
+    assert.match(label, /white-space:\s*normal/, 'a longer word wraps instead of being cut');
   });
 
   test('the sections keep their h2: the inbox, the active agents and the recent activity', async () => {
