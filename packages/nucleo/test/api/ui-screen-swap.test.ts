@@ -13,6 +13,8 @@ instalarDomFalso();
 import { SWAP_DELAY_MS, createScreenSwap } from '../../ui/screen-swap.js';
 // @ts-expect-error: idem
 import { shapeOf, skeleton } from '../../ui/skeletons.js';
+// @ts-expect-error: idem
+import { loading } from '../../ui/states.js';
 
 const ui = (file: string) => readFileSync(join(UI_FOLDER, file), 'utf8');
 const node = (tag: string, cls = '', ...kids: (ElementoFalso | string)[]) => {
@@ -283,14 +285,60 @@ describe('The shell uses the swap (#765)', () => {
     assert.doesNotMatch(mount, /swap\.settle\(\)/);
     assert.match(app, /createScreenSwap\(\{ area, held: \(\) => drawer\.isOpen\(\) \}\)/);
   });
-  test('only the first-read card of Histórico and Sessões says it is pending, and Detalhe marks nothing (N1, N3)', () => {
+  test('Histórico and Sessões mark their own first-read card, and the swap does not look at aria-busy (N3)', () => {
     assert.match(ui('screens/history.js'), /data-swap-pending/);
     assert.match(ui('screens/sessions.js'), /data-swap-pending/);
-    assert.doesNotMatch(ui('screens/session-detail.js'), /data-swap-ready|data-swap-pending/);
     assert.doesNotMatch(ui('screen-swap.js'), /aria-busy|data-swap-ready/);
   });
   test('a screen that does not exist leaves no ghost behind', () => {
     const lost = app.slice(app.indexOf('if (!found) {'), app.indexOf('const { screen, params } = found;'));
     assert.match(lost, /swap\.settle\(\)/);
+  });
+});
+
+describe('Every screen marks the loading card of its first paint (#765, N4)', () => {
+  test('loading() puts data-swap-pending on the card only when asked', () => {
+    assert.equal(loading({ label: 'Lendo' }).getAttribute('data-swap-pending'), null, 'the default card is a part reading, not a first read');
+    assert.equal(loading({ label: 'Lendo', pending: false }).getAttribute('data-swap-pending'), null);
+    assert.notEqual(loading({ label: 'Lendo', pending: true }).getAttribute('data-swap-pending'), null);
+    assert.notEqual(loading({ pending: true }).getAttribute('data-swap-pending'), null);
+  });
+
+  test('a loading card carrying the mark holds the ghost until it leaves, whatever the screen (N4)', () => {
+    const r = rig();
+    r.swap.begin('dashboard');
+    r.area.append(node('h1', '', 'Dashboard'), loading({ label: 'Lendo as sessões', pending: true }));
+    r.swap.mounted();
+    assert.equal(r.ghosts().length, 1, 'the generic card never replaces the old screen');
+    r.area.replaceChildren(node('h1', '', 'Dashboard'), node('div', 'numbers'));
+    r.tick();
+    assert.equal(r.ghosts().length, 0);
+  });
+
+  const FIRST_PAINT: [string, string][] = [
+    ['dashboard.js', 'Início'], ['session-detail.js', 'Detalhe'], ['decisions.js', 'Decisões'], ['machine.js', 'Máquina'],
+    ['workflows.js', 'Workflows'], ['kanban.js', 'Quadro'], ['cloud-connections.js', 'Conexões da nuvem'], ['connections.js', 'Conexões'],
+    ['repos.js', 'Repositórios'], ['analytics.js', 'Analytics'], ['analytics-delivery.js', 'Entregas'], ['agent-config.js', 'Agent Config'],
+    ['claude-config.js', 'Claude'], ['codex-config.js', 'Codex'], ['adrs.js', 'ADRs'], ['agent-instructions.js', 'Instruções'],
+    ['repo.js', 'Repositório'], ['repo-adrs.js', 'ADRs do repositório'], ['adr-record.js', 'ADR'], ['feed.js', 'Feed'],
+    ['project.js', 'Projeto'], ['wall.js', 'Mural'],
+  ];
+  for (const [file, name] of FIRST_PAINT) {
+    test(`${name} (${file}): the first loading card says it is pending`, () => {
+      assert.match(ui(`screens/${file}`), /loading\(\{[^}]*pending/);
+    });
+  }
+
+  test('a card that comes back on a later read is marked only while nothing has been shown yet (N3 stays fixed)', () => {
+    for (const file of ['kanban.js', 'analytics.js', 'analytics-delivery.js', 'agent-config.js', 'claude-config.js', 'codex-config.js', 'feed.js']) {
+      const calls = ui(`screens/${file}`).match(/loading\(\{[^}]*pending[^}]*\}/g) ?? [];
+      assert.ok(calls.length > 0, file);
+      for (const c of calls) assert.doesNotMatch(c, /pending: true|pending\s*[,}]/, `${file}: ${c}`);
+    }
+  });
+
+  test('a part that reads after the data is never marked', () => {
+    assert.doesNotMatch(ui('screens/history.js'), /loading\([^)]*pending/);
+    assert.doesNotMatch(ui('screens/cloud-connections.js').slice(ui('screens/cloud-connections.js').indexOf('function draw')), /loading\([^)]*pending/);
   });
 });

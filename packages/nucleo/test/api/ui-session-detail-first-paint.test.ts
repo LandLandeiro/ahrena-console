@@ -113,6 +113,37 @@ describe('The header comes first, with what the list knew (#765, M5)', () => {
     h.leave.abort();
   });
 
+  test('without a seed the first loading card holds the old screen, and the mark is gone once the head answers (N4)', async () => {
+    const slow = gate<unknown>();
+    const h = harness(many(2), slow.promise);
+    const area = frame();
+    const mounted = detail.mount(area, h.ctx);
+    await tick(10);
+    assert.ok(area.querySelector('[data-swap-pending]'), 'the generic card is the first paint: the shell keeps the previous screen');
+    slow.release(head());
+    await mounted;
+    await tick(10);
+    assert.equal(area.querySelector('[data-swap-pending]'), null);
+    h.leave.abort();
+  });
+
+  test('with a seed no card is marked: the header is data (N1), and a later reload marks nothing (N3)', async () => {
+    rememberSessions([{ id: SID, title: 'Migrar o checkout', status: 'active' }]);
+    const slow = gate<unknown>();
+    const h = harness(many(2), slow.promise);
+    const area = frame();
+    const mounted = detail.mount(area, h.ctx);
+    await tick(10);
+    assert.equal(area.querySelector('[data-swap-pending]'), null);
+    slow.release(head());
+    await mounted;
+    await tick(10);
+    h.fire();
+    await tick(450);
+    assert.equal(area.querySelector('[data-swap-pending]'), null);
+    h.leave.abort();
+  });
+
   test('a head that fails with a seed on screen shows the error, not a header that looks alive', async () => {
     rememberSessions([{ id: SID, title: 'Migrar o checkout', status: 'active' }]);
     const h = harness([]);
