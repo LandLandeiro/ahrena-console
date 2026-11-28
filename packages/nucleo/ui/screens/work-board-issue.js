@@ -186,7 +186,7 @@ function createIssueView({ area, state, apply, cardFor, retry, reconnect, confir
     const target =
       kind === 'panel' ? area.querySelector('aside.wb-panel')
       : kind === 'card' ? area.querySelector(card)
-      : kind === 'plan-button' ? (area.querySelector(`aside.wb-panel button[data-action="plan"]`) ?? area.querySelector(`aside.wb-panel button[data-action="replan"]`) ?? area.querySelector(`${card} button[data-action="plan"]`) ?? area.querySelector(card))
+      : kind === 'plan-button' ? (area.querySelector(`aside.wb-panel button[data-action="plan"]`) ?? area.querySelector(`aside.wb-panel button[data-action="replan"]`) ?? area.querySelector(`${card} button[data-action="plan"]`) ?? area.querySelector(`${card} button[data-action="replan"]`) ?? area.querySelector(card))
       : (area.querySelector('.pop [aria-checked="true"]') ?? area.querySelector('.pop button'));
     target?.focus();
   }
