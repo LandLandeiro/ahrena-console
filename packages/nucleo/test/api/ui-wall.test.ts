@@ -551,7 +551,7 @@ describe('Mural: a tela montada', () => {
     }
   });
 
-  test('the machine: a remote one always with its name written; this one never on a comfortable session (#754, M7)', async () => {
+  test('the machine: a remote one always with its name written; this one on a card once the core knows remotes, on a row never when comfortable (#754, M7)', async () => {
     const WS = { id: 'ws', label: 'Workstation', state: 'connected' };
     const twoMachines = (machines: unknown[]) => ({
       ...MURAL,
@@ -566,7 +566,7 @@ describe('Mural: a tela montada', () => {
     const marksOf = (raiz: No, id: string) => comClasse(sessionsOf(raiz).find((c) => c.getAttribute('data-session') === id)!, 'mf-mach').map((m) => [m.getAttribute('data-machine-kind'), m.textContent]);
     for (const [machineSet, expectedMarks] of [
       [[{ id: 'local', label: 'Esta máquina', state: 'connected' }], [[], [['remote', 'Workstation']], [], [['remote', 'Workstation']]]],
-      [[{ id: 'local', label: 'Esta máquina', state: 'connected' }, WS], [[], [['remote', 'Workstation']], [], [['remote', 'Workstation']]]],
+      [[{ id: 'local', label: 'Esta máquina', state: 'connected' }, WS], [[['local', 'Esta máquina']], [['remote', 'Workstation']], [], [['remote', 'Workstation']]]],
     ] as const) {
       const { area, sair } = await montarTela(async () => twoMachines([...machineSet]));
       try {

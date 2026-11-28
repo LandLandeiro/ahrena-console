@@ -179,15 +179,25 @@ describe('#754: what the wall draws from it (wall-display.js)', () => {
     assert.equal(techLine(card, display.displayDefaults('dev', 'comfortable').show), '', 'no technical field on, no line');
   });
 
-  test('the machine: only when it is not this one; in the Dev compact always (M7), once a remote is known', () => {
+  test('the machine on a row: only when it is not this one; in the Dev compact always (M7), once a remote is known', () => {
     const show = on;
-    const base = { show, density: 'comfortable', mode: 'dev', remote: false, known: true };
+    const base = { place: 'row', show, density: 'comfortable', mode: 'dev', remote: false, known: true };
     assert.equal(machineShown({ ...base, remote: true }), true);
     assert.equal(machineShown(base), false, 'this machine on a comfortable row says nothing');
     assert.equal(machineShown({ ...base, density: 'compact' }), true, 'the Dev compact says it on every row');
     assert.equal(machineShown({ ...base, density: 'compact', known: false }), false, 'with no remote known there is nothing to tell apart');
     assert.equal(machineShown({ ...base, density: 'compact', mode: 'project' }), false);
     assert.equal(machineShown({ ...base, remote: true, show: { ...show, machine: false } }), false, 'the field off hides it');
+  });
+
+  test('the machine on a card: this one is named once a remote is known (#751), whatever the density and mode; the field off hides it', () => {
+    const base = { place: 'card', show: on, density: 'comfortable', mode: 'dev', remote: false, known: true };
+    assert.equal(machineShown(base), true, 'this machine on a card, a remote known, comfortable');
+    assert.equal(machineShown({ ...base, mode: 'project' }), true);
+    assert.equal(machineShown({ ...base, known: false }), false, 'with no remote known there is nothing to tell apart');
+    assert.equal(machineShown({ ...base, remote: true, known: false }), true, 'a remote one always');
+    assert.equal(machineShown({ ...base, show: { ...on, machine: false } }), false, 'the field off hides it');
+    assert.equal(machineShown({ ...base, place: 'row' }), false, 'the same session on a row says nothing');
   });
 });
 
