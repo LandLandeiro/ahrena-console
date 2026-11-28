@@ -146,7 +146,7 @@ export function createRunLayer({ ctx, area, cards, redraw, reread, onAsk = null 
     if ((place === 'panel') !== inPanel) return null;
     const base = find(card.key) ?? card;
     const back = { kind: 'run-button', key: card.key };
-    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise.
+    // The button that opened it: the panel's when the confirmation is drawn in the panel, the card's otherwise (#762).
     const trigger = () => area.querySelector(`button[data-action="run"][data-key="${inPanel ? 'panel:' : ''}${card.key}"]`);
     return entry.phase === 'missing-folder'
       ? missingFolder({ repo: card.repo, message: entry.message, command: entry.command, trigger, onClose: () => apply(closeRunMissingFolder(s, base), back) })

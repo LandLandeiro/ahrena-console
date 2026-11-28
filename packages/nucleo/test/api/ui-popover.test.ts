@@ -3,7 +3,7 @@
 // the fake's `activeElement`. No workbench, visual or axe tool in this project (component map: node:test).
 import assert from 'node:assert/strict';
 import { afterEach, beforeEach, describe, test } from 'node:test';
-import { ElementoFalso, documentoFalso, instalarDomFalso, querySelectorAllComoNodeList, texto } from './fake-dom.ts';
+import { ElementoFalso, documentoFalso, instalarDomFalso, useNodeListQueries, texto } from './fake-dom.ts';
 
 instalarDomFalso();
 const {
@@ -15,6 +15,7 @@ const {
   placement,
   popoverContext,
   popoverFooter,
+  popoverShell,
   rememberedChoice,
   segmented,
   // @ts-expect-error: browser module, plain JavaScript
@@ -29,7 +30,7 @@ const { planConfirm, missingFolder } = await import('../../ui/screens/work-board
 const { issuePanelLoading } = await import('../../ui/screens/work-board-issue-panel.js');
 
 const el = (tag = 'div') => new ElementoFalso(tag);
-// `querySelectorAll` answers a NodeList here, as in Chromium; the tests turn it into an array to assert on it.
+// `querySelectorAll` answers a NodeList here, as in Chromium; the tests turn it into an array to assert on it (#762).
 const all = (root: ElementoFalso, selector: string) => Array.from(root.querySelectorAll(selector));
 const one = (root: ElementoFalso, selector: string) => {
   const found = root.querySelector(selector);
@@ -49,7 +50,7 @@ const storage = new Map<string, string>();
 const setViewport = (width: number, height: number) => Object.assign(globalThis, { innerWidth: width, innerHeight: height });
 
 beforeEach(() => {
-  querySelectorAllComoNodeList(true);
+  useNodeListQueries(true);
   storage.clear();
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -60,7 +61,7 @@ beforeEach(() => {
   documentoFalso.activeElement = null;
 });
 afterEach(() => {
-  querySelectorAllComoNodeList(false);
+  useNodeListQueries(false);
   delete (globalThis as Record<string, unknown>).localStorage;
   setStateLabelMode('dev');
 });
@@ -223,6 +224,50 @@ describe('anchorPopover: a popover drawn by a screen, placed on its trigger', ()
   });
 });
 
+describe('popoverShell: a redraw of the same popover does not play the entrance again', () => {
+  const draw = (kind: string, trigger: ElementoFalso) => popoverShell({ title: 'Planejar', kind, trigger });
+
+  test('the second drawing of the same kind, title and trigger is settled; the first is not (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const first = draw('plan-settle', trigger);
+    el().append(first); // the screen puts the node on the page before it draws the next one (#762)
+    const second = draw('plan-settle', trigger);
+    assert.equal(first.hasAttribute('data-settled'), false);
+    assert.equal(second.hasAttribute('data-settled'), true);
+  });
+
+  test('another kind is a new popover and plays the entrance (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    draw('plan-other', trigger);
+    assert.equal(draw('run-other', trigger).hasAttribute('data-settled'), false);
+  });
+
+  test('after a dismissal the same popover opens with the entrance again (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const first = popoverShell({ title: 'Planejar', kind: 'plan-reopen', trigger, onDismiss: () => {} });
+    key(first, 'Escape');
+    assert.equal(draw('plan-reopen', trigger).hasAttribute('data-settled'), false);
+  });
+
+  test('after Cancelar in the footer the same popover opens with the entrance again (#762)', () => {
+    const trigger = withRect(el('button'), rect(900, 300, 160, 28));
+    const page = el();
+    const first = planConfirm({ repo: 'a/b', number: 12, trigger, onCancel: () => page.replaceChildren() }) as ElementoFalso;
+    page.append(first);
+    one(first, '[data-action="cancel"]').click();
+    assert.equal(planConfirm({ repo: 'a/b', number: 12, trigger }).hasAttribute('data-settled'), false);
+  });
+
+  test('after Fechar of the missing folder of one card, the one of another card opens with the entrance (#762)', () => {
+    const page = el();
+    const first = missingFolder({ repo: 'a/b', trigger: withRect(el('button'), rect(900, 300, 160, 28)), onClose: () => page.replaceChildren() }) as ElementoFalso;
+    page.append(first);
+    one(first, '[data-action="close"]').click();
+    const other = missingFolder({ repo: 'c/d', trigger: withRect(el('button'), rect(900, 500, 160, 28)) }) as ElementoFalso;
+    assert.equal(other.hasAttribute('data-settled'), false);
+  });
+});
+
 describe('the structure: context, "Abrir em", footer', () => {
   test('the context is a dl; the folder and the repository are mono only in the Dev mode', () => {
     const rows = [{ label: 'Repositório', value: 'ahrena/console', mono: true, field: 'repo' }, { label: 'Conta', value: 'Ahrena · Team', field: 'account' }];
@@ -310,7 +355,7 @@ describe('the segmented "Abrir em"', () => {
 describe('Nova sessão and Planejar are the same popover', () => {
   const FOLDERS = { folders: [{ path: '/w/app', name: 'app' }], targets: { desktop: true, terminal: true } };
 
-  /** The skeleton a person sees: the parts in order. */
+  /** The skeleton a person sees: the parts in order (#762). */
   const skeleton = (root: ElementoFalso) =>
     ['.pop-title', 'dl.pop-context', '[role="radiogroup"]', '.pop-foot'].map((selector) => (all(root, selector).length === 1 ? selector : `${selector} x${all(root, selector).length}`));
 

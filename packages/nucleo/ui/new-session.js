@@ -6,7 +6,8 @@
 // (Claude Desktop | Terminal, remembered) and a primary that names the verb and the destination, "Abrir no Terminal".
 // The primary is `write('/api/new-session', { folder, target })`; beside it come "Abrindo…", the success (it stays
 // open: the person closes it) or the core's pt-BR error with "Copiar comando". The answer of the core carries no
-// session id (`{ ok, opened }`), so the success has no "Ir para a sessão" link. The styles are in `popover.css` and `new-session.css`.
+// session id (`{ ok, opened }`), so the success has no "Ir para a sessão" link. The link to the session needs the core to
+// return the id of the opened session; that is a separate issue (#762). The styles are in `popover.css` and `new-session.css`.
 
 import { el, icon } from './dom.js';
 import { read as defaultRead, write as defaultWrite } from './api.js';
@@ -61,7 +62,7 @@ export function newSessionButton({ read = defaultRead, write = defaultWrite } = 
     const foot = popoverFooter({ cancel: { onClick: () => pop.close() }, primary: { label: destinationLabel('Abrir', target), onClick: () => start() } });
     const primary = foot.querySelector('.btn.primary');
     const cancel = foot.querySelector('.btn.outline');
-    // Without its launcher the core answers 501 with the command; the primary still offers that.
+    // Without its launcher the core answers 501 with the command; the primary still offers that (#762).
     const hint = () => (targets[target] === false ? primary.setAttribute('title', COPY_ONLY) : primary.removeAttribute('title'));
     hint();
     select.addEventListener('change', () => {
@@ -102,7 +103,7 @@ export function newSessionButton({ read = defaultRead, write = defaultWrite } = 
       primary.removeAttribute('aria-busy');
       primary.removeAttribute('aria-disabled');
       status.replaceChildren(...[el('span', { class: `pop-${state.kind}` }, state.text), state.kind === 'fail' && state.command ? copyButton(state.command) : null].filter(Boolean));
-      // The success stays until the person closes it: the only action left on the left is to close.
+      // The success stays until the person closes it: the only action left on the left is to close (#762).
       if (state.kind === 'ok') cancel.textContent = 'Fechar';
     }
   }
