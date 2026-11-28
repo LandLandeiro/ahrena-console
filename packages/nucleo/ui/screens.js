@@ -8,7 +8,7 @@
 // - `file`: the screen module in `ui/screens/`. Without it, the shell shows the header and the empty state.
 // - `title`, `sub` and `icon`: the header of the empty state and the window title.
 
-// The sidebar blocks: the everyday screens (no title), then Delivery, Decisions, Machines and
+// The sidebar blocks: the everyday screens ("Agora", ADR-0028), then Delivery, Decisions, Machines and
 // Control. A block without items does not show. Decisions holds the session decisions ("Das sessões")
 // and the architecture (ADR) and product (PDR) records of the repositories (issue 174).
 import { coreOutdated, normalizeCore } from './screens/machine-core-format.js';
@@ -16,7 +16,7 @@ import { OWNER_AUTH } from './screens/machine-format.js';
 import { normalizeUpdate, updatingNow } from './screens/machine-update-format.js';
 
 export const SECTIONS = [
-  { id: 'main', label: null },
+  { id: 'main', label: 'Agora' },
   { id: 'delivery', label: 'Entrega' },
   { id: 'decisions', label: 'Decisões' },
   { id: 'machines', label: 'Máquinas' },

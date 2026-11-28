@@ -122,7 +122,10 @@ describe('#31 GET /api/kanban com o simulador', () => {
     }
     assert.equal(soma, sessoes.length);
     assert.ok(corpo.columns.find((c) => c.id === 'blocked')!.total > 0, 'o simulador tem sessões que precisam de você');
-    assert.ok(corpo.columns.find((c) => c.id === 'idle')!.total > 0, 'e ociosas');
+    // #761: "Sua vez" needs you, so it is in `blocked`; the p4 simulator has no Esc or new session at the prompt, so `idle` is empty.
+    const turnEnded = (corpo.columns.find((c) => c.id === 'blocked')!.items as CardDeSessao[]).filter((c) => c.attention?.reason === 'turn_ended');
+    assert.ok(turnEnded.length > 0, 'a turn that ended is in the blocked column');
+    for (const card of corpo.columns.find((c) => c.id === 'idle')!.items as CardDeSessao[]) assert.notEqual(card.attention?.reason, 'turn_ended', card.id);
   });
 
   test('o card de sessão: título, motivo só esperando, pedido sem quebra de linha, modelo legível, conta sem id', async () => {
@@ -254,7 +257,8 @@ describe('#31 GET /api/kanban com o simulador', () => {
   test('regras de status do agente', () => {
     assert.equal(colunaDoAgente('active'), 'working');
     assert.equal(colunaDoAgente('waiting', { level: 'blocked', reason: 'permission' }), 'blocked');
-    assert.equal(colunaDoAgente('waiting', { level: 'idle', reason: 'turn_ended' }), 'idle');
+    assert.equal(colunaDoAgente('waiting', { level: 'blocked', reason: 'turn_ended' }), 'blocked', '#761: Sua vez needs you');
+    assert.equal(colunaDoAgente('waiting', { level: 'idle', reason: 'interrupted' }), 'idle');
     assert.equal(colunaDoAgente('waiting', null), 'working', 'delegating: it is not your turn');
     assert.equal(colunaDoAgente('error', { level: 'blocked', reason: 'error' }), 'error');
     assert.equal(colunaDoAgente('completed'), 'done');

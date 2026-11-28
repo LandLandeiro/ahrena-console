@@ -361,7 +361,8 @@ describe('#243 ?machine= on the other lists', () => {
     assert.equal(r.cards.length, own.cards.length + theirs.cards.length);
     assert.equal(r.count.all, own.count.all + theirs.count.all);
     assert.equal(r.count.blocked, own.count.blocked + theirs.count.blocked);
-    const rank = (c: { attention: { level: string } | null }) => (c.attention?.level === 'blocked' ? 0 : c.attention?.level === 'idle' ? 1 : 2);
+    // Cards that need you, then "Sua vez" (blocked too, #761), then idle, then the rest.
+    const rank = (c: { attention: { level: string; reason: string } | null }) => (c.attention?.level === 'blocked' ? (c.attention.reason === 'turn_ended' ? 1 : 0) : c.attention?.level === 'idle' ? 2 : 3);
     for (let k = 1; k < r.cards.length; k++) assert.ok(rank(r.cards[k - 1]) <= rank(r.cards[k]));
     assert.deepEqual(
       r.byMachine.map((b: { id: string; count: { all: number } }) => [b.id, b.count.all]),

@@ -3,14 +3,14 @@
 .pp-picker { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .pp-bands { display: flex; flex-direction: column; gap: 8px; }
 .pp-filters { display: flex; gap: 10px; align-items: center; padding: 8px; flex-wrap: wrap; }
-.pp-search { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-size: 12.5px; flex: 1 1 220px; min-width: 0; }
+.pp-search { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border-control); color: var(--muted); font-size: 12.5px; flex: 1 1 220px; min-width: 0; }
 .pp-search:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .pp-search-input { border: 0; background: transparent; color: var(--text); font: inherit; flex: 1; min-width: 0; outline: none; }
 .pp-seg { display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--bg); border: 1px solid var(--border); flex-wrap: wrap; min-width: 0; }
 .pp-seg-option { border: 0; background: transparent; color: var(--muted); font-size: 12px; padding: 5px 10px; border-radius: 7px; white-space: nowrap; }
 .pp-seg-option.on { background: var(--raised); color: var(--text); }
 .pp-seg-option:hover { color: var(--text); }
-.pp-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 99px; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.pp-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 99px; background: transparent; border: 1px solid var(--border-control); color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 .pp-chip[aria-pressed="true"] { color: var(--text); background: var(--raised); }
 .pp-seg-option:focus-visible, .pp-chip:focus-visible, .pp-radio:focus-visible, .pp-field:focus-visible, .pp-pop-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -28,7 +28,7 @@
 .pp-radio { accent-color: var(--accent); margin: 0 0 0 6px; cursor: pointer; }
 .pp-name b { display: block; font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
 .pp-name small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-.pp-field { width: 100%; max-width: 160px; height: 28px; padding: 0 10px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font: inherit; font-size: 12px; }
+.pp-field { width: 100%; max-width: 160px; height: 28px; padding: 0 10px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border-control); color: var(--text); font: inherit; font-size: 12px; }
 .pp-nofield { display: block; margin-top: 4px; color: var(--status-waiting-text); font-size: 11.5px; }
 .pp-foot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pp-foot .btn { margin-left: auto; }

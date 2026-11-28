@@ -398,8 +398,6 @@ export async function mount(area, ctx) {
     }
     if (a.status === 'rejected' && a.reason?.name === 'AbortError') return;
     const attention = a.status === 'fulfilled' ? { ok: true, valor: a.value } : { ok: false, erro: a.reason };
-    // The sidebar number counts only who needs you (issue 245), as the menu bar.
-    ctx.counter('dashboard', attention.ok ? blockedCount(attention.valor) : 0);
     machines.update(d.value);
     last = { dashboard: d.value, atencao: attention };
     paint(last);

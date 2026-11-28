@@ -156,7 +156,8 @@ const evento = (id: string, s: number, extra: Record<string, unknown> = {}) => (
 describe('Feed de atividade: estado', () => {
   test('row pill: the event attention says blocked or idle; waiting without it is idle; never the old waiting label (issue 245)', () => {
     assert.deepEqual(E.rowPill({ status: 'waiting', attention: { level: 'blocked', reason: 'permission' } }), { attention: { level: 'blocked', reason: 'permission' } });
-    assert.deepEqual(E.rowPill({ status: 'waiting', attention: { level: 'idle', reason: 'turn_ended' } }), { attention: { level: 'idle', reason: 'turn_ended' } });
+    assert.deepEqual(E.rowPill({ status: 'waiting', attention: { level: 'blocked', reason: 'turn_ended' } }), { attention: { level: 'blocked', reason: 'turn_ended' } }, '#761: a Stop event is Sua vez, blocked');
+    assert.deepEqual(E.rowPill({ status: 'waiting', attention: { level: 'idle', reason: 'interrupted' } }), { attention: { level: 'idle', reason: 'interrupted' } });
     assert.deepEqual(E.rowPill({ status: 'error', attention: { level: 'blocked', reason: 'error' } }), { attention: { level: 'blocked', reason: 'error' } });
     assert.deepEqual(E.rowPill({ status: 'waiting', attention: null }), { attention: { level: 'idle', reason: null } });
     assert.deepEqual(E.rowPill({ status: 'active', attention: null }), { status: 'active' });
@@ -387,6 +388,15 @@ describe('Feed de atividade: a tela', () => {
     limpar();
   });
 
+  test('#761: the help text says the one rule, "Precisa de você" includes the turn that ended and "Ociosa" is Esc or a new session', async () => {
+    const f = ctxFalso(() => ({ events: [], cursor: null, older: null, options: { types: [], tools: [], sessions: [] } }));
+    const area = new Elemento('main');
+    const limpar = await mount(area, f.ctx);
+    const help = area.textContent;
+    limpar();
+    assert.match(help, /Precisa de você \(travada até você agir, ou com o turno acabado esperando a sua resposta\), Ociosa \(Esc ou sessão nova, sem pedido\)/);
+    assert.doesNotMatch(help, /o turno acabou e nada trava/);
+  });
   test('vazio, vazio com filtro, erro e "mostrar mais"', async () => {
     const area = new Elemento('main');
     let limpar = await mount(area, ctxFalso(() => ({ events: [], cursor: null, older: null, options: null })).ctx);

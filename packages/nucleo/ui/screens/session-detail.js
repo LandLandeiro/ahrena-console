@@ -15,7 +15,7 @@ import { create as decisionsTab } from './session-detail-decisions.js';
 import { createComposeBox } from './session-message.js';
 import { messageBody } from './chat-text.js';
 import { downNotice, isMachineUnreachable, LOCAL, machineFromQuery, normalizeMachines, readAgeText, REMOTE_REREAD_MS, routeWithMachine, touchesRemotes, withQuery } from '../machine-filter.js';
-import { attentionOf, attentionPill, isBlocked, isIdle, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
+import { attentionOf, attentionPill, isBlocked, isIdle, isYourTurn, reasonChip, reasonLabel, attentionDot, statusWithoutAttention } from '../attention.js';
 
 // ---------- Formatos ----------
 
@@ -85,7 +85,10 @@ function statusPill(status, attention = null) {
   return el('span', { class: `sd-status sd-s-${COLOR[st] ?? 'abandoned'}` }, STATUS[st] ?? '—');
 }
 
-/** The idle line (issue 245): no band, only what happened and since when. */
+/**
+ * The quiet line (issue 245): no band, only what happened and since when. "Sua vez" (ADR-0028) is blocked, so
+ * its line starts with the state and does not say "Ociosa" nor that nothing blocks the session.
+ */
 export function idleNote(attention, since, now = Date.now()) {
   const when = since ? ago(since, now).replace('agora', 'menos de 1 min') : null;
   const what = {
@@ -93,6 +96,7 @@ export function idleNote(attention, since, now = Date.now()) {
     interrupted: when ? `interrompida há ${when}, no meio do turno` : 'interrompida no meio do turno',
     first_prompt: when ? `aberta no prompt há ${when}, sem o primeiro pedido` : 'aberta no prompt, sem o primeiro pedido',
   }[attentionOf(attention)?.reason ?? ''];
+  if (isYourTurn(attention)) return `${reasonLabel(attention)} · ${what}.`;
   return `Ociosa · ${what ?? 'a vez é sua'}. Nada trava a sessão.`;
 }
 
@@ -367,15 +371,16 @@ function drawTop(c, refresh, write, source = null) {
     source && c.machine?.label ? pill('server', c.machine.label) : null,
   );
   const folder = s.cwd ? el('div', { class: 'sd-folder mono' }, icon('folder'), el('span', {}, s.cwd), copyButton(s.cwd, 'a pasta')) : null;
-  // The yellow band only when the session is stuck (or stopped by an error); idle gets one muted line.
+  // ADR-0028: the yellow band only when the session is stuck (or stopped by an error); idle and "Sua vez" get one muted line.
   const blocked = isBlocked(s.attention) || s.status === 'error';
-  const notice = s.banner && blocked ? band(c) : isIdle(s.attention) ? idleLine(c) : null;
+  const notice = s.banner && blocked ? band(c) : isIdle(s.attention) || isYourTurn(s.attention) ? idleLine(c) : null;
   const config = el('a', { class: 'btn outline', href: `/ui/agent-config?tab=settings&provider=${s.identity?.provider === 'codex' ? 'codex' : 'claude'}&session=${encodeURIComponent(s.id)}${source ? '&machine=remote' : ''}` }, 'Configuração em vigor');
   return [row1, pills, folder, source, config, notice].filter(Boolean);
 }
 
 function idleLine(c) {
-  return el('section', { class: 'sd-idle', role: 'status' }, attentionDot('idle'), el('p', {}, idleNote(c.session.attention, c.session.since)));
+  const dot = isYourTurn(c.session.attention) ? attentionDot('blocked', { low: true }) : attentionDot('idle');
+  return el('section', { class: 'sd-idle', role: 'status' }, dot, el('p', {}, idleNote(c.session.attention, c.session.since)));
 }
 
 /** O texto da faixa com o comando que pede permissão em `<code>`, montado pelo DOM. */

@@ -24,7 +24,7 @@ import type { WorkSource } from '../../src/github/source.ts';
 import { SimulatorWorkSource, PANEL_SESSION, seedPanelScenario, type PanelScenario } from '../../src/simulator/panel.ts';
 import { parseLine } from '../../src/ingest/history/transcript.ts';
 import { ingestHook } from '../../src/ingest/hooks/index.ts';
-import { T0, at, event, session } from '../fixtures.ts';
+import { T0, agent, at, event, session } from '../fixtures.ts';
 import type { SessionPlan } from '../../src/plan/model.ts';
 
 const AGORA = Date.parse(T0);
@@ -217,15 +217,32 @@ describe('painel por cenário (P1 a P7)', () => {
       ['motor-de-regras', 'parent'],
       ['fila-de-tarefas', 'child'],
     ]);
-    assert.deepEqual(p.needYou.machine.map((i) => [i.title, i.level]), [['motor-de-regras', 'needs'], ['painel-de-metricas', 'needs'], ['fila-de-tarefas', 'your-turn']]);
-    // A divisão por conta conta só as que precisam de você: a sua vez (fila-de-tarefas) não soma.
+    assert.deepEqual(p.needYou.machine.map((i) => [i.title, i.level]), [['motor-de-regras', 'needs'], ['painel-de-metricas', 'needs'], ['fila-de-tarefas', 'needs']]); // #761: a sua vez precisa de você, por último
+    // A divisão por conta conta as que precisam de você, a sua vez (fila-de-tarefas, da equipe) incluída (#761).
     assert.deepEqual(
       p.needYou.byAccount.map((d) => [d.account?.label, d.n]),
       [
-        ['equipe', 1],
+        ['equipe', 2],
         ['cliente-exemplo', 1],
       ],
     );
+    await storage.close();
+  });
+
+  test('#761: an older "Decisão pedida" comes before a newer "Sua vez", which stays last', async () => {
+    const { storage } = await cenario('p7');
+    const base = (await storage.getSession('sim-panel-fila-de-tarefas'))!;
+    const id = 'sim-panel-old-decision';
+    const earlier = new Date(AGORA - 10 * 60_000).toISOString();
+    await storage.putSession({ ...base, identity: undefined, capabilities: undefined, id, name: id, status: 'active', awaitingReason: 'stop', awaitingInputSince: earlier, updatedAt: earlier, metadata: { ...base.metadata, family: {} } });
+    await storage.putAgent(agent({ id: `${id}:main`, sessionId: id, type: 'main', status: 'waiting', startedAt: earlier, updatedAt: earlier }));
+    await storage.appendEvent(event({ id: `${id}-e1`, sessionId: id, agentId: null, type: 'PreToolUse', toolName: 'wrap_up', summary: 'wrap_up', data: { tool_name: 'wrap_up', tool_input: { ask: 'Posso seguir?' } }, createdAt: earlier }));
+    const work = new TrabalhoPorBranch({ fonte: new SimulatorWorkSource(), git: SimulatorWorkSource.git, agora: () => AGORA });
+    const assembler = new MontadorDoPainel({ storage, contas: new Accounts({ storage, file: null }), desktop: null, trabalho: work, agora: () => AGORA, apelido: () => PANEL_SESSION });
+    const p = await assembler.montar({ sessionId: 'qualquer' });
+    const order = p.needYou.machine.filter((i) => i.level === 'needs').map((i) => [i.title, i.why]);
+    assert.deepEqual(order.at(-1), ['fila-de-tarefas', 'your-turn']);
+    assert.equal(order.findIndex(([t]) => t === id), order.length - 2);
     await storage.close();
   });
 });

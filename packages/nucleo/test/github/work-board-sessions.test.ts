@@ -152,7 +152,8 @@ describe('#465 sessions linked to work board issues', () => {
     assert.deepEqual(await sessions().links(), []);
   });
 
-  test('the three states: needs-you when blocked on the person, working while an agent acts, else idle', async () => {
+  // #761 one rule: needs-you when the person must act, Sua vez (the turn that ended) included; working while an agent acts; else idle.
+  test('#761 the three states: needs-you when the person must act, Sua vez included, working while an agent acts, else idle', async () => {
     await live({ id: 'working', cwd: '/w/board' });
     await live({ id: 'blocked', cwd: '/w/board', awaitingInputSince: at(-9), awaitingReason: 'notification' }, [PERMISSION]);
     await live({ id: 'turn', cwd: '/w/board', awaitingInputSince: at(-4), awaitingReason: 'stop' });
@@ -162,7 +163,8 @@ describe('#465 sessions linked to work board issues', () => {
       [
         ['working', at(-60)],
         ['needs-you', at(-9)],
-        ['idle', at(-60)],
+        // The turn that ended needs the person too, so its `since` is when it began waiting (at(-4)), not the start.
+        ['needs-you', at(-4)],
       ],
     );
   });

@@ -29,12 +29,12 @@ describe('#140 CA1 e CA2: precisa de você × sua vez', () => {
     assert.deepEqual(atencaoDe(esperando('stop'), plano), { nivel: 'precisa', porque: 'plano' });
   });
 
-  test('a pergunta respondida sai: volta a ser a sua vez', () => {
+  test('a pergunta respondida sai: volta a ser a sua vez, que também precisa de você (#761)', () => {
     const r = resumoDe(
       ev(1, 'PreToolUse', 'AskUserQuestion', { tool_use_id: 't1', tool_input: { questions: [] } }),
       ev(2, 'PostToolUse', 'AskUserQuestion', { tool_use_id: 't1' }),
     );
-    assert.deepEqual(atencaoDe(esperando('stop'), r), { nivel: 'sua-vez', porque: 'sua-vez' });
+    assert.deepEqual(atencaoDe(esperando('stop'), r), { nivel: 'precisa', porque: 'sua-vez' });
   });
 
   test('o fechamento do turno que pede uma decisão (ask ou blocked) precisa de você; sem pedido, é a sua vez', () => {
@@ -43,16 +43,16 @@ describe('#140 CA1 e CA2: precisa de você × sua vez', () => {
     const trava = resumoDe(ev(1, 'PreToolUse', 'mcp__ccd_turn__wrap_up', { tool_use_id: 'w1', tool_input: { recap: 'feito', blocked: true } }));
     assert.deepEqual(atencaoDe(esperando('stop'), trava).nivel, 'precisa');
     const so = resumoDe(ev(1, 'PreToolUse', 'mcp__ccd_turn__wrap_up', { tool_use_id: 'w1', tool_input: { recap: 'feito' } }));
-    assert.deepEqual(atencaoDe(esperando('stop'), so), { nivel: 'sua-vez', porque: 'sua-vez' });
+    assert.deepEqual(atencaoDe(esperando('stop'), so), { nivel: 'precisa', porque: 'sua-vez' });
     // A pessoa respondeu: o pedido do fechamento sai.
     aplicarEvento(pede, ev(2, 'UserPromptSubmit', null));
-    assert.deepEqual(atencaoDe(esperando('stop'), pede).nivel, 'sua-vez');
+    assert.deepEqual(atencaoDe(esperando('stop'), pede), { nivel: 'precisa', porque: 'sua-vez' });
   });
 
-  test('o turno que acabou, o Esc e a sessão no prompt são a sua vez; um texto terminado em "?" também', () => {
+  test('o turno que acabou precisa de você (sua vez, #761), mesmo com um texto terminado em "?"; o Esc e a sessão no prompt só são a sua vez', () => {
     const r = resumoDe(ev(1, 'AssistantMessage', null, {}));
     r.ultimaMensagem = 'Rodo os testes?';
-    assert.deepEqual(atencaoDe(esperando('stop'), r), { nivel: 'sua-vez', porque: 'sua-vez' });
+    assert.deepEqual(atencaoDe(esperando('stop'), r), { nivel: 'precisa', porque: 'sua-vez' });
     assert.deepEqual(atencaoDe(esperando('interrupted'), r), { nivel: 'sua-vez', porque: 'interrompida' });
     assert.deepEqual(atencaoDe(esperando('session_start'), r), { nivel: 'sua-vez', porque: 'no-prompt' });
   });

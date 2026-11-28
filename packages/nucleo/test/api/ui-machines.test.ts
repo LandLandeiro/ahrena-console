@@ -43,7 +43,7 @@ import * as dashboard from '../../ui/screens/dashboard.js';
 // @ts-expect-error: idem
 import { createNav } from '../../ui/nav.js';
 // @ts-expect-error: idem
-import { SCREENS } from '../../ui/screens.js';
+import { machineItems, SCREENS } from '../../ui/screens.js';
 const screen = await import(
   // @ts-expect-error: idem
   '../../ui/screens/machine.js'
@@ -349,7 +349,7 @@ describe('#178 criterion 2: a remote machine (C25) with the simulator', () => {
     assert.match(texto(m.area.querySelector('[data-card="gpu"]')), /de 15 GB VRAM/);
     assert.match(texto(m.area.querySelector('[data-card="disk"]')), /86% \/ · 24 GB livres/);
     assert.equal(m.area.querySelector('[data-card="docker"]'), null, 'Docker is the last band, not a resource card');
-    assert.match(texto(m.area.querySelector('[data-card="sessions"]')), /Sessões 5 2 precisam de você/);
+    assert.match(texto(m.area.querySelector('[data-card="sessions"]')), /Sessões 5 5 precisam de você/, 'Sua vez needs you (#761): the 3 of the old your-turn level count with the 2 asks');
   });
 
   test('the load chart with the vCPU line, volumes and the ports with the Mac port', async () => {
@@ -718,7 +718,7 @@ describe('#178 criterion 1: the sidebar draws the remote machines from /api/mach
     const { readMachines, highlight, counter } = createNav({ nav, read: async (route: string) => (reads.push(route), list), screens: SCREENS });
     const machinesBlock = () => nav.querySelector('[data-section="machines"]')!;
     assert.deepEqual(machinesBlock().querySelectorAll('a').map((a) => a.getAttribute('data-screen')), ['this-machine']);
-    counter('dashboard', 4);
+    counter('sessions', 4);
     // The open screen is the remote's, before the list arrives.
     highlight('machine-ws-exemplo');
     list = [...(list as unknown[]), { id: 'ws-exemplo', label: 'Workstation', state: 'unreachable', reason: 'port-closed', port: 14720 }];
@@ -727,26 +727,61 @@ describe('#178 criterion 1: the sidebar draws the remote machines from /api/mach
     const links = machinesBlock().querySelectorAll('a');
     assert.deepEqual(links.map((a) => [a.getAttribute('data-screen'), a.getAttribute('href'), texto(a)]), [
       ['this-machine', '/ui/machines/local', 'Esta máquina'],
-      ['machine-ws-exemplo', '/ui/machines/ws-exemplo', 'Workstation'],
+      ['machine-ws-exemplo', '/ui/machines/ws-exemplo', 'Workstation Sem conexão'],
     ]);
     const dot = links[1]!.querySelector('.cc-nav-dot')!;
     assert.equal(dot.getAttribute('data-state'), 'unreachable');
-    assert.equal(dot.getAttribute('role'), 'img');
-    assert.equal(dot.getAttribute('aria-label'), 'Sem conexão');
+    assert.equal(dot.getAttribute('role'), null, '#750: the dot is decorative, its text is what the link reads');
+    assert.equal(dot.getAttribute('aria-label'), null);
+    assert.equal(texto(dot), 'Sem conexão');
+    assert.equal(dot.querySelector('.cc-sr-only')!.textContent, 'Sem conexão');
     assert.equal(links[0]!.querySelector('.cc-nav-dot'), null, 'this machine has no dot');
     assert.equal(links[1]!.getAttribute('aria-current'), 'page');
-    assert.equal(texto(nav.querySelector('[data-screen="dashboard"] .q')), '4');
+    assert.equal(texto(nav.querySelector('[data-screen="sessions"] .cc-nav-count')), '4');
     // The machine comes back: one more redraw, the counter and aria-current still there.
     list = (list as { id: string }[]).map((m) => (m.id === 'ws-exemplo' ? { ...m, state: 'connected', reason: null } : m));
     await readMachines();
-    assert.equal(nav.querySelector('[data-screen="machine-ws-exemplo"] .cc-nav-dot')!.getAttribute('aria-label'), 'Conectada');
+    assert.equal(texto(nav.querySelector('[data-screen="machine-ws-exemplo"] .cc-nav-dot')), 'Conectada');
     assert.equal(nav.querySelector('[data-screen="machine-ws-exemplo"]')!.getAttribute('aria-current'), 'page');
-    assert.equal(texto(nav.querySelector('[data-screen="dashboard"] .q')), '4');
+    assert.equal(texto(nav.querySelector('[data-screen="sessions"] .cc-nav-count')), '4');
     // A failed read (no telemetry, offline) keeps the items there.
     const failing = createNav({ nav: new ElementoFalso('nav'), read: async () => Promise.reject(new Error('404')), screens: SCREENS });
     await failing.readMachines();
     await readMachines();
     assert.equal(machinesBlock().querySelectorAll('a').length, 2);
+  });
+
+  test('#750: every state a remote item can have says a pt-BR word once in the link, and none falls back to its state id', async () => {
+    const running = { configured: true, source: 'derived', state: 'running', kind: 'update', phase: 'swap', targetVersion: '0.0.17', startedAt: '2026-10-20T12:00:00Z', canCancel: false, timeoutSeconds: 300, command: ['/usr/bin/ssh', 'ahrena-tunnel'], observedVersion: '0.0.7' };
+    const list = [
+      { id: 'ws-a', label: 'A', state: 'connected', reason: null },
+      { id: 'ws-b', label: 'B', state: 'unreachable', reason: 'port-closed' },
+      { id: 'ws-c', label: 'C', state: 'incompatible-version', reason: null },
+      { id: 'ws-d', label: 'D', state: 'not-configured', reason: null },
+      { id: 'ws-e', label: 'E', state: 'connected', reason: null, connection: { state: 'stopped' } },
+      { id: 'ws-f', label: 'F', state: 'connected', reason: null, update: running },
+      { id: 'ws-g', label: 'G', state: 'unreachable', reason: 'owner-auth-required' },
+      { id: 'ws-h', label: 'H', state: 'unreachable', reason: 'owner-auth-failed' },
+      { id: 'ws-i', label: 'I', state: 'unreachable', reason: 'owner-auth-mismatch' },
+      { id: 'ws-j', label: 'J', state: 'something-new', reason: null },
+    ];
+    const nav = new ElementoFalso('nav');
+    const { readMachines } = createNav({ nav, read: async () => list, screens: SCREENS });
+    await readMachines();
+    const states = new Set(machineItems(list).map((i: { state: string }) => i.state));
+    for (const state of ['connected', 'unreachable', 'incompatible-version', 'not-configured', 'stopped', 'updating', 'owner-auth']) assert.ok(states.has(state), `${state} is covered`);
+    for (const item of machineItems(list) as { id: string; state: string }[]) {
+      const link = nav.querySelector(`[data-screen="${item.id}"]`)!;
+      const dot = link.querySelector('.cc-nav-dot')!;
+      const word = texto(dot);
+      assert.ok(word.length > 0, item.id);
+      assert.notEqual(word, item.state, `${item.id} falls back to its state id`);
+      assert.match(word, /^\p{Lu}\p{L}+( \p{L}+)*$/u, `${item.id}: ${word}`);
+      assert.equal(link.getAttribute('aria-label'), null);
+      assert.equal(texto(link).split(word).length - 1, 1, `${item.id}: the state is read once`);
+    }
+    const css = readFileSync(`${UI_FOLDER}shell.css`, 'utf8');
+    assert.match(css, /\.cc-nav-dot \{ position: relative;/, 'the hidden text is absolute: the dot is its box');
   });
 });
 

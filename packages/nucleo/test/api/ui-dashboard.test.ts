@@ -24,6 +24,9 @@ class No {
   get textContent(): string {
     return this.filhos.map((f) => f.textContent).join('');
   }
+  contains(outro: unknown): boolean {
+    return outro === this || this.filhos.some((f) => f.contains(outro));
+  }
   /** Todos os elementos abaixo deste que passam no teste. */
   todos(teste: (e: Elemento) => boolean): Elemento[] {
     const out: Elemento[] = [];
@@ -139,6 +142,18 @@ describe('Dashboard: formatação', () => {
     assert.equal(sessionsDetail({ blocked: 0, idle: 1 }), '1 ociosa');
     assert.equal(sessionsDetail({ blocked: 0, idle: 0 }), 'ninguém precisa de você');
   });
+  test('#761: Sua vez is one of the ones that need you at the Início: in the blocked items and the cards, never in the idle ones', () => {
+    const turn = { level: 'blocked', reason: 'turn_ended' };
+    const mk = (session: string, attention: { level: string; reason: string }) => ({ session, title: session, project: `p-${session}`, account: null, level: 'needs', reason: attention.reason, attention, shortReason: 'Sua vez', longReason: 'o turno terminou', since: '', minutes: 3, local: null });
+    const attention = { total: 2, blocked: 2, idle: 0, items: [mk('t', turn), mk('i', { level: 'idle', reason: 'interrupted' })] };
+    assert.deepEqual(tela.blockedItems(attention).map((i: { session: string }) => i.session), ['t']);
+    assert.deepEqual(tela.idleItems(attention).map((i: { session: string }) => i.session), ['i']);
+    const cards = tela.inboxCards(attention, []);
+    assert.deepEqual(cards.map((c: { session: string }) => c.session), ['t']);
+    assert.deepEqual(cards[0].attention, turn);
+    assert.equal(tela.sessionsDetail({ blocked: 2, idle: 0 }), '2 precisam de você');
+  });
+
   test('inbox: only the blocked ones, at most five, the ask and the model from the agent card; the idle ones go to their own row (issue 245)', () => {
     const blocked = (reason: string) => ({ level: 'blocked', reason });
     const item = (session: string, attention: { level: string; reason: string }, minutes = 2) => ({ session, title: session, project: `p-${session}`, account: { label: 'equipe', color: '' }, level: attention.level === 'blocked' ? 'needs' : 'your-turn', reason: attention.reason, attention, shortReason: 'Pede permissão', longReason: 'pede permissão para usar Bash', since: '', minutes, local: null });
@@ -146,7 +161,7 @@ describe('Dashboard: formatação', () => {
       total: 8,
       blocked: 6,
       idle: 2,
-      items: [item('a', blocked('permission')), item('b', blocked('error'), 0), item('c', { level: 'idle', reason: 'turn_ended' }), item('d', blocked('plan')), item('e', blocked('question')), item('f', blocked('decision')), item('g', blocked('permission')), item('h', { level: 'idle', reason: 'first_prompt' })],
+      items: [item('a', blocked('permission')), item('b', blocked('error'), 0), item('c', { level: 'idle', reason: 'interrupted' }), item('d', blocked('plan')), item('e', blocked('question')), item('f', blocked('decision')), item('g', blocked('permission')), item('h', { level: 'idle', reason: 'first_prompt' })],
     };
     const c = inboxCards(atencao, [{ session: 'a', task: 'Bash: npm run migrate', model: 'claude-opus-5-5' }]);
     assert.deepEqual(c.map((x: { session: string }) => x.session), ['a', 'b', 'd', 'e', 'f'], 'blocked only, in the route order, five at most');
@@ -167,10 +182,12 @@ describe('Dashboard: formatação', () => {
     const pill = statusPill('waiting', null);
     assert.equal(pill.textContent, 'Ativa');
     assert.ok(pill.classes.includes('b-active'));
-    assert.equal(statusPill('waiting', { level: 'idle', reason: 'turn_ended' }).textContent, 'Ociosa');
+    assert.equal(statusPill('waiting', { level: 'idle', reason: 'interrupted' }).textContent, 'Ociosa');
+    assert.equal(statusPill('waiting', { level: 'blocked', reason: 'turn_ended' }).textContent, 'Precisa de você', '#761');
     assert.equal(cardToneClass('waiting', null), 'st-active');
     assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'permission' }), 'dash-st-blocked');
-    assert.equal(cardToneClass('waiting', { level: 'idle', reason: 'turn_ended' }), 'dash-st-idle');
+    assert.equal(cardToneClass('waiting', { level: 'idle', reason: 'interrupted' }), 'dash-st-idle');
+    assert.equal(cardToneClass('waiting', { level: 'blocked', reason: 'turn_ended' }), 'dash-st-blocked', '#761: Sua vez is a card of Precisam de você at the Início');
     assert.equal(cardToneClass('error', { level: 'blocked', reason: 'error' }), 'st-error');
   });
 });
@@ -230,7 +247,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       // issue 285: the card is a div; "Abrir ›" is the link to the Detail.
       assert.deepEqual(minis.flatMap((m) => m.todos((e) => e.tag === 'a').map((a) => a.getAttribute('href'))), ['/ui/sessions/sim-panel-motor-de-regras']);
       assert.match(minis[0]!.textContent, /Pede permissão.*motor-de-regras.*Bash: npm run migrate.*Opus 5\.5.*Abrir/);
-      assert.equal(contadores.dashboard, 1, 'the sidebar number counts only who needs you');
+      assert.deepEqual(contadores, {}, 'the number of who waits is on the Mural, read by the shell (issue 750)');
 
       const idle = comClasse(area, 'dash-idle')[0]!;
       assert.match(idle.textContent, /^1 ociosa · sem pressaInterrompidaapp-receitasVer em Sessões$/);

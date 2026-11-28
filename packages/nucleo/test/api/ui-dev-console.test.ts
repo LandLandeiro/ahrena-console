@@ -231,7 +231,7 @@ describe('Dev Console: pure parts', () => {
     assert.equal(blockedSub(2, 1, 1), '2 sessões, 1 decisão · 1 ociosa fora');
     assert.equal(blockedSub(0, 0, 2), 'ninguém · 2 ociosas fora');
     assert.equal(blockedSub(1, 0, 0), '1 sessão');
-    assert.deepEqual(cardAttention({ id: 's', attention: { level: 'idle', reason: 'turn_ended' }, waitingOnYou: false }), { level: 'idle', reason: 'turn_ended' });
+    assert.deepEqual(cardAttention({ id: 's', attention: { level: 'idle', reason: 'interrupted' }, waitingOnYou: false }), { level: 'idle', reason: 'interrupted' });
     assert.deepEqual(cardAttention({ id: 's', attention: null, waitingOnYou: true }), { level: 'blocked', reason: null }, 'an older core: waitingOnYou is blocked');
     assert.equal(cardAttention({ id: 's', attention: null, waitingOnYou: false }), null);
     assert.equal(cardAttention(null), null);

@@ -1,10 +1,11 @@
 // `GET /api/attention`: who needs you, across all accounts, for the app's tray (#87).
 //
 // The list is the one of the MCP's `sessions_needing_attention` (`needingYou`, src/mcp): those waiting
-// for you or stopped on an error, with the panel's split (#140) between what blocks the session ("needs")
-// and what is only your turn ("your-turn"). The order is wireframe A2's, urgent first: permission,
-// question, plan and decision; then error; then your turn. Within each group, whoever has waited
-// longest. The account goes out only with label and color, never the id. No conversation text.
+// for you or stopped on an error, with the panel's split (#140) between who needs you ("needs") and who
+// awaits nobody ("your-turn": Esc, a new session at the prompt). One rule decides it, `needsYou` (#761): the
+// turn that ended ("Sua vez", reason `your-turn`) is a "needs" item with the lowest urgency. The order is
+// wireframe A2's, urgent first: permission, question, plan and decision; then error; then "Sua vez"; then
+// the idle ones. Within each group, whoever has waited longest. The account goes out only with label and color, never the id. No conversation text.
 //
 // Remote machines (#176): the sessions of each remote núcleo that need you come in the same list,
 // marked with `machine: { id, label }` and with `local: null` (the Claude Desktop of this Mac does
@@ -18,14 +19,15 @@
 
 import { LIVE_STATES, type FleetReader, type McpAttentionReason } from '../mcp/fleet.ts';
 import { needingYou } from '../mcp/tools/attention.ts';
-import { BLOCKED_REASONS, type SessionAttention } from './attention.ts';
+import { needsYou } from '../states/needs-you.ts';
+import type { SessionAttention } from './attention.ts';
 import { SessionOpenDescriber, type SessionOpen } from './session-open.ts';
 import type { NeedsYouItem } from './types.ts';
 import { paleta } from '../../../marca/gerado/marca.ts';
 
 export const ATTENTION_ROUTE = '/api/attention';
 
-/** O nível: o que trava a sessão (`needs`) e o que é ociosa (`your-turn`); os valores do painel. */
+/** O nível: quem precisa de você (`needs`, "Sua vez" incluída, #761) e o que é ociosa (`your-turn`); os valores do painel. */
 export type AttentionLevel = NeedsYouItem['level'];
 /** O motivo, com os valores do "precisam de você" do painel. */
 export type AttentionReason = NeedsYouItem['why'];
@@ -47,7 +49,7 @@ const SESSION_REASON = Object.fromEntries(Object.entries(MOTIVO).map(([mcp, pane
 /** The English attention (#245) of an item from its panel reason (the level follows from it). */
 function attentionOf(reason: AttentionReason): SessionAttention {
   const r = SESSION_REASON[reason];
-  return { level: (BLOCKED_REASONS as readonly string[]).includes(r) ? 'blocked' : 'idle', reason: r };
+  return { level: needsYou(r) ? 'blocked' : 'idle', reason: r };
 }
 
 /** O motivo em poucas palavras, como a bandeja mostra ("Pede permissão · 2 min"). */
@@ -117,13 +119,16 @@ export function remoteAttentionItems(body: unknown, machine: { id: string; label
   for (const i of items) {
     if (!isObject(i) || (i.machine !== null && i.machine !== undefined)) continue;
     const reason = i.reason as AttentionReason;
-    const level = i.level as AttentionLevel;
+    const sent = i.level as AttentionLevel;
     const session = text(i.session, 128);
     const since = text(i.since, 40);
-    if (!session || !since || !Number.isFinite(Date.parse(since)) || typeof i.reason !== 'string' || !Object.hasOwn(MOTIVO_CURTO, reason) || !ATTENTION_LEVELS.includes(level)) continue;
+    if (!session || !since || !Number.isFinite(Date.parse(since)) || typeof i.reason !== 'string' || !Object.hasOwn(MOTIVO_CURTO, reason) || !ATTENTION_LEVELS.includes(sent)) continue;
     if (!Number.isFinite(i.minutes) || (i.minutes as number) < 0) continue;
-    // #245: the level must be the one its reason implies, or the counts and `attention` would disagree.
-    if ((attentionOf(reason).level === 'blocked') !== (level === 'needs')) continue;
+    // #245, #761: the level is the one the rule gives the reason, or the counts and `attention` would disagree.
+    // A remote from before #761 sends `your-turn` for "Sua vez" (its turn ended was idle): that one is read by
+    // the rule, as `needs`. Any other level that contradicts its reason is left out.
+    const level: AttentionLevel = attentionOf(reason).level === 'blocked' ? 'needs' : 'your-turn';
+    if (sent !== level && !(reason === 'your-turn' && sent === 'your-turn')) continue;
     const account =
       isObject(i.account) && typeof i.account.label === 'string' && typeof i.account.color === 'string'
         ? { label: i.account.label.slice(0, 40), color: HEX.test(i.account.color) ? i.account.color : NEUTRAL_ACCOUNT_COLOR }
@@ -181,9 +186,9 @@ export async function montarAtencao(
       title: i.title,
       project: i.project,
       account: i.account ? { label: i.account.label, color: i.account.color } : null,
-      level: i.group === 'blocking' ? 'needs' : 'your-turn',
+      level: needsYou(i.reason) ? 'needs' : 'your-turn',
       reason,
-      attention: { level: i.group === 'blocking' ? 'blocked' : 'idle', reason: i.reason },
+      attention: attentionOf(reason),
       shortReason: MOTIVO_CURTO[reason],
       longReason: i.reasonText,
       since: i.waitingSince,
@@ -203,8 +208,8 @@ export async function montarAtencao(
       if (Number.isInteger(body.withError) && (body.withError as number) >= 0) withError += Math.min(body.withError as number, MAX_REMOTE_COUNT);
     }
   }
-  // Precisa de você (0) antes de parada num erro (1), antes das ociosas (2).
-  const grupo = (i: ItemDaAtencao) => (i.level === 'your-turn' ? 2 : i.reason === 'error' ? 1 : 0);
+  // Precisa de você (0), antes de parada num erro (1), antes da sua vez (2), antes das ociosas (3) (#761).
+  const grupo = (i: ItemDaAtencao) => (i.level === 'your-turn' ? 3 : i.reason === 'error' ? 1 : i.reason === 'your-turn' ? 2 : 0);
   items.sort((a, b) => grupo(a) - grupo(b) || a.since.localeCompare(b.since) || a.session.localeCompare(b.session) || (a.machine?.id ?? '').localeCompare(b.machine?.id ?? ''));
   for (const s of await frota.live()) {
     if (s.inbox.state === 'error') withError++;

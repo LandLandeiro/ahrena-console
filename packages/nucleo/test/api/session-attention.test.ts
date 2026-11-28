@@ -39,9 +39,9 @@ describe('#245/AC-4 blocked: the session is stuck until you act, with the reason
   });
 });
 
-describe('#245/AC-3 idle: the turn ended and nothing blocks', () => {
-  test('the turn that ended, Esc and a new session at the prompt are idle', () => {
-    assert.deepEqual(sessionAttention(inbox({ reason: 'stop' }), summaryOf()), { level: 'idle', reason: 'turn_ended' });
+describe('#245/AC-3 idle: nothing awaits the person; #761 the turn that ended does', () => {
+  test('the turn that ended is blocked (Sua vez); Esc and a new session at the prompt are idle', () => {
+    assert.deepEqual(sessionAttention(inbox({ reason: 'stop' }), summaryOf()), { level: 'blocked', reason: 'turn_ended' });
     assert.deepEqual(sessionAttention(inbox({ reason: 'interrupted' }), summaryOf()), { level: 'idle', reason: 'interrupted' });
     assert.deepEqual(sessionAttention(inbox({ reason: 'session_start' }), summaryOf()), { level: 'idle', reason: 'first_prompt' });
   });
@@ -52,22 +52,23 @@ describe('#245/AC-3 idle: the turn ended and nothing blocks', () => {
     }
   });
 
-  test('the eight reasons split five blocked and three idle', () => {
-    assert.deepEqual([...BLOCKED_REASONS], ['permission', 'question', 'plan', 'decision', 'error']);
-    assert.deepEqual([...IDLE_REASONS], ['turn_ended', 'interrupted', 'first_prompt']);
+  test('the eight reasons split six blocked (the ones needsYou names) and two idle, in the MCP enum order', () => {
+    assert.deepEqual([...BLOCKED_REASONS], ['permission', 'question', 'plan', 'decision', 'error', 'turn_ended']);
+    assert.deepEqual([...IDLE_REASONS], ['interrupted', 'first_prompt']);
+    assert.deepEqual([...SESSION_ATTENTION_REASONS], ['permission', 'question', 'plan', 'decision', 'error', 'turn_ended', 'interrupted', 'first_prompt']);
     assert.deepEqual([...SESSION_ATTENTION_REASONS], [...BLOCKED_REASONS, ...IDLE_REASONS]);
   });
 });
 
 describe('#245 the attention of one event, for the feed', () => {
-  test('a blocking request is blocked, the end of a turn is idle, an error is blocked, the rest has none', () => {
+  test('a blocking request is blocked, the end of a turn is blocked (Sua vez), Esc is idle, an error is blocked, the rest has none', () => {
     const cases: [ReturnType<typeof ev>, unknown][] = [
       [ev(1, 'Notification', null, { notification_type: 'permission_prompt' }), { level: 'blocked', reason: 'permission' }],
       [ev(1, 'Notification', null, { notification_type: 'elicitation_dialog' }), { level: 'blocked', reason: 'question' }],
       [ev(1, 'Notification', null, {}, 'Claude needs your permission to use Bash'), { level: 'blocked', reason: 'permission' }],
-      [ev(1, 'Notification', null, { notification_type: 'idle_prompt' }), { level: 'idle', reason: 'turn_ended' }],
+      [ev(1, 'Notification', null, { notification_type: 'idle_prompt' }), { level: 'blocked', reason: 'turn_ended' }],
       [ev(1, 'PermissionRequest', 'Bash'), { level: 'blocked', reason: 'permission' }],
-      [ev(1, 'Stop', null), { level: 'idle', reason: 'turn_ended' }],
+      [ev(1, 'Stop', null), { level: 'blocked', reason: 'turn_ended' }],
       [ev(1, 'Interrupted', null), { level: 'idle', reason: 'interrupted' }],
       [ev(1, 'APIError', null), { level: 'blocked', reason: 'error' }],
       [ev(1, 'StopFailure', null), { level: 'blocked', reason: 'error' }],

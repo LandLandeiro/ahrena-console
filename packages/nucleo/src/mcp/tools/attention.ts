@@ -1,11 +1,13 @@
 // `sessions_needing_attention`: who needs me, across every account (2.1 and decision 0006).
 //
 // Two groups, as the owner asked (#245 names them on screen):
-// - `blocking` ("precisa de você"): the session is stuck until you act (permission, question, plan to
-//   approve, decision asked at the turn's wrap-up, error);
-// - `your_turn` ("ociosa"): the turn ended and nothing blocks (the turn ended, Esc, a new session at the
-//   prompt). The `group` values and the output schema are the published contract and stay.
-// The split is the same as the panel's "precisam de você" (`atencaoDe`, #140).
+// - `blocking` ("precisa de você"): `needsYou` (#761): the session is stuck until you act (permission,
+//   question, plan to approve, decision asked at the turn's wrap-up, error) or its turn ended and awaits
+//   your answer ("Sua vez");
+// - `your_turn` ("ociosa"): nothing awaits you (Esc, a new session at the prompt). The name is the
+//   published contract and stays, though "Sua vez" now sits in `blocking`; the `group` values and the
+//   output schema stay.
+// The split is the same as the panel's "precisam de você" (`atencaoDe`, #140 and #761).
 // Blocking first; within a group, whoever has waited longest first.
 
 import { ArgumentError, type Tool, type JsonObject } from '../protocol.ts';
@@ -84,7 +86,9 @@ export async function needingYou(fleet: FleetReader, accounts: readonly string[]
     items.push(toItem(s, await fleet.attention(s), now));
   }
   const weight = (g: McpAttentionGroup) => (g === 'blocking' ? 0 : 1);
-  return items.sort((a, b) => weight(a.group) - weight(b.group) || a.waitingSince.localeCompare(b.waitingSince) || a.sessionId.localeCompare(b.sessionId));
+  // "Sua vez" is blocking too (#761), with the lowest urgency: after the other blocking items.
+  const yourTurn = (i: AttentionItem) => Number(i.reason === 'turn_ended');
+  return items.sort((a, b) => weight(a.group) - weight(b.group) || yourTurn(a) - yourTurn(b) || a.waitingSince.localeCompare(b.waitingSince) || a.sessionId.localeCompare(b.sessionId));
 }
 
 function toItem(s: FleetSession, a: Attention, now: number): AttentionItem {
@@ -114,8 +118,8 @@ export function sessionsNeedingAttention(fleet: FleetReader): Tool {
     title: 'Quem precisa de mim',
     description:
       'Sessões do Claude Code desta máquina que precisam de você ou estão ociosas, em todas as contas. Separa as que precisam ' +
-      'de você, travadas até você agir (permissão, pergunta, plano, decisão pedida, erro: group "blocking"), das ociosas, cujo ' +
-      'turno acabou sem nada travando (o turno acabou, Esc ou sessão nova: group "your_turn"). Cada uma traz o motivo, há quanto ' +
+      'de você, travadas até você agir (permissão, pergunta, plano, decisão pedida, erro) ou com o turno acabado esperando sua resposta ' +
+      '(sua vez): group "blocking". Das ociosas, que não esperam ninguém (Esc ou sessão nova): group "your_turn". Cada uma traz o motivo, há quanto ' +
       'tempo está assim, a conta e como abrir (claude --resume). ' +
       'Não devolve texto das conversas. Paginada: use nextCursor.',
     inputSchema: objectSchema({

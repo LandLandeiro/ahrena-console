@@ -72,7 +72,7 @@ export interface EventoDoFeed {
   createdAt: string;
   type: string;
   status: StatusDoEvento;
-  /** #245: `blocked` (a permission, a question, an error) or `idle` (the turn ended, Esc); `null` for the rest. */
+  /** #245: `blocked` (a permission, a question, an error) or `idle` (Esc, a new session at the prompt); `null` for the rest. */
   attention: SessionAttention | null;
   tool: string | null;
   summary: string | null;

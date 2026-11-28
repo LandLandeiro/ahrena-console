@@ -107,6 +107,72 @@ describe('open action: what it shows per target', () => {
   });
 });
 
+describe('open action: label and primary variant (#751)', () => {
+  const session = { id: UUID, open: { target: 'desktop', command: null } };
+  const classes = (root: ElementoFalso) => root.querySelector('button')!.getAttribute('class')!.split(' ');
+
+  test('without options the button is the outline one, with its own label, as on the other screens', () => {
+    const root = openAction(session, { size: 'small' }) as ElementoFalso;
+    assert.ok(classes(root).includes('outline'));
+    assert.ok(!classes(root).includes('primary'));
+    assert.ok(classes(root).includes('sm') && !classes(root).includes('md'), 'the other screens keep the 28px button');
+    assert.equal(texto(root.querySelector('button')), 'Abrir no Claude Desktop');
+  });
+
+  test('label changes the text and primary swaps outline for primary, keeping the size and the target', () => {
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    const button = root.querySelector('button')!;
+    assert.equal(texto(button), 'Responder no Claude');
+    assert.ok(classes(root).includes('primary'));
+    assert.ok(!classes(root).includes('outline'));
+    assert.ok(classes(root).includes('md') && !classes(root).includes('sm'), 'primary is the 32px button of the kit');
+    assert.equal(button.getAttribute('data-open-target'), 'desktop');
+    assert.equal(button.getAttribute('title'), 'Abre a conversa no Claude Desktop');
+  });
+
+  test('the label sits in its own .open-label, so a long one is cut with an ellipsis and the icon stays', () => {
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    const label = root.querySelector('button .open-label')!;
+    assert.equal(texto(label), 'Responder no Claude');
+    assert.equal(texto(root.querySelector('button')), 'Responder no Claude');
+    assert.equal(label.querySelector('svg, .icon, i'), null, 'the icon is outside the label');
+  });
+
+  test('a remote session stays as it is: aria-disabled, "Roda em …", never primary', () => {
+    const remote = { id: UUID, open: { target: 'desktop', command: null }, machine: { id: 'ws', label: 'ws-exemplo' } };
+    const root = openAction(remote, { size: 'small', machine: 'ws-exemplo', label: 'Responder no Claude', primary: true }) as ElementoFalso;
+    assert.equal(root.querySelector('button')!.getAttribute('aria-disabled'), 'true');
+    assert.equal(texto(root), 'Roda em ws-exemplo');
+    assert.ok(!classes(root).includes('primary'));
+    assert.ok(classes(root).includes('outline'));
+    assert.ok(classes(root).includes('md') && !classes(root).includes('sm'), 'the "Roda em …" of the card is 32px too, in outline');
+    // #751: the full size has no smaller label to fall back on, so only the disabled check keeps the remote text.
+    const full = openAction(remote, { size: 'full', machine: 'ws-exemplo', label: 'Responder no Claude' }) as ElementoFalso;
+    assert.equal(texto(full), texto(openAction(remote, { size: 'full', machine: 'ws-exemplo' }) as ElementoFalso));
+    assert.ok(!texto(full).includes('Responder no Claude'));
+  });
+
+  test('without primary the remote one and the icon keep their sizes', () => {
+    const remote = { id: UUID, open: { target: 'desktop', command: null }, machine: { id: 'ws', label: 'ws-exemplo' } };
+    assert.ok(classes(openAction(remote, { size: 'small', machine: 'ws-exemplo' }) as ElementoFalso).includes('sm'));
+    assert.ok(classes(openAction(session, { size: 'full' }) as ElementoFalso).includes('md'));
+    assert.ok(!classes(openAction(session, { size: 'icon' }) as ElementoFalso).includes('md'));
+  });
+
+  test('an action that does not exist is still null', () => {
+    assert.equal(openAction({ id: UUID, open: { target: 'none', command: null } }, { size: 'small', label: 'x', primary: true }), null);
+  });
+
+  test('the primary click still opens the session', async () => {
+    const w = stubWriter({ ok: true, opened: 'desktop' });
+    const root = openAction(session, { size: 'small', label: 'Responder no Claude', primary: true, write: w.write }) as ElementoFalso;
+    root.querySelector('button')!.click();
+    assert.deepEqual(w.calls, [{ route: openRoute(UUID), body: {} }]);
+    w.release();
+    await settle();
+  });
+});
+
 describe('open action: the click', () => {
   test('the clipboard refuses: "Não deu para copiar", data-copied false', async () => {
     stubClipboard(async () => {
@@ -147,6 +213,125 @@ describe('open action: the click', () => {
     assert.equal(texto(copy), '', 'icon only in the foot');
     assert.equal(copy.getAttribute('aria-label'), 'Copiar comando');
     assert.equal(byClass(root, 'open-close').length, 0, 'only the icon popover has Fechar');
+  });
+
+  test('with `reveal` a failure scrolls the notice into view once the action is on the page, and never without the option (#751)', async () => {
+    const seen: unknown[] = [];
+    const attach = (root: ElementoFalso, on = true) => {
+      const status = root.querySelector('.open-status') as ElementoFalso & { isConnected?: boolean; scrollIntoView?: (o: unknown) => void };
+      status.isConnected = on;
+      status.scrollIntoView = (o) => seen.push(o);
+    };
+    const failing = () => stubWriter(writeError('Nenhum terminal respondeu', 502, { error: 'Nenhum terminal respondeu', command: COMMAND }));
+    const session = { id: UUID, open: { target: 'terminal-live', command: COMMAND } };
+    for (const size of ['small', 'icon']) {
+      seen.length = 0;
+      resetOpenStates();
+      const w = failing();
+      w.release();
+      const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+      attach(root);
+      root.querySelector('button')!.click();
+      await settle();
+      assert.ok(seen.length >= 1, `${size}: the notice scrolls into view`);
+      assert.deepEqual(seen[0], { block: 'nearest' }, `${size}: the least scroll that shows it`);
+    }
+    seen.length = 0;
+    resetOpenStates();
+    const w = failing();
+    w.release();
+    const plain = openAction(session, { size: 'icon', write: w.write }) as ElementoFalso;
+    attach(plain);
+    plain.querySelector('button')!.click();
+    await settle();
+    assert.equal(seen.length, 0, 'the other screens never scroll');
+  });
+
+  describe('the notice scroll of `reveal` (#751)', () => {
+    type Probe = ElementoFalso & { isConnected?: boolean; scrollIntoView: (o: unknown) => void; getBoundingClientRect?: () => unknown };
+    const VIEW = { innerHeight: 800, innerWidth: 1200 };
+    const saved = Object.fromEntries(Object.keys(VIEW).map((k) => [k, Object.getOwnPropertyDescriptor(globalThis, k)]));
+    beforeEach(() => Object.entries(VIEW).forEach(([k, value]) => Object.defineProperty(globalThis, k, { value, configurable: true, writable: true })));
+    afterEach(() => {
+      for (const [k, d] of Object.entries(saved)) {
+        if (d) Object.defineProperty(globalThis, k, d);
+        else delete (globalThis as Record<string, unknown>)[k];
+      }
+    });
+    const session = { id: UUID, open: { target: 'terminal-live', command: COMMAND } };
+    const rect = (top: number) => ({ top, bottom: top + 32, left: 40, right: 240, width: 200, height: 32 });
+    /** #751: puts the action on the page, connected, counting scrolls, the button at `top`. */
+    const place = (root: ElementoFalso, seen: unknown[], top: number | null) => {
+      const status = root.querySelector('.open-status') as Probe;
+      status.isConnected = true;
+      status.scrollIntoView = (o) => seen.push(o);
+      if (top !== null) (root.querySelector('button') as Probe).getBoundingClientRect = () => rect(top);
+    };
+    const failing = () => stubWriter(writeError('Nenhum terminal respondeu', 502, { error: 'Nenhum terminal respondeu', command: COMMAND }));
+
+    for (const size of ['small', 'icon']) {
+      test(`${size}: no scroll while it is busy or after a success`, async () => {
+        const seen: unknown[] = [];
+        const w = stubWriter({ ok: true, opened: 'terminal' });
+        const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+        place(root, seen, 100);
+        root.querySelector('button')!.click();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'busy');
+        assert.equal(seen.length, 0, 'busy');
+        w.release();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'ok');
+        assert.equal(seen.length, 0, 'ok');
+      });
+
+      test(`${size}: one scroll on a failure with the button on screen, none with it off screen`, async () => {
+        for (const [top, expected] of [[100, 1], [-200, 0], [900, 0], [-20, 1], [790, 1]] as const) {
+          resetOpenStates();
+          const seen: unknown[] = [];
+          const w = failing();
+          w.release();
+          const root = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+          place(root, seen, top);
+          root.querySelector('button')!.click();
+          await settle();
+          assert.equal(openStateOf(UUID).kind, 'fail');
+          assert.deepEqual(seen, expected ? [{ block: 'nearest' }] : [], `button at ${top}`);
+        }
+      });
+
+      test(`${size}: a build with a failure already in the state does not scroll`, async () => {
+        const w = failing();
+        w.release();
+        const first = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+        first.querySelector('button')!.click();
+        await settle();
+        assert.equal(openStateOf(UUID).kind, 'fail');
+        const seen: unknown[] = [];
+        const had = Object.getOwnPropertyDescriptor(ElementoFalso.prototype, 'scrollIntoView');
+        Object.defineProperty(ElementoFalso.prototype, 'isConnected', { value: false, configurable: true, writable: true });
+        Object.defineProperty(ElementoFalso.prototype, 'scrollIntoView', { value: (o: unknown) => seen.push(o), configurable: true, writable: true });
+        try {
+          const rebuilt = openAction(session, { size, write: w.write, reveal: true }) as ElementoFalso;
+          assert.equal(texto(rebuilt.querySelector('.open-fail')), 'Nenhum terminal respondeu', 'the redraw shows the failure');
+        } finally {
+          Reflect.deleteProperty(ElementoFalso.prototype, 'isConnected');
+          if (had) Object.defineProperty(ElementoFalso.prototype, 'scrollIntoView', had);
+        }
+        assert.deepEqual(seen, []);
+      });
+    }
+
+    test('a button without getBoundingClientRect (a fake DOM) is taken as on screen', async () => {
+      const seen: unknown[] = [];
+      const w = failing();
+      w.release();
+      const root = openAction(session, { size: 'small', write: w.write, reveal: true }) as ElementoFalso;
+      place(root, seen, null);
+      root.querySelector('button')!.click();
+      await settle();
+      assert.equal(seen.length, 1);
+    });
   });
 
   test('the state survives a redraw: a second action for the same id shows the busy, refuses the click, then shows the failure with its copy', async () => {
@@ -275,6 +460,33 @@ describe('open action: the click', () => {
   });
 });
 
+test('open-action.css: the card notice opens below the button, over the card, and the icon notice stays below too (#751)', () => {
+  const css = readFileSync(`${UI_FOLDER}open-action.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (selector: string) => css.match(new RegExp(`(?:^|\\n)${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+  const small = rule('.open-size-small .open-status');
+  assert.match(small, /top:\s*calc\(100% \+ 6px\)/, 'below the button');
+  assert.doesNotMatch(small, /(^|[;\s])bottom:/, 'never above it, where the title of the card is');
+  assert.match(small, /max-width:\s*min\([^)]*,\s*100%\)/, 'wide as the card at most');
+  assert.match(rule('.open-size-small'), /display:\s*flex/);
+  assert.match(rule('.open-size-small'), /(^|[;\s])width:\s*100%/, 'the action spans the act area, so the notice is not as narrow as the button');
+  assert.match(rule('.open-size-icon .open-status'), /top:\s*calc\(100% \+ 6px\)/);
+});
+
+test('open-action.css: above 600px the notice of an opened leader card sits beside the button, as wide as the button, away from the titles (#751)', () => {
+  const css = readFileSync(`${UI_FOLDER}open-action.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const media = css.match(/@media \(min-width: 601px\) \{([\s\S]*?\n)\}/)?.[1] ?? '';
+  const rule = (selector: string) => media.match(new RegExp(`${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? '';
+  assert.match(rule('.open-size-small.open-beside'), /display:\s*inline-flex/);
+  assert.match(rule('.open-size-small.open-beside'), /width:\s*auto/);
+  const status = rule('.open-size-small.open-beside .open-status');
+  assert.match(status, /left:\s*calc\(100% \+ 8px\)/, 'to the right of the button');
+  assert.match(status, /top:\s*0/);
+  assert.match(status, /bottom:\s*auto/);
+  assert.match(status, /width:\s*max-content/);
+  assert.match(status, /max-width:\s*300px/);
+  assert.doesNotMatch(css.replace(media, ''), /open-beside/, 'only above 600px: below it there is no room');
+});
+
 test('open-action.css: only open- classes, no colour by hand, loaded once by index.html', () => {
   const css = readFileSync(`${UI_FOLDER}open-action.css`, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
   const shell = new Set([...readFileSync(`${UI_FOLDER}shell.css`, 'utf8').matchAll(/\.([a-z][a-z0-9-]*)/g)].map((m) => m[1]!));
@@ -293,7 +505,7 @@ describe('Detail: the open action in the header (C70)', () => {
       id: UUID,
       title: 'Retry com backoff na fila',
       status: 'waiting',
-      attention: { level: 'idle', reason: 'turn_ended' },
+      attention: { level: 'blocked', reason: 'turn_ended' },
       since: new Date().toISOString(),
       startedAt: new Date(Date.now() - 15 * 60_000).toISOString(),
       model: 'claude-sonnet-5-5',
@@ -350,6 +562,45 @@ describe('Detail: the open action in the header (C70)', () => {
       action.querySelector('button')!.click();
       assert.deepEqual(w.calls, [{ route: `/api/sessions/${UUID}/open`, body: {} }]);
       w.release();
+    } finally {
+      leave?.();
+    }
+  });
+
+  test('#761: Sua vez without a band keeps the notice: a quiet line, role status, the text of the turn, no yellow band; with a band the title says Sua vez', async () => {
+    const turn = head({ session: { ...head().session, attention: { level: 'blocked', reason: 'turn_ended' }, banner: null } });
+    const { area, leave } = await mountDetail(turn, stubWriter({}).write);
+    try {
+      const line = area.querySelector('.sd-idle')!;
+      assert.ok(line, 'the notice is still drawn');
+      assert.equal(line.getAttribute('role'), 'status');
+      assert.match(texto(line), /^Sua vez · o turno terminou (há .+ )?e a vez é sua\.$/);
+      assert.ok(!texto(line).includes('Ociosa') && !texto(line).includes('Nada trava'), 'it is not idle');
+      assert.equal(area.querySelector('.sd-band'), null, 'no strong yellow band');
+      const dot = line.querySelector('.attention-dot')!;
+      assert.match(dot.getAttribute('class')!, /attention-dot-blocked attention-dot-low/, 'the low dot, beside the text');
+      assert.match(texto(area.querySelector('.sd-row')!), /Precisa de você/, 'the header pill is the blocked one');
+    } finally {
+      leave?.();
+    }
+    const withBand = head({ session: { ...head().session, attention: { level: 'blocked', reason: 'turn_ended' }, banner: { type: 'question', text: 'Rodo os testes?', since: new Date().toISOString() } } });
+    const again = await mountDetail(withBand, stubWriter({}).write);
+    try {
+      assert.ok(again.area.querySelector('.sd-band'), 'with a banner the band is drawn');
+      assert.equal(again.area.querySelector('.sd-idle'), null, 'and the quiet line is not');
+      assert.match(texto(again.area.querySelector('.sd-band')!), /Precisa de você · Sua vez\./);
+    } finally {
+      again.leave?.();
+    }
+  });
+
+  test('#761: an idle session keeps its idle line, with the hollow dot', async () => {
+    const idle = head({ session: { ...head().session, attention: { level: 'idle', reason: 'interrupted' }, banner: null } });
+    const { area, leave } = await mountDetail(idle, stubWriter({}).write);
+    try {
+      const line = area.querySelector('.sd-idle')!;
+      assert.match(texto(line), /^Ociosa · interrompida/);
+      assert.match(line.querySelector('.attention-dot')!.getAttribute('class')!, /attention-dot-idle/);
     } finally {
       leave?.();
     }
