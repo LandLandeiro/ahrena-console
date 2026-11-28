@@ -126,10 +126,12 @@ export function createGithubFooter({ node, read }) {
     if (key === last) return;
     last = key;
     node.dataset.state = s.tone;
-    node.setAttribute('aria-label', `GitHub: ${s.label}${s.tone === 'on' && s.name !== 'GitHub' ? ` como ${s.name}` : ''}`);
+    // ADR-0028: 248 px cuts the login, so it goes in the title and the accessible name.
+    const said = `GitHub: ${s.label}${s.tone === 'on' && s.name !== 'GitHub' ? ` como ${s.name}` : ''}`;
+    node.setAttribute('aria-label', said);
+    node.setAttribute('title', said);
     node.replaceChildren(
-      icon('github'),
-      el('span', { class: 'cc-gh-name' }, s.name),
+      el('span', { class: 'cc-gh-name' }, 'GitHub'),
       el('span', { class: 'cc-gh-state' }, s.tone === 'pending' ? icon('wall-loader') : null, s.label),
     );
   }

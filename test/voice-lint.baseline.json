@@ -1,11 +1,5 @@
 [
   {
-    "file": "packages/nucleo/ui/app.js",
-    "rule": "limit-label-words",
-    "text": "Há uma versão nova do app",
-    "count": 1
-  },
-  {
     "file": "packages/nucleo/ui/github-connect.js",
     "rule": "limit-title-words",
     "text": "Build de desenvolvimento sem o aplicativo do GitHub",
@@ -33,18 +27,6 @@
     "file": "packages/nucleo/ui/github-connect.js",
     "rule": "limit-title-words",
     "text": "O GitHub não aceita mais a credencial guardada",
-    "count": 1
-  },
-  {
-    "file": "packages/nucleo/ui/new-session.js",
-    "rule": "limit-title-words",
-    "text": "Abre o terminal padrão e roda claude nesta pasta",
-    "count": 1
-  },
-  {
-    "file": "packages/nucleo/ui/new-session.js",
-    "rule": "limit-title-words",
-    "text": "Abre uma sessão nova do Claude Code no Claude Desktop, nesta pasta",
     "count": 1
   },
   {
@@ -582,12 +564,6 @@
     "count": 1
   },
   {
-    "file": "packages/nucleo/ui/screens/wall.js",
-    "rule": "filler-long-dash",
-    "text": "contexto —",
-    "count": 1
-  },
-  {
     "file": "packages/nucleo/ui/screens/work-board-issue-edit.js",
     "rule": "limit-label-characters",
     "text": "Descrição da issue (Markdown)",
@@ -700,12 +676,6 @@
     "rule": "limit-label-words",
     "text": "Abrir a vista de {}",
     "count": 2
-  },
-  {
-    "file": "packages/nucleo/ui/screens/workflow-tree.js",
-    "rule": "limit-title-words",
-    "text": "Ativa, mais velha que o período: entra sempre",
-    "count": 1
   },
   {
     "file": "packages/nucleo/ui/screens/workflow-tree.js",

@@ -294,7 +294,7 @@ describe('Feed de atividade: a tela', () => {
     assert.ok(documento.head.querySelector('link[data-screen="feed"]'), 'o CSS da tela entrou no head');
     assert.deepEqual(linhasDe(area), ['e2', 'e1']);
     const [l2, l1] = area.querySelectorAll('.feed-item');
-    assert.match(l1!.textContent, /Precisa de você/);
+    assert.match(l1!.textContent, /Pede permissão/, 'the state tag says the reason of the block (#763)');
     assert.doesNotMatch(area.textContent, /Esperando/);
     assert.match(l1!.textContent, /motor-de-regras › Separar pagamentos em serviços › test-runner/);
     assert.match(l1!.textContent, /1 min/);
@@ -385,6 +385,26 @@ describe('Feed de atividade: a tela', () => {
     assert.equal(f.pedidos.at(-1), '/api/events?after=k1&machine=all');
     assert.deepEqual(linhasDe(area), ['e2', 'e1'], 'o evento novo entrou no topo');
     limpar();
+  });
+
+  test('#760: the help sentence says the states in the words of the mode', async () => {
+    // @ts-expect-error: idem
+    const labels = await import('../../ui/state-labels.js');
+    const empty = () => ({ events: [], cursor: null, older: null, options: null });
+    const help = async () => {
+      const area = new Elemento('main');
+      const limpar = await mount(area, ctxFalso(empty).ctx);
+      const text = area.querySelector('.feed-about-body')!.querySelectorAll('p')[0]!.textContent;
+      limpar();
+      return text;
+    };
+    try {
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Com erro\.$/);
+      labels.setStateLabelMode('project');
+      assert.match(await help(), /: Trabalhando, Precisa de você \(travada até você agir\), Em pausa \(o turno acabou e nada trava\), Concluída ou Parou com erro\.$/);
+    } finally {
+      labels.setStateLabelMode('dev');
+    }
   });
 
   test('vazio, vazio com filtro, erro e "mostrar mais"', async () => {

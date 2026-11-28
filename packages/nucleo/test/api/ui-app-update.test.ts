@@ -319,11 +319,12 @@ describe('the wiring', () => {
 
   test('index.html has the strip above the main area and the panel; app.js wires the footer version', () => {
     const page = readFileSync(`${UI_FOLDER}index.html`, 'utf8');
-    assert.match(page, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<main class="cc-main" id="content"><\/main>/);
+    assert.match(page, /<div class="cc-notice" id="update-notice" hidden><\/div>\s*<div class="cc-tabs-host" id="screen-tabs" hidden><\/div>\s*<main class="cc-main" id="content" tabindex="-1"><\/main>/);
     assert.match(page, /<div class="up-pop" id="update-panel" hidden><\/div>/);
     assert.match(page, /href="\/ui\/app-update\.css"/);
     const app = readFileSync(`${UI_FOLDER}app.js`, 'utf8');
     assert.match(app, /if \(appUpdateChanged\(changes\)\) appUpdate\.refresh\(\)/);
-    assert.match(app, /class: 'version up-version mono'/);
+    assert.match(readFileSync(`${UI_FOLDER}live-block.js`, 'utf8'), /class: 'version up-version'/);
+    assert.match(app, /label: `versão \$\{version\}`/);
   });
 });

@@ -69,7 +69,7 @@ export interface LinhaDeSessao {
   status: DisplayStatus;
   /** Por que espera, quando espera (`notification`, `interrupted`, `stop`, `session_start`). */
   reason: AwaitingReason | null;
-  /** #245: `blocked` ("Precisa de você") or `idle` ("Ociosa"), with the reason; `null` when not waiting on you and not in error. */
+  /** #245: `blocked` ("Precisa de você") or `idle` ("Em pausa"), with the reason; `null` when not waiting on you and not in error. */
   attention: SessionAttention | null;
   lastActivity: string;
   start: string;

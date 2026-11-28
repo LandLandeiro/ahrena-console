@@ -78,7 +78,7 @@ describe('the format, with no DOM', () => {
   });
 
   test('the state words, and the duration of a running agent says "até agora"', () => {
-    assert.deepEqual(['working', 'waiting', 'completed', 'error'].map(format.stateLabel), ['Ativa', 'Esperando', 'Concluída', 'Com erro']);
+    assert.deepEqual(['working', 'waiting', 'completed', 'error'].map(format.stateLabel), ['Trabalhando', 'Esperando', 'Concluída', 'Com erro']);
     assert.deepEqual(format.durationText({ start: at(0), end: at(20), state: 'completed' }, NOW), { text: '20 min', partial: false });
     assert.deepEqual(format.durationText({ start: at(0), end: null, state: 'working' }, NOW), { text: '30 min', partial: true });
   });
@@ -385,9 +385,9 @@ describe('the states of the view (AC-4)', () => {
     assert.match(texto(root.querySelector('.av-cost')), /^Custo —/);
   });
 
-  test('a running agent: "Ativa", the duration "até agora", and "Ainda sem resultado" in place of the result', () => {
+  test('a running agent: "Trabalhando", the duration "até agora", and "Ainda sem resultado" in place of the result', () => {
     const root = draw(agent({ state: 'working', end: null, result: null }));
-    assert.match(texto(root.querySelector('.av-state')), /Ativa/);
+    assert.match(texto(root.querySelector('.av-state')), /Trabalhando/);
     assert.match(texto(root.querySelector('.av-duration')), /30 min.*até agora/);
     assert.match(texto(root.querySelector('.av-cost')), /até agora/);
     assert.match(texto(root.querySelector('.av-result')), /Ainda sem resultado/);

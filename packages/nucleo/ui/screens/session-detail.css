@@ -1,54 +1,74 @@
 /* O Detalhe da sessão (A5, C4, C5, C6). Toda cor vem de marca.css: nenhuma é escrita aqui. */
 
-/* ---------- topo (A5) ---------- */
+/* ---------- topo (A5, M10) ---------- */
 /* A área da tela é uma coluna flexível com rolagem: nada aqui encolhe. */
 .sd-top, .sd-tabs, .sd-body, .sd-body > * { flex: none; }
 .sd-top { display: flex; flex-direction: column; gap: 10px; }
-.sd-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.sd-row h1 { margin: 0; font-size: 21px; font-weight: var(--weight-semibold); min-width: 0; overflow-wrap: anywhere; }
-.sd-back, .sd-refresh { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--muted); font-size: 18px; background: transparent; border: 0; flex: none; }
-.sd-back:hover, .sd-refresh:hover { color: var(--text); background: var(--raised); }
-.sd-refresh { margin-left: auto; }
-/* C70 (issue 285): the open action takes the push to the right; Atualizar stays beside it. */
-.sd-open { margin-left: auto; flex: 0 1 auto; justify-content: flex-end; flex-wrap: wrap; }
-.sd-open + .sd-refresh { margin-left: 0; }
-.sd-back:focus-visible, .sd-refresh:focus-visible, .sd-copy:focus-visible, .sd-tab:focus-visible, .sd-tool-head:focus-visible, .sd-event-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Duas linhas: a de meta (estado, máquina, início) com as ações ao lado, e o título embaixo. */
+.sd-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px 16px; min-width: 0; }
+.sd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-width: 0; flex: 1 1 auto; color: var(--muted); font-size: var(--text-sm); }
+.sd-meta > span { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.sd-plan-count { color: var(--muted); font-variant-numeric: tabular-nums; }
+.sd-config { color: var(--muted); text-decoration: underline; text-decoration-color: var(--border-control); text-underline-offset: 3px; }
+.sd-config:hover { color: var(--text); text-decoration-color: currentColor; }
+.sd-config:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; border-radius: var(--radius-tag); }
+.sd-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.sd-top h1 { margin: 0; font-size: 24px; font-weight: var(--weight-semibold); min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.sd-back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; min-height: 24px; color: var(--muted); font-size: var(--text-sm); text-decoration: none; border-radius: var(--radius-control); }
+.sd-back:hover { color: var(--text); }
+.sd-refresh { display: grid; place-items: center; width: 30px; height: 30px; border-radius: var(--radius-control); color: var(--muted); font-size: 18px; background: transparent; border: 0; flex: none; }
+.sd-refresh:hover { color: var(--text); background: var(--raised); }
+/* C70 (issue 285): the open action takes the room it needs; Atualizar stays beside it. */
+.sd-open { flex: 0 1 auto; justify-content: flex-end; flex-wrap: wrap; }
+.sd-back:focus-visible, .sd-refresh:focus-visible, .sd-copy:focus-visible, .sd-tab:focus-visible, .sd-tool-head:focus-visible, .sd-event-head:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
 
-.sd-status { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 99px; font-size: 12px; font-weight: var(--weight-medium); white-space: nowrap; flex: none; }
-.sd-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.sd-s-active { background: var(--status-active-badge); color: var(--status-active-text); }
-.sd-s-error { background: var(--status-error-badge); color: var(--status-error-text); }
-.sd-s-completed { background: var(--status-completed-badge); color: var(--status-completed-text); }
-.sd-s-abandoned { background: var(--status-abandoned-badge); color: var(--status-abandoned-text); }
-
-.sd-pills { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 42px; }
-.sd-pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--muted); white-space: nowrap; }
-.sd-pill.sd-cost { color: var(--status-completed-text); }
-.sd-folder { display: flex; align-items: center; gap: 8px; padding-left: 42px; color: var(--muted); font-size: 12px; min-width: 0; }
+.sd-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.sd-pill { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: var(--radius-control); border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.sd-folder { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; min-width: 0; }
 .sd-folder span { overflow-wrap: anywhere; }
 .sd-copy { display: inline-grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 13px; }
 .sd-copy:hover, .sd-copy.sd-copied { color: var(--accent-text); }
 
-.sd-band { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--status-waiting-dot); background: var(--status-waiting-badge); font-size: 13.5px; line-height: 1.55; }
-.sd-band > .icon { font-size: 20px; color: var(--status-waiting-text); }
+/* A2 (b, c): the card of the question: a quiet card with the line of its state, and the dark primary button of the system. */
+.sd-band { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius-card); border: 1px solid var(--status-waiting-dot); background: var(--surface); font-size: 13.5px; line-height: 1.55; }
+.sd-band > .icon { font-size: 20px; color: var(--status-waiting-text); flex: none; }
 .sd-band p { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .sd-band b { color: var(--status-waiting-text); font-weight: var(--weight-semibold); }
-.sd-band.sd-t-error { border-color: var(--status-error-dot); background: var(--status-error-badge); }
+.sd-band.sd-t-error { border-color: var(--status-error-dot); }
 .sd-band.sd-t-error > .icon, .sd-band.sd-t-error b { color: var(--status-error-text); }
-/* issue 245: an idle session gets no band, only this muted line. */
+/* issue 245: an idle session gets no card, only this muted line (and the same button). */
 .sd-idle { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); padding: 2px; }
 .sd-idle p { margin: 0; flex: 1; min-width: 0; }
-.sd-code { font-family: var(--font-mono); font-size: .92em; color: var(--accent-text); background: var(--raised); padding: 1px 5px; border-radius: 4px; }
+.sd-ask-action { flex: none; }
+.sd-ask-action:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.sd-code { font-family: var(--font-mono); font-size: .92em; color: var(--accent-text); background: var(--raised); padding: 1px 5px; border-radius: var(--radius-tag); }
 
-/* ---------- abas ---------- */
-.sd-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; overflow-y: hidden; }
-.sd-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; background: transparent; color: var(--muted); font-size: 14px; white-space: nowrap; }
-.sd-tab .icon { font-size: 15px; }
+/* ---------- abas: sublinhadas, sem pílula (0029) ---------- */
+.sd-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.sd-tabs::-webkit-scrollbar { display: none; }
+.sd-tab { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: var(--text-sm); white-space: nowrap; cursor: pointer; transition: color var(--motion-fast) var(--ease-out), border-color var(--motion-fast) var(--ease-out); }
 .sd-tab:hover { color: var(--text); }
-.sd-tab.on { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+.sd-tab.on { color: var(--text); font-weight: var(--weight-medium); border-bottom-color: var(--accent-line); }
+.sd-tab-count { color: var(--muted); font-weight: var(--weight-regular, 400); font-variant-numeric: tabular-nums; }
 .sd-body { display: flex; flex-direction: column; gap: 14px; }
 .sd-conversation { display: contents; }
 .sd-none { margin: 0; padding: 14px 0; color: var(--muted); font-size: 12.5px; }
+
+/* ---------- Conversa: a lista e, ao lado, o plano e os números de uso ---------- */
+.sd-conv { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+.sd-conv-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.sd-aside { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sd-aside[hidden] { display: none; }
+.sd-conv:has(> .sd-aside[hidden]) { grid-template-columns: minmax(0, 1fr); }
+.sd-plan { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.sd-plan > header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sd-plan > header b { font-weight: var(--weight-semibold); }
+.sd-usage { margin: 0; padding: 6px 16px; display: flex; flex-direction: column; }
+.sd-kv { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: var(--text-sm); }
+.sd-kv + .sd-kv { border-top: 1px solid var(--border); }
+.sd-kv dt { color: var(--muted); }
+.sd-kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; text-align: right; font-size: var(--text-sm); }
+.sd-kv dd.mono { font-size: 12px; }
 
 /* ---------- Agentes (C4) ---------- */
 .sd-numbers { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
@@ -65,11 +85,11 @@
 
 .sd-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .sd-bars li { display: grid; grid-template-columns: 22px 110px minmax(0, 1fr) 44px; align-items: center; gap: 10px; font-size: 12.5px; }
-.sd-bars .sd-ico, .sd-node .sd-ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; background: var(--raised); color: var(--accent-text); font-size: 13px; }
+.sd-bars .sd-ico, .sd-node .sd-ico { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--radius-card); background: var(--raised); color: var(--accent-text); font-size: 13px; }
 .sd-bars .sd-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-bars .sd-n { text-align: right; color: var(--muted); }
-.sd-bars .sd-rail { height: 6px; border-radius: 99px; background: var(--raised); overflow: hidden; }
-.sd-bars .sd-full { display: block; height: 100%; width: var(--w, 0); border-radius: 99px; background: var(--accent); }
+.sd-bars .sd-rail { height: 6px; border-radius: var(--radius-full); background: var(--raised); overflow: hidden; }
+.sd-bars .sd-full { display: block; height: 100%; width: var(--w, 0); border-radius: var(--radius-full); background: var(--accent); }
 
 .sd-tasks { display: flex; flex-direction: column; gap: 12px; }
 .sd-ring-box { display: flex; align-items: center; gap: 14px; position: relative; }
@@ -86,14 +106,13 @@
 .sd-legend .sd-l-ok::before { background: var(--status-completed-dot); }
 .sd-legend .sd-l-progress::before { background: var(--status-active-dot); }
 .sd-legend .sd-l-pending::before { background: var(--status-abandoned-dot); }
-.sd-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-.sd-steps li { display: flex; align-items: center; gap: 6px; }
-.sd-steps .sd-p-completed .icon { color: var(--status-completed-text); }
-.sd-steps .sd-p-in_progress { color: var(--text); }
-.sd-steps .sd-p-in_progress .icon { color: var(--status-active-dot); fill: currentColor; }
+.sd-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--muted); }
+.sd-steps li { display: flex; align-items: center; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.sd-steps .sd-p-completed { color: var(--text); }
+.sd-steps .sd-p-in_progress { color: var(--text); font-weight: var(--weight-semibold); }
 .sd-steps .sd-more { color: var(--muted); }
 
-.sd-flow { display: flex; height: 8px; border-radius: 99px; overflow: hidden; background: var(--raised); margin-bottom: 10px; }
+.sd-flow { display: flex; height: 8px; border-radius: var(--radius-full); overflow: hidden; background: var(--raised); margin-bottom: 10px; }
 .sd-flow span { width: var(--w, 0); height: 100%; }
 .sd-flow .sd-f-read, .sd-legend .sd-f-read::before { background: var(--orange-200); }
 .sd-flow .sd-f-written, .sd-legend .sd-f-written::before { background: var(--orange-700); }
@@ -118,15 +137,16 @@
 
 /* ---------- Conversa (C5) ---------- */
 .sd-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.sd-select, .sd-field { height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
+.sd-select, .sd-field { height: 36px; padding: 0 12px; border-radius: var(--radius-card); border: 1px solid var(--border-control); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
 .sd-select { min-width: 280px; }
 .sd-bar .sd-pill { height: 30px; }
 /* issue 414 (L5): the "N novas mensagens" pill, floating at the bottom when the reader is scrolled up. */
-.sd-newpill { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 16px; border: 0; border-radius: 99px; cursor: pointer; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 13px; font-weight: var(--weight-semibold); box-shadow: 0 8px 24px color-mix(in srgb, var(--mono-black) 40%, transparent); }
+.sd-newpill { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 16px; border: 0; border-radius: var(--radius-full); cursor: pointer; background: var(--accent); color: var(--on-accent); font: inherit; font-size: 13px; font-weight: var(--weight-semibold); box-shadow: 0 8px 24px color-mix(in srgb, var(--mono-black) 40%, transparent); }
 .sd-newpill:hover { filter: brightness(1.05); }
-.sd-messages { padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; }
+/* A5: the list scrolls by itself and sticks to its own end; the page keeps the header and the card above it. */
+.sd-messages { padding: 18px 20px; display: flex; flex-direction: column; gap: 18px; max-height: min(62vh, 720px); overflow-y: auto; overscroll-behavior: contain; }
 .sd-msg { display: flex; gap: 12px; }
-.sd-msg .sd-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; flex: none; background: var(--raised); color: var(--muted); font-size: 15px; }
+.sd-msg .sd-avatar { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-card); flex: none; background: var(--raised); color: var(--muted); font-size: 15px; }
 .sd-msg.sd-you .sd-avatar { background: var(--status-active-badge); color: var(--accent-text); }
 .sd-msg .sd-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .sd-msg header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -147,10 +167,10 @@
 .sd-md strong { font-weight: var(--weight-semibold); }
 .sd-link { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: color-mix(in srgb, var(--accent-text) 40%, transparent); overflow-wrap: anywhere; }
 .sd-link:hover { text-decoration-color: currentColor; }
-.sd-md-pre { border: 1px solid var(--border); border-radius: 8px; background: var(--raised); overflow: hidden; }
+.sd-md-pre { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--raised); overflow: hidden; }
 .sd-md-pre-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 4px 12px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--muted); }
 .sd-md-pre pre { margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.55; white-space: pre; overflow-x: auto; max-height: 420px; }
-.sd-md-copy { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); }
+.sd-md-copy { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: var(--radius-card); background: transparent; color: var(--muted); }
 .sd-md-copy:hover { background: var(--surface); color: var(--text); }
 .sd-md-copy.sd-copied { color: var(--status-completed-text); }
 .sd-md-copy.sd-copy-failed { color: var(--status-error-text); }
@@ -162,8 +182,8 @@
 /* What the harness wraps in tags: a notice that opens on click. */
 .sd-msg.sd-system .sd-avatar { background: none; height: 0; }
 .sd-msg.sd-system .sd-content { gap: 6px; }
-.sd-note { border-radius: 8px; min-width: 0; }
-.sd-note-head { display: flex; align-items: center; gap: 7px; width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 12.5px; text-align: left; min-width: 0; }
+.sd-note { border-radius: var(--radius-card); min-width: 0; }
+.sd-note-head { display: flex; align-items: center; gap: 7px; width: 100%; padding: 6px 10px; border: 1px solid var(--border-control); border-radius: var(--radius-card); background: var(--surface); color: var(--text); font-size: 12.5px; text-align: left; min-width: 0; }
 .sd-note-head:hover { background: var(--raised); }
 .sd-note-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sd-note-head > .icon { flex: none; color: var(--muted); }
@@ -174,20 +194,20 @@
 .sd-note-quiet .sd-note-head { border-style: dashed; background: transparent; color: var(--muted); }
 .sd-note-quiet .sd-note-head b { font-weight: var(--weight-medium); }
 .sd-note-ok .sd-note-head > .icon:nth-child(2) { color: var(--status-completed-text); }
-.sd-note-fail .sd-note-head { border-color: color-mix(in srgb, var(--status-error-text) 40%, var(--border)); }
+.sd-note-fail .sd-note-head { border-color: color-mix(in srgb, var(--status-error-text) 40%, var(--border-control)); }
 .sd-note-fail .sd-note-head > .icon:nth-child(2) { color: var(--status-error-text); }
-.sd-note-body { margin-top: 6px; padding: 10px 12px; border-radius: 8px; background: var(--raised); display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; }
+.sd-note-body { margin-top: 6px; padding: 10px 12px; border-radius: var(--radius-card); background: var(--raised); display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; }
 .sd-note-facts { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; }
 .sd-note-facts dt { color: var(--muted); }
 .sd-note-facts dd { margin: 0; overflow-wrap: anywhere; font-size: 11.5px; }
 .sd-cmd-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.sd-cmd-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 6px; background: var(--raised); color: var(--accent-text); font-size: 12px; }
+.sd-cmd-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: var(--radius-card); background: var(--raised); color: var(--accent-text); font-size: 12px; }
 .sd-cmd-args { font-size: 12px; color: var(--muted); }
 .sd-cmd-out { flex: 1 1 100%; padding: 6px 10px; border-left: 2px solid var(--border); color: var(--muted); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sd-cmd-err { border-left-color: var(--status-error-text); color: var(--status-error-text); }
 
 .sd-activity { display: flex; flex-direction: column; gap: 8px; }
-.sd-activity-head { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; max-width: 100%; padding: 4px 8px; margin-left: -8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12.5px; text-align: left; }
+.sd-activity-head { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; max-width: 100%; padding: 4px 8px; margin-left: -8px; border: 0; border-radius: var(--radius-card); background: transparent; color: var(--muted); font-size: 12.5px; text-align: left; }
 .sd-activity-head:hover { color: var(--text); background: var(--raised); }
 .sd-activity-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sd-activity-count { white-space: nowrap; flex: none; }
@@ -195,7 +215,7 @@
 .sd-activity-head .sd-e-error { display: inline-flex; align-items: center; gap: 4px; flex: none; }
 .sd-activity-body { display: flex; flex-direction: column; gap: 8px; }
 
-.sd-tool { border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.sd-tool { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--bg); }
 .sd-tool.sd-asks { border-color: var(--status-waiting-dot); }
 .sd-tool-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: 0; background: transparent; color: var(--text); text-align: left; font-size: 12.5px; }
 .sd-tool-head .sd-name { color: var(--accent-text); font-weight: var(--weight-semibold); }
@@ -206,20 +226,21 @@
 .sd-e-permission { color: var(--status-waiting-text); }
 .sd-e-running { color: var(--status-active-text); }
 .sd-tool-body { padding: 0 14px 12px 38px; display: flex; flex-direction: column; gap: 10px; }
-.sd-pre { margin: 4px 0 0; padding: 10px 12px; border-radius: 6px; background: var(--raised); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+.sd-pre { margin: 4px 0 0; padding: 10px 12px; border-radius: var(--radius-card); background: var(--raised); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
 
 /* ---------- Linha do tempo (C6) ---------- */
 .sd-filters { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .sd-filters-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.sd-search, .sd-date { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--muted); }
+.sd-search, .sd-date { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--border-control); border-radius: var(--radius-card); background: var(--bg); color: var(--muted); }
 .sd-search { flex: 1; min-width: 240px; }
 .sd-search .sd-field, .sd-date .sd-field { border: 0; background: transparent; height: 100%; padding: 0; flex: 1; min-width: 0; }
 .sd-field:focus { outline: none; }
 .sd-search:focus-within, .sd-date:focus-within, .sd-select:focus-visible, .sd-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .sd-date { min-width: 210px; }
 .sd-date span { color: var(--muted); font-size: 13px; }
-.sd-chip { height: 28px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--raised); color: var(--muted); font-size: 12px; }
-select.sd-chip.on { color: var(--accent-text); border-color: var(--accent); }
+.sd-chip { height: 28px; padding: 0 8px; border-radius: var(--radius-card); border: 1px solid var(--border); background: var(--raised); color: var(--muted); font-size: 12px; }
+select.sd-chip { border-color: var(--border-control); }
+select.sd-chip.on { color: var(--accent-text); border-color: var(--accent-line); }
 
 .sd-events { overflow: hidden; }
 .sd-event + .sd-event { border-top: 1px solid var(--border); }
@@ -230,29 +251,33 @@ select.sd-chip.on { color: var(--accent-text); border-color: var(--accent); }
 .sd-event-head .sd-type { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-event-head .sd-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sd-event-head .sd-chip { display: inline-flex; align-items: center; }
-.sd-event-head .sd-status, .sd-event-head .attention-pill { justify-self: start; }
+.sd-event-head [data-state-kind], .sd-event-head .attention-pill { justify-self: start; }
 .sd-pre.sd-data { margin: 0 16px 14px 44px; }
 .sd-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; }
 
 @media (max-width: 1100px) {
+  .sd-conv { grid-template-columns: minmax(0, 1fr); }
+  .sd-aside { order: 2; }
   .sd-numbers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .sd-two { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .sd-pills, .sd-folder { padding-left: 0; }
+  /* M10: the state and the button do not share a line. */
+  .sd-head-row { flex-direction: column; align-items: stretch; }
+  .sd-actions { justify-content: space-between; }
+  .sd-top h1 { font-size: 20px; }
   .sd-band { flex-direction: column; align-items: flex-start; }
   .sd-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sd-select { min-width: 0; flex: 1; }
   .sd-event-head { grid-template-columns: 16px 52px minmax(0, 1fr); }
-  .sd-event-head .sd-status, .sd-event-head .attention-pill, .sd-event-head .sd-chip, .sd-event-head .sd-type { display: none; }
+  .sd-event-head [data-state-kind], .sd-event-head .attention-pill, .sd-event-head .sd-chip, .sd-event-head .sd-type { display: none; }
   .sd-node.sd-sub { margin-left: calc(var(--sd-depth, 1) * 12px + 4px); }
 }
 
 /* ---------- Issue 243 (C49): a remote session ---------- */
 /* Where it was read from, under the folder: "Lida do núcleo da Workstation, pelo túnel · há 6 s". */
-.sd-source { display: flex; align-items: center; gap: 8px; padding-left: 42px; color: var(--muted); font-size: 12px; min-width: 0; }
+.sd-source { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; min-width: 0; }
 .sd-source span { overflow-wrap: anywhere; }
 /* The C48 notice when the remote stops answering: the last read stays below it. */
 .sd-machine-notice { flex: none; }
 .sd-machine-notice[hidden] { display: none; }
-@media (max-width: 900px) { .sd-source { padding-left: 0; } }

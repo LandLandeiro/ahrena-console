@@ -45,7 +45,6 @@ import {
   sessionPill,
 } from './cloud-format.js';
 
-const SUB = 'As contas de fora que o console usa. As credenciais ficam com as CLIs de cada nuvem e com o cofre do sistema: o console nunca as guarda nem mostra.';
 const GITHUB_DETAIL = '/ui/connections/github';
 const SOON = {
   gcp: { name: 'Google Cloud', sub: 'gcloud · configurações', text: 'Fase 2: as configurações do gcloud, a conta de cada uma e o gcloud auth login.' },
@@ -92,7 +91,7 @@ export async function tryCatalog(area, ctx) {
 
 async function mountCatalog(area, ctx, first) {
   loadCloudStyle(ctx.signal);
-  const head = header({ icon: 'plug', title: 'Conexões', sub: SUB });
+  const head = header({ icon: 'plug', title: 'Conexões', sub: null });
   let local = first;
   let github = null;
   let machines = [];
