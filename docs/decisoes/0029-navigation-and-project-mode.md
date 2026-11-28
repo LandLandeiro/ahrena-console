@@ -36,8 +36,8 @@
    - **o que ele é:** a soma do preset do Exibir (#754, campos), da coluna Projeto do mapa de rótulos (#760, vocabulário) e da barra de 5 itens (Mural ao vivo, Conversas, Quadro do trabalho, Decisões e Custo);
    - **onde fica a escolha:** junto com a do tema. Hoje o tema fica no `localStorage` do navegador (`docs/design.md`), e o modo e o Exibir ficam ali também; os três passam ao núcleo juntos, na issue do tema que se perde ao reabrir, ainda a abrir;
    - **a regra que não se quebra:** o que pede ação nunca some. Aprovação mostra "Ver o comando" antes do botão; máquina caída, conexão expirada e conversa quase cheia aparecem nos dois modos. No modo Projeto, o item da máquina sai sempre da barra, em qualquer estado, sem exceção para a máquina que pede ação. O aviso sobe para outro lugar, e a #754 constrói os dois:
-     - **faixa no Mural:** uma máquina sem conexão, parada por você ou atualizando aparece numa faixa que diz o estado certo: "sem conexão desde HH:MM", "parada por você" ou "atualizando";
-     - **menu da conta:** a seta de atualização do núcleo (núcleo da máquina mais velho que o app) vai para o menu da conta, com um ponto visível.
+     - **faixa no Mural:** uma máquina sem conexão, parada por você ou atualizando aparece numa faixa que diz o estado certo: "sem conexão desde HH:MM", "parada por você" ou "atualizando". A faixa cobre também as outras máquinas que pedem ação (Acesso bloqueado, Versão diferente e Sem configuração), como já faz hoje, e o texto de cada uma delas fica como está até o Fernando decidir;
+     - **menu da conta:** a seta de atualização do núcleo (núcleo da máquina mais velho que o app) vai para o menu da conta, com um ponto visível. O ponto acende para todo núcleo defasado, em qualquer estado da máquina.
 
      A faixa e o ponto também valem no modo Dev, onde o item da máquina continua na barra. Assim o item sai e o aviso fica nos dois modos.
 3. **Uma regra para "precisa de você"** no núcleo (#761): pergunta, permissão, plano, erro e "Sua vez". "Sua vez" sai de "Em pausa" e entra em "Precisam de você" como linha, o que emenda a 0028.
