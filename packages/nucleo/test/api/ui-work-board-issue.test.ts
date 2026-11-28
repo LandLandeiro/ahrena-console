@@ -404,6 +404,17 @@ describe('#508/AC-3 the card says planejando… and then plano · N passos, and 
     assert.equal(core.posts[0]!.target, 'terminal');
   });
 
+  test('#766/A2 the header stops counting the item as waiting for a plan once the card says planejando…, before the core says so', async () => {
+    const core = new Core();
+    const s = await open(core);
+    assert.match(texto(s.area), /1 item espera um plano/, 'before Planejar the item waits for a plan');
+    await openPanel(core, s);
+    press(buttonIn(panelOf(s)!, 'plan'), 'Planejar in the panel');
+    press(buttonIn(popup(s)!, 'confirm'), 'Planejar in the confirmation');
+    await until(() => articleOf(s, 508).querySelector('[data-state="planning"]') !== null, 'the card says planejando…');
+    assert.ok(!/espera um plano/.test(texto(s.area)), 'the client-held planejando… takes the item out of the count');
+  });
+
   test('#508/AC-3 a page opened while the core is planning shows planejando… without any click', async () => {
     const core = new Core();
     core.cards = [card(508, { planning: { state: 'running' } })];
