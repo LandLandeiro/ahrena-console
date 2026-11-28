@@ -1,5 +1,5 @@
 // #245/AC-2: the old "Esperando você" and "na sua vez" are gone from what the núcleo says; the states are
-// "Precisa de você" and "Ociosa".
+// "Precisa de você" and "Em pausa".
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
