@@ -185,7 +185,7 @@ function numberCard(c) {
 function inbox(attention, agents, write, navigate = () => {}) {
   const total = blockedCount(attention);
   const title = el(
-    'div',
+    'h2',
     { class: 'ttl' },
     icon('bell'),
     el('span', { class: total ? 'c-waiting' : 'c-dim' }, inboxTitle(total)),
@@ -310,13 +310,13 @@ function agentCard(a, expanded, toggleOne) {
 }
 
 function activeAgents(agents, expanded, toggleOne) {
-  const title = el('div', { class: 'ttl' }, 'Agentes ativos');
+  const title = el('h2', { class: 'ttl' }, 'Agentes ativos');
   if (!agents.length) return el('div', { class: 'column' }, title, empty({ icon: 'bot', title: 'Nenhum agente ativo', text: 'Quando uma sessão estiver aberta, o agente dela aparece aqui.' }));
   return el('div', { class: 'column' }, title, ...agents.map((a) => agentCard(a, expanded, toggleOne)));
 }
 
 function recentActivity(activity) {
-  const title = el('div', { class: 'ttl' }, 'Atividade recente', el('a', { class: 'r', href: '/ui/sessions' }, 'Ver tudo', icon('arrow-right')));
+  const title = el('h2', { class: 'ttl' }, 'Atividade recente', el('a', { class: 'r', href: '/ui/sessions' }, 'Ver tudo', icon('arrow-right')));
   if (!activity.length) return el('div', { class: 'column' }, title, empty({ icon: 'activity', title: 'Nada ainda', text: 'Os eventos das sessões aparecem aqui assim que chegam.' }));
   return el(
     'div',

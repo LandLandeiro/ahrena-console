@@ -14,7 +14,7 @@ import { createAppUpdate, appUpdateChanged, hasUpdate } from './app-update.js';
 import { createTheme } from './theme.js';
 import { createModeButton, onModeChange, appMode } from './mode.js';
 import { createScreenTabs } from './screen-tabs.js';
-import { createLiveBlock, LIVE_LABELS } from './live-block.js';
+import { createLiveBlock } from './live-block.js';
 import { createAccountMenu } from './account-menu.js';
 import { createEscape } from './escape.js';
 import { createDrawer } from './drawer.js';
@@ -145,10 +145,6 @@ function drawLive() {
   const seconds = nextAttempt ? Math.max(1, Math.round((nextAttempt - Date.now()) / 1000)) : null;
   liveCard.title = state === 'offline' ? `${e?.message ?? 'O núcleo não respondeu'}. Tentando de novo${seconds ? ` em ${seconds} s` : ''}.` : '';
   live.draw({ state, machines: machineCount, version: versionButton() });
-  for (const p of document.querySelectorAll('[data-live]')) {
-    p.dataset.state = state;
-    p.textContent = LIVE_LABELS[state];
-  }
 }
 
 startLive({
@@ -271,6 +267,12 @@ async function showScreen() {
     area.replaceChildren(error({ title: 'A tela não abriu', text: e?.message ?? String(e), retry: () => open() }));
   }
 }
+
+// Issue 764: the skip link moves the focus to the main; the hash would be a route of its own for the shell below.
+document.querySelector('.cc-skip')?.addEventListener('click', (ev) => {
+  ev.preventDefault();
+  area.focus();
+});
 
 // Internal links (`/ui...`) switch screens without reloading the page.
 document.addEventListener('click', (ev) => {

@@ -217,11 +217,6 @@ export function el(tag, attributes = {}, ...children) {
   return node;
 }
 
-/** The "Ao vivo" pill of the header, tied to the long polling state by the shell. */
-export function livePill() {
-  return el('span', { class: 'live', 'data-live': '' }, 'Ao vivo');
-}
-
 /**
  * #766: writes the line under the title once the screen has read (a subtitle says the state now, or there is none): replaces
  * it, creates it when the header started without one, removes it for an empty text. A header holds one at most.
@@ -239,13 +234,13 @@ export function setHeaderSub(head, text) {
   head.querySelector('h1')?.parentNode?.append(el('div', { class: 'sub' }, text));
 }
 
-/** The header of a screen (C1): icon, title with "Ao vivo", subtitle and actions on the right. */
+/** The header of a screen (C1): icon, title, subtitle and actions on the right. Issue 764: the connection is the bar's, not the title's. */
 export function header({ icon: name, title, sub, actions = [] }) {
   return el(
     'header',
     { class: 'cc-head' },
     el('div', { class: 'ico' }, icon(name)),
-    el('div', {}, el('h1', {}, title, ' ', livePill()), sub ? el('div', { class: 'sub' }, sub) : null),
+    el('div', {}, el('h1', {}, title), sub ? el('div', { class: 'sub' }, sub) : null),
     actions.length ? el('div', { class: 'actions' }, ...actions) : null,
   );
 }
