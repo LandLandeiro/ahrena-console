@@ -62,7 +62,7 @@ function row(node, depth, open, toggle) {
     el('span', { class: 'wft-chip mono' }, node.kind === 'child' ? 'Filha' : 'Sessão'),
     el('span', { class: `wft-pill wft-pill-${tone}` }, label),
     node.parentOutsidePeriod ? el('span', { class: 'wft-chip wft-warn', title: 'Quem abriu esta sessão está fora do período' }, 'pai fora do período') : null,
-    node.outsidePeriod ? el('span', { class: 'wft-chip wft-warn', title: 'Ativa, mais velha que o período: entra sempre' }, 'fora do período') : null,
+    node.outsidePeriod ? el('span', { class: 'wft-chip wft-warn', title: 'Trabalhando fora do período: entra' }, 'fora do período') : null,
     el('span', { class: 'wft-meta' }, [has ? `${num(kids)} ${kids === 1 ? 'filha' : 'filhas'}` : null, meta].filter(Boolean).join(' · ')),
     link,
   );

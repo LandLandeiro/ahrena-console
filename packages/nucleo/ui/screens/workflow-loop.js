@@ -159,7 +159,7 @@ function groupEl(g, sessionId, led = false) {
       : g.state === 'stopped'
         ? el('div', { class: 'wfl-foot' }, 'A sessão terminou com um pedido de mudança sem resposta: é onde o laço travou.')
         : g.state === 'waiting-fix'
-          ? el('div', { class: 'wfl-foot' }, 'A sessão está ativa: o laço segue aberto, ninguém corrigiu ainda.')
+          ? el('div', { class: 'wfl-foot' }, 'A sessão está trabalhando: o laço segue aberto, ninguém corrigiu ainda.')
           : null;
   return el('div', { class: 'card wfl-group', 'data-group': g.id }, head, row, foot);
 }

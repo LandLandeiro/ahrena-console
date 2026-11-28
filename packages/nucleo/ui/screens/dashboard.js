@@ -79,7 +79,7 @@ export function cards(numbers, { byMachine = null, machines = [] } = {}) {
   const remoteSessions = remoteParts(byMachine, machines, (b) => b.numbers?.sessions?.total);
   const remoteAgents = remoteParts(byMachine, machines, (b) => b.numbers?.agents?.active);
   return [
-    { id: 'sessions', rotulo: 'Sessões', icone: 'sessions', cor: 'accent', valor: integer.format(sessions.total), extra: `${sessions.active} ${sessions.active === 1 ? 'ativa' : 'ativas'}`, sub: [...remoteSessions, sessionsDetail(sessions)].join(' · ') },
+    { id: 'sessions', rotulo: 'Sessões', icone: 'sessions', cor: 'accent', valor: integer.format(sessions.total), extra: `${sessions.active} trabalhando`, sub: [...remoteSessions, sessionsDetail(sessions)].join(' · ') },
     { id: 'agents', rotulo: 'Agentes ativos', icone: 'bot', cor: 'active', valor: integer.format(agents.active), sub: [inSessions(agents.sessions), ...remoteAgents].join(' · ') },
     { id: 'subagents', rotulo: 'Subagentes ativos', icone: 'subagent', cor: 'accent', valor: integer.format(subagents.active), sub: inSessions(subagents.sessions) },
     { id: 'events-today', rotulo: 'Eventos hoje', icone: 'events', cor: 'waiting', valor: quantity(events.today), sub: `+${quantity(events.lastHour)} na última hora` },
@@ -95,11 +95,11 @@ export function cards(numbers, { byMachine = null, machines = [] } = {}) {
   ];
 }
 
-/** "5 precisam de você · 3 ociosas"; without either, "ninguém precisa de você". */
+/** "5 precisam de você · 3 em pausa"; without either, "ninguém precisa de você". */
 export function sessionsDetail(sessions) {
   const blocked = Number(sessions.blocked) || 0;
   const idle = Number(sessions.idle) || 0;
-  const parts = [blocked ? `${blocked} ${blocked === 1 ? 'precisa' : 'precisam'} de você` : null, idle ? `${idle} ${idle === 1 ? 'ociosa' : 'ociosas'}` : null].filter(Boolean);
+  const parts = [blocked ? `${blocked} ${blocked === 1 ? 'precisa' : 'precisam'} de você` : null, idle ? `${idle} em pausa` : null].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'ninguém precisa de você';
 }
 
@@ -140,7 +140,7 @@ export function inboxCards(attention, agents) {
 }
 
 export const inboxTitle = (total) => (total === 0 ? 'Ninguém precisa de você agora' : `${total} ${total === 1 ? 'precisa' : 'precisam'} de você`);
-export const idleTitle = (total) => `${total} ${total === 1 ? 'ociosa' : 'ociosas'}`;
+export const idleTitle = (total) => `${total} em pausa`;
 
 /** The idle row: the reason and the project of the first ones. */
 export function idleChips(attention) {
@@ -232,7 +232,7 @@ function miniActions(c, write) {
   );
 }
 
-/** The idle ones, apart and neutral: "3 ociosas · sem pressa", a light chip per session and the link. */
+/** The idle ones, apart and neutral: "3 em pausa · sem pressa", a light chip per session and the link. */
 function idleRow(attention) {
   const total = idleCount(attention);
   if (!total) return null;

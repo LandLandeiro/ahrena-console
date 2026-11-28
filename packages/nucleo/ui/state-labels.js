@@ -5,8 +5,8 @@
 // - The name is `state-labels.js`, not `states.js`: that one holds the loading, empty and error helpers of every screen.
 // - Dev is the vocabulary of today. Projeto is the same ids with the words of the table of section 4 of the review
 //   ("Pede sua aprovação", "Parou com erro", "Esperando sua resposta", "Encerrada sem terminar"); what the table calls
-//   "igual" is equal here. "Ativa" and "Ociosa" are still the same in both columns: renaming them is issue 753, and it
-//   changes this file only.
+//   "igual" is equal here. "Trabalhando" and "Em pausa" (issue 753, decision 0028) are the same in both columns: they
+//   replaced "Ativa" and "Ociosa" here and only here, and the reason of a pause stays beside them ("Em pausa · Sua vez").
 // - The ids (`active`, `idle`, `blocked`, `permission`...) are the ones of the API and do not change.
 // - The mode is `dev` at first and lives in this module only: no button, no storage. Issue 754 sets it and redraws; a
 //   screen reads the label while it draws (`stateLabel(id)` reads the mode at the call), so a constant that holds a
@@ -43,7 +43,7 @@ const state = (kind, dev, project = same) => Object.freeze({ kind, dev: Object.f
 const STATES = Object.freeze({
   // The two attention levels (issue 245).
   blocked: state('needs', ['Precisa de você', 'Precisam de você']),
-  idle: state('paused', ['Ociosa', 'Ociosas']),
+  idle: state('paused', ['Em pausa', 'Em pausa']),
   // Why a session is blocked or idle.
   permission: state('permission', ['Pede permissão'], ['Pede sua aprovação']),
   question: state('needs', ['Pergunta'], ['Esperando sua resposta']),
@@ -54,7 +54,7 @@ const STATES = Object.freeze({
   interrupted: state('paused', ['Interrompida']),
   first_prompt: state('paused', ['No prompt']),
   // The status of a session.
-  active: state('working', ['Ativa', 'Ativas']),
+  active: state('working', ['Trabalhando', 'Trabalhando']),
   completed: state('completed', ['Concluída', 'Concluídas']),
   abandoned: state('paused', ['Abandonada', 'Abandonadas'], ['Encerrada sem terminar', 'Encerradas sem terminar']),
   queued: state('queued', ['Na fila']),
@@ -100,7 +100,7 @@ export function kindLabel(kind, options) {
   return typeof kind === 'string' && Object.hasOwn(KIND_STATE, kind) ? stateLabel(KIND_STATE[kind], options) : null;
 }
 
-/** "Precisa de você ou ociosa": the filter that takes both levels, built from the two labels. */
+/** "Precisa de você ou em pausa": the filter that takes both levels, built from the two labels. */
 export const needsOrIdleLabel = () => `${stateLabel('blocked')} ou ${stateLabel('idle').toLowerCase()}`;
 
 /**

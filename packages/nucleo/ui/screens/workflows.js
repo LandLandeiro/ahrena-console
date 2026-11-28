@@ -45,16 +45,16 @@ export function coverageText(d) {
   const inPeriod = d.sessions - outside; // `sessions` already counts the active ones older than the period
   const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
   if (d.period !== 'all' && inPeriod === 0 && outside > 0) {
-    return { title: `Nada em ${p.label}`, text: `Há ${plural(outside, 'sessão ativa mais velha', 'sessões ativas mais velhas')} e ${outside === 1 ? 'ela entra' : 'elas entram'} mesmo assim: sessões ativas nunca ficam de fora do período.` };
+    return { title: `Nada em ${p.label}`, text: `Há ${plural(outside, 'sessão trabalhando mais velha', 'sessões trabalhando mais velhas')} e ${outside === 1 ? 'ela entra' : 'elas entram'} mesmo assim: sessões trabalhando nunca ficam de fora do período.` };
   }
   const base = d.period === 'all' ? `${plural(inPeriod, 'sessão', 'sessões')} no histórico` : `${plural(inPeriod, 'sessão', 'sessões')} em ${p.label}`;
-  const tail = outside > 0 ? ` ${plural(outside, 'ativa mais velha entra', 'ativas mais velhas entram')} assim mesmo.` : ' Nenhuma sessão ativa fica de fora.';
+  const tail = outside > 0 ? ` ${plural(outside, 'sessão trabalhando mais velha entra', 'sessões trabalhando mais velhas entram')} assim mesmo.` : ' Nenhuma sessão trabalhando fica de fora.';
   return { title: base, text: `Os números e o grafo contam todas, não só as da lista.${tail}` };
 }
 
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas as sessões', resumo: 'todas as sessões' },
-  { id: 'active', rotulo: 'Só ativas', resumo: 'só as ativas' },
+  { id: 'active', rotulo: 'Só trabalhando', resumo: 'só as que trabalham' },
   { id: 'completed', get rotulo() { return stateLabel('completed', { plural: true }); }, resumo: 'só as concluídas' },
 ];
 
@@ -420,7 +420,7 @@ export async function mount(area, ctx) {
         empty(
           d.period === 'all'
             ? { icon: 'workflows', title: 'Nenhuma sessão ainda', text: 'Quando houver sessões do Claude Code nesta máquina, a orquestração dos agentes aparece aqui.' }
-            : { icon: 'workflows', title: `Nada em ${PERIODS.find((x) => x.id === d.period)?.label ?? d.period}`, text: 'Nenhuma sessão se mexeu neste período e nenhuma está ativa. Escolha um período maior para ver mais.' },
+            : { icon: 'workflows', title: `Nada em ${PERIODS.find((x) => x.id === d.period)?.label ?? d.period}`, text: 'Nenhuma sessão se mexeu neste período e nenhuma está trabalhando. Escolha um período maior para ver mais.' },
         ),
       );
       return;

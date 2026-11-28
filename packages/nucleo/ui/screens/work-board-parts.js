@@ -53,7 +53,7 @@ const PATH_LABELS = { initiative: 'Iniciativa', epic: 'Épico' };
 const REASON_ICONS = { 'needs-you': 'hand', 'review-rounds': 'repeat', 'ci-failed': 'error' };
 const CI = { ok: ['CI ✓', 'completed'], failed: ['CI ✕', 'error'], running: ['CI …', 'waiting'] };
 const REVIEW = { approved: ['aprovado', 'completed'], 'changes-requested': ['ajustes', 'error'], pending: ['review', 'waiting'] };
-const SESSIONS = { working: 'trabalhando', 'needs-you': 'precisa de você', idle: 'ociosa' };
+const SESSIONS = { working: 'trabalhando', 'needs-you': 'precisa de você', idle: 'em pausa' };
 const TYPE_CLASSES = new Set(Object.keys(TYPE_LABELS));
 /** issue 477: the columns that are facts of the session and of GitHub and refuse a dragged card (a lock shows while one is dragged). */
 const FACT_COLUMNS = new Set(['running', 'review', 'blocked', 'done']);

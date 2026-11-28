@@ -692,12 +692,6 @@
   {
     "file": "packages/nucleo/ui/screens/workflow-tree.js",
     "rule": "limit-title-words",
-    "text": "Ativa, mais velha que o período: entra sempre",
-    "count": 1
-  },
-  {
-    "file": "packages/nucleo/ui/screens/workflow-tree.js",
-    "rule": "limit-title-words",
     "text": "Quem abriu esta sessão está fora do período",
     "count": 1
   },

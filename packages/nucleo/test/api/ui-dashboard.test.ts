@@ -222,7 +222,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
         comClasse(area, 'stat').map((c) => c.getAttribute('data-card')),
         ['sessions', 'agents', 'subagents', 'events-today', 'events-total', 'cost'],
       );
-      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 ativa1 precisa de você · 1 em pausa$/);
+      assert.match(comClasse(area, 'stat')[0]!.textContent, /^Sessões31 trabalhando1 precisa de você · 1 em pausa$/);
       assert.match(comClasse(area, 'stat')[5]!.textContent, /~US\$ 1,84estimativa · 30 dias/);
 
       const inbox = comClasse(area, 'inbox')[0]!;
@@ -270,7 +270,7 @@ describe('Dashboard: a tela montada sobre a API (simulador p1)', () => {
       botao.click();
       const arvore = comClasse(area, 'tree');
       assert.equal(arvore.length, 1);
-      assert.deepEqual(comClasse(arvore[0]!, 'child').map((f) => f.textContent.replace(/\d+ (s|min)|agora/, '')), ['Explore · mapear usosAtiva', 'Plan · planoConcluída']);
+      assert.deepEqual(comClasse(arvore[0]!, 'child').map((f) => f.textContent.replace(/\d+ (s|min)|agora/, '')), ['Explore · mapear usosTrabalhando', 'Plan · planoConcluída']);
       comClasse(area, 'subs')[0]!.click();
       assert.equal(comClasse(area, 'tree').length, 0);
     } finally {

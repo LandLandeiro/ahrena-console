@@ -141,7 +141,7 @@ describe('the period of the Workflows page (C84)', () => {
     assert.deepEqual(coverageText({ period: '24h', sessions: 1, activeOutsidePeriod: 1 }), { title: 'Nada em 24 h', text: 'Há 1 sessão trabalhando mais velha e ela entra mesmo assim: sessões trabalhando nunca ficam de fora do período.' });
     const mixed = coverageText({ period: '7d', sessions: 13, activeOutsidePeriod: 1 });
     assert.equal(mixed.title, '12 sessões em 7 dias');
-    assert.match(mixed.text, /1 trabalhando mais velha entra assim mesmo\./);
+    assert.match(mixed.text, /1 sessão trabalhando mais velha entra assim mesmo\./);
     assert.equal(coverageText({ period: 'all', sessions: 8912, activeOutsidePeriod: 0 }).title, '8.912 sessões no histórico');
   });
 });

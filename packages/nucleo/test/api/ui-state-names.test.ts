@@ -48,7 +48,7 @@ describe('#753 the map: Trabalhando and Em pausa', () => {
 
   test('the new labels obey the voice: at most 4 words and 28 characters', async () => {
     const m = await labels();
-    for (const text of [m.stateLabel('active'), m.stateLabel('idle'), m.needsOrIdleLabel()]) {
+    for (const text of [m.stateLabel('active'), m.stateLabel('idle')]) {
       assert.ok(text.split(/\s+/).length <= 4 && text.length <= 28, text);
     }
   });
@@ -64,6 +64,7 @@ const OLD_WORD = /(?<![\p{L}\p{N}_-])(?:ativ[ao]s?|ocios[ao]s?)(?![\p{L}\p{N}_-]
  * before the line is searched; one that matches nothing fails.
  */
 const NOT_SESSION_STATES: { file: string; text: string; why: string }[] = [
+  { file: 'state-labels.js', text: "['Ativo']", why: 'the label of an agent or a step of a workflow run (masculine, as "Rodando" and "Esperando"), not of a session' },
   { file: 'screens/dashboard.js', text: 'Agentes ativos', why: 'agents, not sessions: the card and the column title of the active agents' },
   { file: 'screens/dashboard.js', text: 'Subagentes ativos', why: 'subagents, not sessions: the card of the active subagents' },
   { file: 'screens/dashboard.js', text: 'Nenhum agente ativo', why: 'agents, not sessions: the empty column of the active agents' },

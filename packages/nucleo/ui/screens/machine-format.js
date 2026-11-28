@@ -346,7 +346,7 @@ export function statCards(reading, { local, sessions = null, alerts = [], now = 
     // issue 245: "precisam de você" counts only the blocked ones; the idle ones are said apart.
     const blocked = sessions.filter((i) => sessionAttention(i).level === 'blocked').length;
     const idle = sessions.length - blocked;
-    const sub = blocked ? `${blocked} ${blocked === 1 ? 'precisa' : 'precisam'} de você` : idle ? `${idle} ${idle === 1 ? 'ociosa' : 'ociosas'}` : 'ninguém precisa de você';
+    const sub = blocked ? `${blocked} ${blocked === 1 ? 'precisa' : 'precisam'} de você` : idle ? `${idle} em pausa` : 'ninguém precisa de você';
     byId.sessions = { id: 'sessions', label: 'Sessões', icon: 'sessions', value: f0.format(sessions.length), unit: null, sub, tone: 'session' };
   }
   return STAT_ORDER.map((id) => byId[id]).filter(Boolean);

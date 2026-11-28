@@ -154,7 +154,7 @@ export function scoreboardCards(view) {
       tone: 'error',
       alert: s.ciFailingOrConflict > 0,
     },
-    { id: 'working', label: stateLabel('active'), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão ativa' : 'sessões ativas', icon: 'bot', tone: 'accent', alert: false },
+    { id: 'working', label: stateLabel('active'), value: s.sessionsWorking, sub: s.sessionsWorking === 1 ? 'sessão trabalhando' : 'sessões trabalhando', icon: 'bot', tone: 'accent', alert: false },
     {
       // issue 245: only what blocks (sessions and decisions); the idle ones of the context stay apart.
       id: 'blocked',
@@ -168,11 +168,11 @@ export function scoreboardCards(view) {
   ];
 }
 
-/** "2 sessões, 1 decisão · 1 ociosa fora"; nothing blocked is "ninguém". */
+/** "2 sessões, 1 decisão · 1 em pausa fora"; nothing blocked is "ninguém". */
 export function blockedSub(sessions, decisions, idle) {
   const blocked = [sessions ? plural(sessions, 'sessão', 'sessões') : null, decisions ? plural(decisions, 'decisão', 'decisões') : null].filter(Boolean).join(', ') || 'ninguém';
   const n = Number.isInteger(idle) ? idle : 0;
-  return n ? `${blocked} · ${n} ${n === 1 ? 'ociosa' : 'ociosas'} fora` : blocked;
+  return n ? `${blocked} · ${n} em pausa fora` : blocked;
 }
 
 /** The attention of a board card's session: its `attention`, or `waitingOnYou` from an older core. */
@@ -338,7 +338,7 @@ function boardCard(card, column) {
   const attention = cardAttention(card.session);
   const blocked = isBlocked(attention);
   const idle = isIdle(attention);
-  const chip = blocked ? el('span', { class: 'attention-chip dev-card-chip' }, 'precisa de você') : idle ? el('span', { class: 'attention-chip attention-chip-light dev-card-chip' }, 'ociosa') : null;
+  const chip = blocked ? el('span', { class: 'attention-chip dev-card-chip' }, 'precisa de você') : idle ? el('span', { class: 'attention-chip attention-chip-light dev-card-chip' }, 'em pausa') : null;
   return el(
     'div',
     { class: `card dev-card${blocked ? ' dev-card-waiting' : idle ? ' dev-card-idle' : ''}${column === 'blocked' ? ' dev-card-blocked' : ''}` },

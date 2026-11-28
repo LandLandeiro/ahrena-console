@@ -44,8 +44,8 @@ const stateFilter = (id, passa, vazio) => ({
 export const FILTERS = [
   { id: 'all', rotulo: 'Todas', passa: () => true, vazio: 'Nenhuma sessão aberta' },
   stateFilter('blocked', (c) => sectionOf(c) === 'blocked', 'Ninguém precisa de você agora'),
-  stateFilter('active', (c) => sectionOf(c) === 'active', 'Nenhuma sessão ativa'),
-  stateFilter('idle', (c) => sectionOf(c) === 'idle', 'Nenhuma sessão ociosa'),
+  stateFilter('active', (c) => sectionOf(c) === 'active', 'Nenhuma sessão trabalhando'),
+  stateFilter('idle', (c) => sectionOf(c) === 'idle', 'Nenhuma sessão em pausa'),
 ];
 
 const limit = (n) => Math.min(100, Math.max(0, Math.round(n)));
@@ -121,7 +121,7 @@ export function rowContent(c) {
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**
- * The line under a leader's card: "4 filhas", "1 precisa de você", "2 ativas", "1 parada", the counts of its
+ * The line under a leader's card: "4 filhas", "1 precisa de você", "2 trabalhando", "1 parada", the counts of its
  * whole tree, without the zeros. `null` when the card has no children.
  */
 export function treeSummary(tree) {
@@ -129,7 +129,7 @@ export function treeSummary(tree) {
   return [
     { text: plural(tree.total, 'filha', 'filhas'), tone: 'total' },
     tree.blocked ? { text: tree.blocked === 1 ? '1 precisa de você' : `${tree.blocked} precisam de você`, tone: 'blocked' } : null,
-    tree.active ? { text: plural(tree.active, 'ativa', 'ativas'), tone: 'active' } : null,
+    tree.active ? { text: `${tree.active} trabalhando`, tone: 'active' } : null,
     tree.parked ? { text: plural(tree.parked, 'parada', 'paradas'), tone: 'parked' } : null,
   ].filter(Boolean);
 }
