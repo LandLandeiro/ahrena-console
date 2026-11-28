@@ -93,8 +93,8 @@ O antigo "esperando você" virou dois estados, e toda rota em inglês que alimen
 attention: { level: 'blocked' | 'idle'; reason: 'permission' | 'question' | 'plan' | 'decision' | 'error' | 'turn_ended' | 'interrupted' | 'first_prompt' } | null
 ```
 
-- `blocked` ("Precisa de você" na tela): a sessão trava até a pessoa agir; `reason` é `permission`, `question`, `plan`, `decision` ou `error`.
-- `idle` ("Ociosa" na tela): o turno acabou e nada trava; `reason` é `turn_ended`, `interrupted` ou `first_prompt`.
+- `blocked` ("Precisa de você" na tela): a sessão espera a pessoa; `reason` é `permission`, `question`, `plan`, `decision`, `error` ou `turn_ended`. O `turn_ended` ("Sua vez", #761) é o de urgência mais baixa: o turno acabou e a sessão espera a resposta, então entra na mesma contagem de "Precisam de você" em todas as rotas e telas.
+- `idle` ("Ociosa" na tela): nada trava e nada é pedido; `reason` é `interrupted` ou `first_prompt`.
 - `null`: a sessão não espera você nem está com erro (trabalhando, delegando, em background, concluída, abandonada).
 
 Os motivos são os do MCP (`reason` de `sessions_needing_attention`). Onde a tela mostra números, eles vêm separados:
