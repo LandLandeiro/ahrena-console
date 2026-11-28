@@ -380,9 +380,14 @@ function skeleton() {
   const bones = (...kinds) => kinds.map((k) => el('div', { class: `wall-skel-bone${k ? ` ${k}` : ''}` }));
   return el(
     'section',
-    { class: 'wall-skel', 'aria-busy': 'true', 'aria-label': 'Lendo o mural' },
-    el('div', { class: 'wall-skel-card' }, ...bones('short', '', 'medium')),
-    el('div', { class: 'wall-skel-rows' }, ...[0, 1, 2].map(() => el('div', { class: 'wall-skel-row' }, ...bones('short', 'medium')))),
+    { class: 'wall-skel', 'aria-label': 'Lendo o mural' },
+    // ADR-0028, #758-wall-polish: busy on an inner node, never on a direct child of the area: the switch of screen (#765) reads a busy child as "no data yet" and keeps its ghost over this skeleton.
+    el(
+      'div',
+      { class: 'wall-skel-body', 'aria-busy': 'true' },
+      el('div', { class: 'wall-skel-card' }, ...bones('short', '', 'medium')),
+      el('div', { class: 'wall-skel-rows' }, ...[0, 1, 2].map(() => el('div', { class: 'wall-skel-row' }, ...bones('short', 'medium')))),
+    ),
   );
 }
 
@@ -608,16 +613,16 @@ export async function mount(area, ctx) {
   }
 
   // ADR-0028, #758-wall-polish: what this read changed against the last one: highlight the sessions that moved, say the two things that matter.
-  function follow(cards) {
+  function follow(cards, machinesOf) {
     const { moved: now, notices: news } = liveChanges(seen, cards);
-    seen = snapshotOf(cards);
+    seen = snapshotOf(cards, machinesOf);
     for (const key of now) moved.add(key);
     if (now.size) {
       clearTimeout(movedTimer);
       movedTimer = setTimeout(() => {
         movedTimer = null;
         moved.clear();
-        // Only the class leaves: no redraw, so the focus and the scroll are never touched by the end of a highlight.
+        // ADR-0028: only the class leaves: no redraw, so the focus and the scroll are never touched by the end of a highlight.
         for (const node of [...area.querySelectorAll('.wall-moved')]) node.classList.remove('wall-moved');
       }, MOVED_MS);
     }
@@ -636,7 +641,7 @@ export async function mount(area, ctx) {
       machines.update(fresh);
       wall = fresh;
       failure = null;
-      follow(fresh.cards ?? []);
+      follow(fresh.cards ?? [], fresh.machines);
     } catch (e) {
       if (e?.name === 'AbortError' || mine !== request) return;
       if (machines.recover(e)) return;

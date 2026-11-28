@@ -180,6 +180,7 @@ button.wall-kid-toggle::after { content: ""; position: absolute; left: 50%; top:
 /* ---------- ADR-0028: loading, error, live change, the notice and the keys ---------- */
 /* The skeleton: the shape of one card and three rows, still. Nothing in it moves, so there is nothing to turn off. */
 .wall-skel { display: flex; flex-direction: column; gap: 16px; }
+.wall-skel-body { display: flex; flex-direction: column; gap: 16px; }
 .wall-skel-card { display: flex; flex-direction: column; gap: 10px; min-height: 140px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .wall-skel-rows { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); }
 .wall-skel-row { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
